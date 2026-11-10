@@ -1,0 +1,897 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コマンド解決とフラグ除去パーサー（`Find` / `Traverse` / `stripFlags`） — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    
+    
+    <meta name="description" content="Cobra がコマンドのライフサイクルフックを実行したりフラグ制約を検証したりする前段階として、コマンドツリー内のどの *Command ノードが今回の呼び出しを担当するかを解決する必要があります。os.Args[1] を常にサブコマンド名とみなす単純な CLI ルーターとは異なり、POSIX/GNU 準拠の…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra 内部アーキテクチャ">
+    <meta property="og:title" content="コマンド解決とフラグ除去パーサー（Find / Traverse / stripFlags） — Cobra 内部アーキテクチャ">
+    <meta property="og:description" content="Cobra がコマンドのライフサイクルフックを実行したりフラグ制約を検証したりする前段階として、コマンドツリー内のどの *Command ノードが今回の呼び出しを担当するかを解決する必要があります。os.Args[1] を常にサブコマンド名とみなす単純な CLI ルーターとは異なり、POSIX/GNU 準拠の…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="コマンド解決とフラグ除去パーサー（Find / Traverse / stripFlags） — Cobra 内部アーキテクチャ">
+    <meta name="twitter:description" content="Cobra がコマンドのライフサイクルフックを実行したりフラグ制約を検証したりする前段階として、コマンドツリー内のどの *Command ノードが今回の呼び出しを担当するかを解決する必要があります。os.Args[1] を常にサブコマンド名とみなす単純な CLI ルーターとは異なり、POSIX/GNU 準拠の…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra 内部アーキテクチャ">
+                    
+                    Cobra 内部アーキテクチャ
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >アーキテクチャ概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. パッケージ構成と複合ツリー</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command ツリーと FlagSet 遅延初期化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. パーサーとコマンド解決</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="find_traverse_and_stripflags.html" >Find / Traverse と stripFlags パーサー</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. ライフサイクル実行エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC・execute() とフック連鎖</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 関係フラググループと引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation フラググループとバリデータ</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete プロトコルとシェル生成</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. ドキュメント合成エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >cobra/doc の再帰ツリー直列化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra ユーザーガイド<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">コマンド解決とフラグ除去パーサー（`Find` / `Traverse` / `stripFlags`）</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/02_parser_and_dispatch/find_traverse_and_stripflags.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="find_traverse_and_stripflags.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>コマンド解決とフラグ除去パーサー（<code>Find</code> / <code>Traverse</code> / <code>stripFlags</code>）</h1>
+<p>Cobra がコマンドのライフサイクルフックを実行したりフラグ制約を検証したりする前段階として、コマンドツリー内のどの <code>*Command</code> ノードが今回の呼び出しを担当するかを解決する必要があります。<code>os.Args[1]</code> を常にサブコマンド名とみなす単純な CLI ルーターとは異なり、POSIX/GNU 準拠の CLI ではルートの永続フラグ（および空白区切りのフラグ値）がサブコマンドトークンの <strong>前・中間・後ろのどこにでも</strong> 出現し得ます（例: <code>app --config prod.yaml -v server --port 8080 start</code>）。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_parser_and_dispatch/find_traverse_and_stripflags/find_vs_traverse_flow_ja.png" alt="find_traverse_and_stripflags_1" />
+  <figcaption class="drawlib-caption">図1: ステートレスな Find() 解決と階層別フラグ解析を行う Traverse() 解決の比較 (command.go:757–860)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">108</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">103.5</span><span class="p">),</span>
+    <span class="s2">"コマンドツリー解決の分岐: Find(args) vs. Traverse(args)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Top Dispatch Router</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ExecuteC() 解決ディスパッチ (command.go:1120–1124)</span><span class="se">\n</span><span class="s2">if c.TraverseChildren { c.Traverse(args) } else { c.Find(args) }"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.6</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">)</span>
+
+<span class="c1"># Left Panel: Find(args) Default Mode</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Find(args) — デフォルト"</span><span class="p">,</span>
+    <span class="s2">"ステートレス走査"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">76</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. stripFlags(innerArgs, c) (L761)</span><span class="se">\n</span><span class="s2">NoOptDefVal を参照し未 Parse でフラグ除外"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. cmd := c.findNext(argsWOflags[0]) (L767)</span><span class="se">\n</span><span class="s2">子コマンドの Name / Alias / Prefix 照合"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. c.argsMinusFirstX(innerArgs, sub) (L769)</span><span class="se">\n</span><span class="s2">最初のサブコマンド名のみ除去し親フラグ保持"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. 葉ノード確定 + legacyArgs() (L774–778)</span><span class="se">\n</span><span class="s2">葉の execute() 内で一括 c.ParseFlags(a)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">43.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">20.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: Traverse(args) Mode</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Traverse(args) — オプトイン"</span><span class="p">,</span>
+    <span class="s2">"階層ごとに Parse"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">76</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. args[i] 走査 + inFlag 状態管理 (L825–847)</span><span class="se">\n</span><span class="s2">当該階層の flags[] スライスへ順次蓄積"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. cmd := c.findNext(arg) (L849)</span><span class="se">\n</span><span class="s2">最初の非フラグトークン位置 i で子を検索"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. 親で即座に c.ParseFlags(flags) (L854)</span><span class="se">\n</span><span class="s2">各親階層のローカル・永続 FlagSet を更新"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. 末尾再帰 cmd.Traverse(args[i+1:]) (L857)</span><span class="se">\n</span><span class="s2">残余スライスを子へ渡し execute() で解析"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">43.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">20.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Top Router to Left &amp; Right Panels</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">68</span><span class="p">,</span> <span class="mf">86.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">116</span><span class="p">,</span> <span class="mf">86.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. 2つのコマンド解決戦略: <code>Find</code> と <code>Traverse</code></h2>
+<p><code>ExecuteC()</code> (<code>command.go:1120–1124</code>) では、ルートコマンドの <code>TraverseChildren</code> ブールフィールド (<code>command.go:230</code>) に応じて2種類のツリー走査アルゴリズムを切り替えます。</p>
+<pre><code class="language-go"><span class="kd">var</span><span class="w"> </span><span class="nx">flags</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">TraverseChildren</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<h3>1.1 <code>Find(args []string)</code> — ステートレスな下降探索 (<code>command.go:757–779</code>)</h3>
+<p>デフォルト設定 (<code>TraverseChildren == false</code>) では、Cobra は中間の親コマンドに対して <strong><code>ParseFlags</code> を一切呼び出さずに</strong> 目的の葉コマンドを特定します。内部の再帰クロージャ <code>innerfind</code> (<code>command.go:760–772</code>) は、<code>stripFlags</code> でフラグトークンを読み飛ばしてサブコマンド名を見つけ出しつつ、元のフラグトークン群を <code>innerArgs</code> に温存したまま葉コマンドへ引き継ぎます。</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">innerfind</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">innerfind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">argsWOflags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">stripFlags</span><span class="p">(</span><span class="nx">innerArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">argsWOflags</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="nx">nextSubCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">argsWOflags</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="w">		</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">findNext</span><span class="p">(</span><span class="nx">nextSubCmd</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">innerfind</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">argsMinusFirstX</span><span class="p">(</span><span class="nx">innerArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">nextSubCmd</span><span class="p">))</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">innerfind</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">.</span><span class="nx">Args</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">legacyArgs</span><span class="p">(</span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">stripFlags</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">))</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p><code>Find</code> における重要な設計上の不変条件は以下の4点です。</p>
+<ol>
+<li><strong>探索中の <code>FlagSet.Parse</code> 副作用ゼロ</strong>: <code>stripFlags(innerArgs, c)</code> は親の永続フラグ定義を認識するために <code>c.mergePersistentFlags()</code> (<code>command.go:678</code>) を呼びますが、<strong>フラグ値のパース（状態変更）は一切行いません</strong>。</li>
+<li><strong><code>argsMinusFirstX</code> によるサブコマンドトークンのみの外科的除去</strong>: <code>c.findNext(nextSubCmd)</code> が子コマンド <code>cmd</code> に一致すると、<code>innerfind</code> は <code>c.argsMinusFirstX(innerArgs, nextSubCmd)</code> を子に渡します。<code>nextSubCmd</code> より前に指定された永続フラグ（例: <code>root --kubeconfig ~/.kube/config get pods</code> の <code>--kubeconfig ~/.kube/config</code>）は <code>innerArgs</code> 内にそのまま残り、最終的に <code>get.execute(flags)</code> の <code>c.ParseFlags(a)</code> (<code>command.go:919</code>) で継承永続フラグとローカルフラグがまとめて1回でパースされます。</li>
+<li><strong><code>Find</code> 下で親のローカル（非永続）フラグがエラーになる理由</strong>: 親で指定されたフラグもすべて葉コマンドの <code>ParseFlags</code> に渡されるため、親の <code>Flags()</code>（ローカル）にしか存在せず <code>PersistentFlags()</code> に登録されていないフラグを親の位置で指定すると、葉コマンドの <code>ParseFlags</code> で <code>unknown flag</code> エラーとなります。</li>
+<li><strong><code>legacyArgs</code> による未知サブコマンド検出 (<code>command.go:775–777</code>, <code>args.go:28–39</code>)</strong>: 解決された <code>commandFound</code> の <code>Args</code> バリデータが <code>nil</code> の場合、<code>Find</code> は返却直前に <code>legacyArgs(commandFound, stripFlags(a, commandFound))</code> を実行します。<code>commandFound</code> がサブコマンドを持つルートコマンド (<code>!cmd.HasParent() &amp;&amp; cmd.HasSubCommands()</code>) であり、かつ未消費の非フラグ引数 (<code>len(args) &gt; 0</code>) が残っている場合、以下のエラーを返します。<pre><code class="language-go"><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"unknown command %q for %q%s"</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CommandPath</span><span class="p">(),</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">findSuggestions</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</code></pre>
+</li>
+</ol>
+<h3>1.2 <code>Traverse(args []string)</code> — 階層ごとの逐次フラグ解析 (<code>command.go:821–860</code>)</h3>
+<p>親コマンド固有の <strong>ローカル（非永続）フラグ</strong> をサブコマンドと同時に受け付けたい場合（例: <code>docker --tls -D container ls -a</code>）、ルートコマンドで <code>TraverseChildren: true</code> を有効化すると <code>Traverse</code> が使用されます。</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">flags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{}</span>
+<span class="w">	</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kc">false</span>
+
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">switch</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="c1">// A long flag with a space separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"--"</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"="</span><span class="p">):</span>
+<span class="w">			</span><span class="c1">// TODO: this isn't quite right, we should really check ahead for 'true' or 'false'</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="nx">hasNoOptDefVal</span><span class="p">(</span><span class="nx">arg</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">())</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// A short flag with a space separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"-"</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"="</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">shortHasNoOptDefVal</span><span class="p">(</span><span class="nx">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">()):</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// The value for a flag</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">inFlag</span><span class="p">:</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// A flag without a value, or with an `=` separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">isFlagArg</span><span class="p">(</span><span class="nx">arg</span><span class="p">):</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">findNext</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">flags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:])</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<h3>1.3 <code>Find</code> と <code>Traverse</code> のアーキテクチャ比較</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">比較軸</th>
+<th style="text-align:left"><code>Find(args []string)</code> (<code>command.go:757–779</code>)</th>
+<th style="text-align:left"><code>Traverse(args []string)</code> (<code>command.go:821–860</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>有効化条件</strong></td>
+<td style="text-align:left">デフォルト (<code>c.TraverseChildren == false</code>)</td>
+<td style="text-align:left">オプトイン (<code>c.TraverseChildren == true</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>親のローカルフラグ指定</strong></td>
+<td style="text-align:left">子の <code>ParseFlags</code> で <strong>未知フラグエラー</strong>（<code>PersistentFlags</code> のみ可）</td>
+<td style="text-align:left"><strong>利用可能</strong>（各親階層 <code>L854</code> の <code>c.ParseFlags(flags)</code> で消費）</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>ParseFlags</code> の実行回数</strong></td>
+<td style="text-align:left">解決された葉コマンドの <code>c.execute(flags)</code> (<code>L919</code>) で <strong>1回のみ</strong></td>
+<td style="text-align:left"><strong>通過する各親階層で1回ずつ</strong> (<code>L854</code>) ＋ <strong>葉コマンドで1回</strong> (<code>L919</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>引数スライスの引き継ぎ</strong></td>
+<td style="text-align:left"><code>c.argsMinusFirstX(innerArgs, nextSubCmd)</code> でサブコマンド名のみ除去</td>
+<td style="text-align:left">親のフラグを消費し、末尾スライス <code>args[i+1:]</code> (<code>L857</code>) のみを子へ渡す</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>未知サブコマンドの早期検証</strong></td>
+<td style="text-align:left"><code>commandFound.Args == nil</code> の場合 <code>Find()</code> 末尾 (<code>L776</code>) で <code>legacyArgs()</code> を実行</td>
+<td style="text-align:left"><code>c.execute()</code> 内の <code>c.ValidateArgs(argWoFlags)</code> (<code>L968</code>) に委譲</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>--</code> 終端記号の扱い</strong></td>
+<td style="text-align:left"><code>stripFlags</code> (<code>L688</code>) と <code>argsMinusFirstX</code> (<code>L726</code>) の両方で <code>case s == &quot;--&quot;: break Loop</code></td>
+<td style="text-align:left"><code>isFlagArg(&quot;--&quot;)</code> (<code>L750</code>) が <code>false</code> となり <code>c.findNext(&quot;--&quot;)</code> -&gt; <code>nil</code> で <code>c, args, nil</code> を返却</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. トークンスキャナの内部機構: <code>stripFlags</code>・<code>NoOptDefVal</code>・<code>argsMinusFirstX</code></h2>
+<p><code>stripFlags</code> (<code>command.go:674–710</code>) と <code>argsMinusFirstX</code> (<code>command.go:715–748</code>) における最大の課題は、<code>pflag</code> の完全なパース処理を実行せずに <strong>空白区切りのフラグ値</strong> と <strong>サブコマンド名</strong> を正確に識別することです。</p>
+<p>例えば <code>cmd -f admin</code> と <code>cmd -v admin</code> を比較すると：</p>
+<ul>
+<li><code>-f</code> が <code>--file string</code> フラグであれば、<code>admin</code> は <code>-f</code> に対するファイル名引数であり、<code>admin</code> サブコマンドではありません。</li>
+<li><code>-v</code> が <code>--verbose bool</code> フラグであれば、<code>-v</code> は空白区切りの値を取らないため、直後の <code>admin</code> は <strong><code>admin</code> サブコマンド</strong> です。</li>
+</ul>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_parser_and_dispatch/find_traverse_and_stripflags/stripflags_state_machine_ja.png" alt="find_traverse_and_stripflags_2" />
+  <figcaption class="drawlib-caption">図2: stripFlags() トークン分類器と findNext() サブコマンド照合優先順位 (command.go:654–881)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">98</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">93.5</span><span class="p">),</span>
+    <span class="s2">"stripFlags() トークンスキャナと findNext() サブコマンド解決順序"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: stripFlags() Token Scanner</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"stripFlags(args, c) スキャナ"</span><span class="p">,</span>
+    <span class="s2">"command.go:674"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">81</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">71.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"c.mergePersistentFlags() -&gt; 先頭取得 s := args[0]; args = args[1:]"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">57.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"分岐1 (L688): s == </span><span class="se">\"</span><span class="s2">--</span><span class="se">\"\n</span><span class="s2">フラグ終端到達 -&gt; break Loop (後続の位置引数はサブコマンド対象外)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">44.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"分岐2 (L691): HasPrefix(</span><span class="se">\"</span><span class="s2">--</span><span class="se">\"</span><span class="s2">) &amp;&amp; !Contains(</span><span class="se">\"</span><span class="s2">=</span><span class="se">\"</span><span class="s2">) &amp;&amp; !hasNoOptDefVal</span><span class="se">\n</span><span class="s2">値を取る長フラグ -&gt; fallthrough で次トークン (args[0]) もスキップ"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"分岐3 (L695): HasPrefix(</span><span class="se">\"</span><span class="s2">-</span><span class="se">\"</span><span class="s2">) &amp;&amp; len(s)==2 &amp;&amp; !shortHasNoOptDefVal</span><span class="se">\n</span><span class="s2">値を取る短フラグ -&gt; len(args)&lt;=1 なら break、それ以外は args = args[1:]"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"分岐4 (L704): s != </span><span class="se">\"\"</span><span class="s2"> &amp;&amp; !strings.HasPrefix(s, </span><span class="se">\"</span><span class="s2">-</span><span class="se">\"</span><span class="s2">)</span><span class="se">\n</span><span class="s2">commands = append(commands, s) -&gt; サブコマンド候補として抽出"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Right Panel: findNext() &amp; SuggestionsFor()</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"findNext(next) 照合優先度"</span><span class="p">,</span>
+    <span class="s2">"command.go:798"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">108</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">81</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"優先度1: Name / Alias 完全一致</span><span class="se">\n</span><span class="s2">commandNameMatches() || HasAlias()</span><span class="se">\n</span><span class="s2">cmd.commandCalledAs.name = next"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">51.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"優先度2: 一意な前方一致 (L805)</span><span class="se">\n</span><span class="s2">EnablePrefixMatching == true 時</span><span class="se">\n</span><span class="s2">len(matches) == 1 の場合のみ採用"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">33.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"優先度3: 不一致 -&gt; nil 返却 (L816)</span><span class="se">\n</span><span class="s2">現在ノード c の位置引数として扱い</span><span class="se">\n</span><span class="s2">ValidateArgs / legacyArgs へ委譲"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">15.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. SuggestionsFor() 候補提示 (L863)</span><span class="se">\n</span><span class="s2">レーベンシュタイン距離 ld() &lt;= 2</span><span class="se">\n</span><span class="s2">| 前方一致 | cmd.SuggestFor[]"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">62.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">57.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">44.75</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">39.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">27.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">21.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Cross-panel handoff arrow</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">108</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>2.1 <code>hasNoOptDefVal</code> と <code>shortHasNoOptDefVal</code> (<code>command.go:654–672</code>)</h3>
+<p><code>github.com/spf13/pflag</code> の <code>*flag.Flag</code> 構造体は <code>NoOptDefVal string</code> フィールドを持っています。ブール型フラグ (<code>Bool</code> / <code>BoolP</code>) やカウンタ型フラグ (<code>Count</code> / <code>CountP</code>) では、<code>pflag</code> が自動的に <code>flag.NoOptDefVal = &quot;true&quot;</code>（または <code>&quot;+1&quot;</code>）を設定します。これは「<code>=value</code> なしでフラグ単体が指定された場合、既定値を適用し <strong>直後のトークンを値として消費しない</strong>」ことを表します。</p>
+<p>Cobra は以下の2つのヘルパー関数 (<code>command.go:654–672</code>) でこのフィールドを直接参照します。</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">hasNoOptDefVal</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">flag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fs</span><span class="p">.</span><span class="nx">Lookup</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">flag</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">NoOptDefVal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">shortHasNoOptDefVal</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">flag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fs</span><span class="p">.</span><span class="nx">ShorthandLookup</span><span class="p">(</span><span class="nx">name</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">flag</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">NoOptDefVal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span>
+<span class="p">}</span>
+</code></pre>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>未登録フラグに対するフォールバック挙動</strong>: <code>fs.Lookup(name)</code> または <code>fs.ShorthandLookup(name[:1])</code> が <code>nil</code> を返した場合（未知のフラグや、子コマンド側でのみ定義されたローカルフラグなど）、両関数は <code>false</code> を返します。その結果、<code>stripFlags</code> は安全側の倒し方として「<code>=</code> を含まない未知の <code>--flag</code> や <code>-f</code> は <strong>直後のトークンを値として消費する</strong>」と判定します。</p>
+</blockquote>
+<h3>2.2 <code>stripFlags</code> の4分岐スイッチ (<code>command.go:674–710</code>)</h3>
+<p><code>stripFlags(args []string, c *Command) []string</code> は、まず <code>c.mergePersistentFlags()</code> (<code>L678</code>) を呼び出して祖先からの継承永続フラグを <code>flags := c.Flags()</code> (<code>L681</code>) に統合した上で、<code>args</code> を先頭から走査します。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"><code>stripFlags</code> の分岐 (<code>command.go:687–706</code>)</th>
+<th style="text-align:left">判定条件</th>
+<th style="text-align:left">スキャナの動作</th>
+<th style="text-align:left">トークン列の具体例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. <code>--</code> 終端記号</strong> (<code>L688</code>)</td>
+<td style="text-align:left"><code>s == &quot;--&quot;</code></td>
+<td style="text-align:left">即座に <code>break Loop</code>（<code>--</code> 以降はすべて位置引数でありサブコマンド候補にならない）</td>
+<td style="text-align:left"><code>app -- server</code> -&gt; <code>commands = []</code>（<code>server</code> は <code>app</code> の位置引数）</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. 空白区切り値を持つ長フラグ</strong> (<code>L691</code>)</td>
+<td style="text-align:left"><code>strings.HasPrefix(s, &quot;--&quot;) &amp;&amp; !strings.Contains(s, &quot;=&quot;) &amp;&amp; !hasNoOptDefVal(s[2:], flags)</code></td>
+<td style="text-align:left"><code>fallthrough</code> で分岐3へ落ち、直後の値トークン (<code>args = args[1:]</code>) をスキップ</td>
+<td style="text-align:left"><code>app --config prod.yaml run</code> -&gt; <code>--config</code> と <code>prod.yaml</code> を飛ばし <code>[&quot;run&quot;]</code> を抽出</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. 空白区切り値を持つ短フラグ</strong> (<code>L695</code>)</td>
+<td style="text-align:left"><code>strings.HasPrefix(s, &quot;-&quot;) &amp;&amp; !strings.Contains(s, &quot;=&quot;) &amp;&amp; len(s) == 2 &amp;&amp; !shortHasNoOptDefVal(s[1:], flags)</code></td>
+<td style="text-align:left"><code>len(args) &lt;= 1</code> なら <code>break Loop</code>、それ以外は <code>args = args[1:]; continue</code></td>
+<td style="text-align:left"><code>app -c prod.yaml run</code> -&gt; <code>-c</code> と <code>prod.yaml</code> を飛ばし <code>[&quot;run&quot;]</code> を抽出</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. 非フラグトークン</strong> (<code>L704</code>)</td>
+<td style="text-align:left"><code>s != &quot;&quot; &amp;&amp; !strings.HasPrefix(s, &quot;-&quot;)</code></td>
+<td style="text-align:left"><code>commands = append(commands, s)</code> でサブコマンド候補に追加</td>
+<td style="text-align:left"><code>app -v --port=8080 run</code> -&gt; <code>-v</code> (<code>NoOptDefVal=&quot;true&quot;</code>) と <code>--port=8080</code> (<code>Contains(&quot;=&quot;)</code>) を無視し <code>[&quot;run&quot;]</code> を抽出</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!NOTE]
+<strong>連結短フラグ (<code>len(s) &gt; 2</code>) の扱い</strong>: 分岐3が <code>len(s) == 2</code> を条件としている点に注目してください。<code>-vvv</code> のようなブール短フラグの連結や、<code>-fconfig.yaml</code> のように空白なしで値を結合した短フラグは <code>len(s) &gt; 2</code> となるため、先頭が <code>&quot;-&quot;</code> であることから分岐4では除外されつつ、分岐3でも次のトークンを誤って消費しない仕組みになっています。</p>
+</blockquote>
+<h3>2.3 なぜ <code>argsMinusFirstX</code> は最初の非フラグ一致のみを除去するのか (<code>command.go:715–748</code>)</h3>
+<p><code>Find</code> が親 <code>c</code> から子 <code>cmd = c.findNext(nextSubCmd)</code> へ再帰降下する際、<code>innerArgs</code> から <code>nextSubCmd</code> を取り除く必要があります (<code>command.go:769</code>)。もし単純に「文字列 <code>nextSubCmd</code> に一致する要素をすべて消す」あるいは「フラグ文脈を考慮せず最初の <code>nextSubCmd</code> を消す」実装にすると、以下のような実運用コマンドが破損します。</p>
+<ol>
+<li><strong>サブコマンド名と同名の位置引数の保護 (<code>command.go:712–713</code>)</strong>: ソースコメントに明記されている通り、<code>openshift admin policy add-role-to-user admin my-user</code> というコマンドでは、<code>&quot;admin&quot;</code> が <code>args[0]</code>（サブコマンド名）と <code>args[3]</code>（<code>my-user</code> に付与するロール名の位置引数）の2回出現します。<code>argsMinusFirstX</code> は最初の非フラグトークン <code>s == x</code> を見つけた時点で即座にスライスを結合して返却するため (<code>L740–743</code>)、後続の <code>&quot;admin&quot;</code> 引数が失われません。<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">x</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">ret</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[:</span><span class="nx">pos</span><span class="p">]...)</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">ret</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="nx">pos</span><span class="o">+</span><span class="mi">1</span><span class="p">:]...)</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">ret</span>
+<span class="p">}</span>
+</code></pre>
+</li>
+<li><strong>フラグ値との衝突回避 (<code>command.go:729–735</code>)</strong>: <code>app --user admin admin status</code> のように、最初の <code>&quot;admin&quot;</code> が <code>--user</code> フラグの値であり、2番目の <code>&quot;admin&quot;</code> がサブコマンド名である場合、<code>argsMinusFirstX</code> は <code>stripFlags</code> と同じ <code>!hasNoOptDefVal</code> / <code>!shortHasNoOptDefVal</code> 判定を行って <code>pos++</code> (<code>L734</code>) でフラグ値を飛び越えるため、<code>--user admin</code> を壊さずにインデックス <code>2</code> のサブコマンド <code>&quot;admin&quot;</code> のみを正確に除去します。</li>
+<li><strong><code>--</code> 境界の尊重 (<code>command.go:726–728</code>)</strong>: <code>s == &quot;--&quot;</code> に到達した場合は即座に <code>break Loop</code> し、<code>--</code> より後ろのトークンは一切削除しません。</li>
+</ol>
+<hr />
+<h2>3. サブコマンド照合の優先順位とタイポ候補提示 (<code>findNext</code> / <code>SuggestionsFor</code>)</h2>
+<h3>3.1 <code>findNext(next string)</code> の照合アルゴリズム (<code>command.go:798–817</code>)</h3>
+<p><code>Find</code> (<code>L767</code>) と <code>Traverse</code> (<code>L849</code>) はともに <code>c.findNext(next)</code> を呼び出して、子コマンドスライス <code>c.commands</code> から遷移先を決定します。</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">findNext</span><span class="p">(</span><span class="nx">next</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">matches</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">commands</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">commandNameMatches</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">(),</span><span class="w"> </span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HasAlias</span><span class="p">(</span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">commandCalledAs</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">next</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">EnablePrefixMatching</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">hasNameOrAliasPrefix</span><span class="p">(</span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">matches</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">matches</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">matches</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="c1">// #nosec G602</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p>単一ループ内で以下の2段階の優先順位が厳密に適用されます。</p>
+<ol>
+<li><strong>優先度1 — コマンド名またはエイリアスの完全一致 (<code>L801–804</code>)</strong>:
+<ul>
+<li><code>commandNameMatches(cmd.Name(), next)</code> (<code>command.go:1928–1934</code>) は、パッケージグローバル変数 <code>cobra.EnableCaseInsensitive</code> (<code>cobra.go:62</code>、デフォルト <code>false</code>) が <code>true</code> の場合は <code>strings.EqualFold(s, t)</code>、それ以外は <code>s == t</code> で比較します。</li>
+<li><code>cmd.HasAlias(next)</code> (<code>command.go:1550–1558</code>) は <code>cmd.Aliases</code> スライス内の各エイリアスに対して同じく <code>commandNameMatches</code> を適用します。</li>
+<li>一致した時点で <code>cmd.commandCalledAs.name = next</code> を記録し（のちに <code>ExecuteC</code> の <code>L1137</code> で <code>called = true</code> がセットされると <code>cmd.CalledAs()</code> から取得可能）、即座に <code>cmd</code> を返します。</li>
+</ul>
+</li>
+<li><strong>優先度2 — 一意な前方一致 (<code>L805–814</code>)</strong>:
+<ul>
+<li>グローバル変数 <code>cobra.EnablePrefixMatching</code> (<code>cobra.go:55</code>、デフォルト <code>false</code>) が <code>true</code> の場合のみ有効になります。</li>
+<li><code>cmd.hasNameOrAliasPrefix(next)</code> (<code>command.go:1571–1583</code>) が <code>c.Name()</code> または <code>c.Aliases</code> の前方一致を判定し（一致した名前またはエイリアスで <code>c.commandCalledAs.name</code> を更新）、候補スライス <code>matches</code> に追加します。</li>
+<li>全子コマンド走査後、<strong><code>len(matches) == 1</code>（一意に特定できた場合）に限り</strong> <code>matches[0]</code> を返します。複数のサブコマンドが同じプレフィックスを持つ場合（例: <code>status</code> と <code>start</code> に対する <code>st</code>）は曖昧な実行を防ぐため <code>nil</code> を返します。</li>
+</ul>
+</li>
+</ol>
+<h3>3.2 レーベンシュタイン距離 (<code>ld</code>) と <code>SuggestionsFor</code> (<code>command.go:781–796, 863–881</code>, <code>cobra.go:192–223</code>)</h3>
+<p><code>legacyArgs</code> (<code>args.go:36</code>) や <code>OnlyValidArgs</code> (<code>args.go:61</code>) が未知のサブコマンド・引数を検出すると、<code>c.findSuggestions(arg)</code> (<code>command.go:781–796</code>) が呼び出されて <code>&quot;Did you mean this?&quot;</code> メッセージを生成します。</p>
+<ul>
+<li><code>c.DisableSuggestions</code> が <code>true</code> の場合は空文字列 <code>&quot;&quot;</code> を返します。</li>
+<li><code>c.SuggestionsMinimumDistance &lt;= 0</code> の場合、デフォルト閾値として <code>c.SuggestionsMinimumDistance = 2</code> を設定します (<code>L785–787</code>)。</li>
+<li><code>c.SuggestionsFor(typedName)</code> (<code>command.go:863–881</code>) は、<code>cmd.IsAvailableCommand()</code> が <code>true</code> であるすべての子コマンドを走査し、以下の3条件のいずれかを満たす場合に候補リストへ追加します。
+<ol>
+<li><strong>レーベンシュタイン編集距離 (<code>L867–868</code>)</strong>: <code>ld(typedName, cmd.Name(), true) &lt;= c.SuggestionsMinimumDistance</code>。<code>ld(s, t string, ignoreCase bool) int</code> (<code>cobra.go:192–223</code>) はサイズ <code>(len(s)+1) × (len(t)+1)</code> の2次元動的計画法テーブル <code>d[i][j]</code> を構築し、文字の挿入・削除・置換の最小編集距離を $O(|s| \cdot |t|)$ で算出します。</li>
+<li><strong>大文字小文字を区別しない前方一致 (<code>L869</code>)</strong>: <code>strings.HasPrefix(strings.ToLower(cmd.Name()), strings.ToLower(typedName))</code>。</li>
+<li><strong>明示的な <code>SuggestFor</code> 登録 (<code>L873–877</code>)</strong>: <code>cmd.SuggestFor</code> (<code>command.go:71</code>) に登録された文字列との <code>strings.EqualFold(typedName, explicitSuggestion)</code> 一致（編集距離が離れている <code>delete</code> -&gt; <code>remove</code> のような意味的類義語をサジェストするために使用されます）。</li>
+</ol>
+</li>
+</ul>
+<hr />
+<h2>関連チャプター・相互リンク</h2>
+<ul>
+<li><strong>前のチャプター</strong>: <a href="../01_package_and_tree/command_tree_topology.html">第1章 — Command ツリーと FlagSet 遅延初期化</a></li>
+<li><strong>次のチャプター</strong>: <a href="../03_execution_engine/executec_and_hook_chain.html">第3章 — ExecuteC・execute() とフック連鎖</a></li>
+<li><strong>関連チャプター</strong>:
+<ul>
+<li><a href="../04_flag_groups_and_args/relational_flag_engine.html">第4章 — Annotation フラググループと PositionalArgs バリデータ</a></li>
+<li><a href="../05_completion_v2_engine/complete_protocol_and_shells.html">第5章 — <code>__complete</code> プロトコルとシェル補完スクリプト生成</a></li>
+<li><a href="../index.html">内部アーキテクチャガイド トップ</a></li>
+</ul>
+</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式の内部アーキテクチャ解説であり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

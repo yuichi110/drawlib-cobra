@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://cobra.drawlib.com/api/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/00_overview.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/00_overview.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/00_overview.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/00_overview.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/01_command_struct.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/01_command_struct.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/01_command_struct.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/01_command_struct.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/02_lifecycle_and_execution.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/03_flags_and_flag_groups.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/03_flags_and_flag_groups.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/03_flags_and_flag_groups.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/03_flags_and_flag_groups.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/04_positional_args.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/04_positional_args.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/04_positional_args.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/04_positional_args.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/05_completions_and_directives.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/05_completions_and_directives.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/06_shell_script_generators.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/06_shell_script_generators.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/06_shell_script_generators.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/06_shell_script_generators.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/07_help_usage_and_templates.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/07_help_usage_and_templates.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/07_help_usage_and_templates.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/07_help_usage_and_templates.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/en/08_doc_generation.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/08_doc_generation.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/08_doc_generation.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/08_doc_generation.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/00_overview.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/00_overview.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/00_overview.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/00_overview.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/01_command_struct.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/01_command_struct.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/01_command_struct.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/01_command_struct.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/02_lifecycle_and_execution.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/02_lifecycle_and_execution.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/03_flags_and_flag_groups.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/03_flags_and_flag_groups.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/03_flags_and_flag_groups.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/03_flags_and_flag_groups.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/04_positional_args.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/04_positional_args.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/04_positional_args.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/04_positional_args.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/05_completions_and_directives.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/05_completions_and_directives.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/06_shell_script_generators.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/06_shell_script_generators.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/06_shell_script_generators.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/06_shell_script_generators.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/07_help_usage_and_templates.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/07_help_usage_and_templates.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/07_help_usage_and_templates.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/07_help_usage_and_templates.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/api/ja/08_doc_generation.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/08_doc_generation.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/08_doc_generation.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/08_doc_generation.html" />
+  </url>
+</urlset>

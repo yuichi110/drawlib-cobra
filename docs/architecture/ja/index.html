@@ -1,0 +1,735 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobra v1.10.2 内部アーキテクチャガイド — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/">
+    
+    
+    
+    <meta name="description" content="spf13/cobra v1.10.2 の内部アーキテクチャ解説（非公式）：複合 Command ツリー構造、Find/Traverse・stripFlags パーサー、ExecuteC フック実行エンジン、関係フラググループ検証、complete V2 プロトコル、cobra/doc ドキュメント合成の仕組み。">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/ja/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra 内部アーキテクチャ">
+    <meta property="og:title" content="Cobra v1.10.2 内部アーキテクチャガイド — Cobra 内部アーキテクチャ">
+    <meta property="og:description" content="spf13/cobra v1.10.2 の内部アーキテクチャ解説（非公式）：複合 Command ツリー構造、Find/Traverse・stripFlags パーサー、ExecuteC フック実行エンジン、関係フラググループ検証、complete V2 プロトコル、cobra/doc ドキュメント合成の仕組み。">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/ja/">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cobra v1.10.2 内部アーキテクチャガイド — Cobra 内部アーキテクチャ">
+    <meta name="twitter:description" content="spf13/cobra v1.10.2 の内部アーキテクチャ解説（非公式）：複合 Command ツリー構造、Find/Traverse・stripFlags パーサー、ExecuteC フック実行エンジン、関係フラググループ検証、complete V2 プロトコル、cobra/doc ドキュメント合成の仕組み。">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="sidebar-brand" aria-label="Cobra 内部アーキテクチャ">
+                    
+                    Cobra 内部アーキテクチャ
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="index.html" >アーキテクチャ概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. パッケージ構成と複合ツリー</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="01_package_and_tree/command_tree_topology.html" >Command ツリーと FlagSet 遅延初期化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. パーサーとコマンド解決</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find / Traverse と stripFlags パーサー</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. ライフサイクル実行エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="03_execution_engine/executec_and_hook_chain.html" >ExecuteC・execute() とフック連鎖</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 関係フラググループと引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="04_flag_groups_and_args/relational_flag_engine.html" >Annotation フラググループとバリデータ</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="05_completion_v2_engine/complete_protocol_and_shells.html" >__complete プロトコルとシェル生成</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. ドキュメント合成エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="06_doc_synthesis/ast_free_doc_generators.html" >cobra/doc の再帰ツリー直列化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra ユーザーガイド<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Cobra v1.10.2 内部アーキテクチャガイド</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../en/index.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="index.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Cobra v1.10.2 内部アーキテクチャガイド</h1>
+<p><a href="https://github.com/spf13/cobra"><code>spf13/cobra</code></a> <strong>v1.10.2</strong> のソースコードレベル内部アーキテクチャ解説へようこそ。本ガイドでは、ルートパッケージ <code>github.com/spf13/cobra</code> およびサブパッケージ <code>github.com/spf13/cobra/doc</code> を構成する非テスト Go ソースファイル全 <code>19</code> ファイル（計 <code>4,888 LOC</code>）を対象に、データ構造、フラグ解決の不変条件、ライフサイクルフック実行ループ、シェル補完プロトコルの状態機械をソースコードの行番号と対応付けて徹底解説します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/index/cobra_subsystem_layers_ja.png" alt="index_1" />
+  <figcaption class="drawlib-caption">図1: Cobra v1.10.2 の4層非循環サブシステム・アーキテクチャ（非テスト Go ファイル 19 個、計 4,888 LOC）</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">118</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">113.5</span><span class="p">),</span>
+    <span class="s2">"Cobra v1.10.2: 4層非循環サブシステム構成 (全19ファイル / 4,888 LOC)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Layer 4 (Top): Synthesis &amp; Shell Layer</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"L4: シェル &amp; ドキュメント合成"</span><span class="p">,</span>
+    <span class="s2">"6種の生成器"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">84</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">172</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">92.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4大シェル補完スクリプト生成器 (1,636 LOC)</span><span class="se">\n</span><span class="s2">bash_completions*.go | zsh | fish | powershell"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mf">92.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">92.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"AST不要ドキュメント合成 (822 LOC)</span><span class="se">\n</span><span class="s2">doc/md_docs.go | man | rest | yaml | util"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">file_doc</span><span class="p">((</span><span class="mi">95</span><span class="p">,</span> <span class="mf">92.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Layer 3: Runtime Completion &amp; Validation Layer</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"L3: 検証 &amp; __complete 補完"</span><span class="p">,</span>
+    <span class="s2">"実行時エンジン"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">172</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">64.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"関係フラググループ &amp; 引数検証 (423 LOC)</span><span class="se">\n</span><span class="s2">flag_groups.go | args.go (PositionalArgs)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mf">64.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">64.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"V2 補完プロトコルエンジン (1,181 LOC)</span><span class="se">\n</span><span class="s2">completions.go | active_help.go | shell_completions.go"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">sparkle</span><span class="p">((</span><span class="mi">95</span><span class="p">,</span> <span class="mf">64.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Layer 2: Parser &amp; Lifecycle Dispatch Engine</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"L2: パーサー &amp; フック実行"</span><span class="p">,</span>
+    <span class="s2">"command.go 中核"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">172</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"コマンド解決 &amp; フラグ除去パーサー</span><span class="se">\n</span><span class="s2">Find() | Traverse() | stripFlags() | findNext()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">magnifying_glass</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ディスパッチ &amp; 6段階フック連鎖</span><span class="se">\n</span><span class="s2">ExecuteC() | execute() | PersistentPre/PostRunE"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">play_circle</span><span class="p">((</span><span class="mi">95</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Accent</span><span class="p">)</span>
+
+<span class="c1"># Layer 1 (Bottom): Composite Tree &amp; pflag Foundation</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"L1: 複合ツリー &amp; pflag 基盤"</span><span class="p">,</span>
+    <span class="s2">"コアモデル"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">172</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">21</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"GoF Composite コマンドノード (2,383 LOC)</span><span class="se">\n</span><span class="s2">command.go | cobra.go | command_win/notwin.go"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5つの遅延初期化 *pflag.FlagSet ポインタ</span><span class="se">\n</span><span class="s2">flags | pflags | lflags | iflags | parentsPflags"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">52</span><span class="p">,</span> <span class="mi">84</span><span class="p">),</span> <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">136</span><span class="p">,</span> <span class="mi">84</span><span class="p">),</span> <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">52</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">52</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">136</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mi">52</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">52</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">136</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. なぜ <code>cobra</code> と <code>cobra/doc</code> でパッケージを分離しているのか</h2>
+<p>Cobra v1.10.2 は単一の Go モジュール (<code>module github.com/spf13/cobra</code>) 内で意図的に <strong>2つのパッケージ</strong> に分割されています。</p>
+<ol>
+<li><strong><code>github.com/spf13/cobra</code>（ルートパッケージ — 非テスト <code>14</code> ファイル、<code>4,066 LOC</code>）</strong>:
+<ul>
+<li><strong>最小限のランタイム依存</strong>: 外部依存は POSIX/GNU フラグパーサーである <code>github.com/spf13/pflag v1.0.9</code> と、Windows エクスプローラー起動検知用の <code>github.com/inconshreveable/mousetrap v1.1.0</code>（<code>command_win.go</code> の <code>//go:build windows</code> ビルド制約下のみ）の2つのみです。</li>
+<li><strong>Go リンカのデッドコード除去（DCE）の保護</strong>: デフォルトの Usage / Help / Version 出力（<code>command.go:1974–2072</code> の <code>defaultUsageFunc</code>, <code>defaultHelpFunc</code>, <code>defaultVersionFunc</code>）は <code>text/template</code> を使わず、<code>fmt.Fprintf</code> で直接フォーマットします。ユーザーが <code>SetUsageTemplate</code> 等でカスタムテンプレートを明示登録しない限り、<code>cobra.go:179</code> の <code>tmpl()</code> は到達不能となり、Go リンカは <code>reflect.Value.MethodByName</code> をバイナリから完全に排除できます（<code>cobra_test.go:245–301</code> の <code>TestDeadcodeElimination</code> で検証）。</li>
+</ul>
+</li>
+<li><strong><code>github.com/spf13/cobra/doc</code>（ドキュメント生成サブパッケージ — 非テスト <code>5</code> ファイル、<code>822 LOC</code>）</strong>:
+<ul>
+<li><strong>外部シリアライザ依存の隔離</strong>: Man ページ（roff）変換用の <code>github.com/cpuguy83/go-md2man/v2 v2.0.6</code>（および <code>russross/blackfriday/v2</code>）と、YAML 構造化出力用の <code>go.yaml.in/yaml/v3 v3.0.4</code> をこのサブパッケージに閉じ込めています。</li>
+<li>通常の CLI バイナリは <code>github.com/spf13/cobra</code> のみをインポートするため、Markdown パーサーや YAML シリアライザが本番バイナリにリンクされることはありません。</li>
+</ul>
+</li>
+</ol>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/index/cobra_package_dependency_ja.png" alt="index_2" />
+  <figcaption class="drawlib-caption">図2: Cobra v1.10.2 におけるパッケージ境界とリンカのデッドコード除去（DCE）分離</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">82</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mi">77</span><span class="p">),</span>
+    <span class="s2">"コンパイル時依存関係の分離と Go リンカ DCE 境界"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: Core Runtime Binary</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"github.com/spf13/cobra"</span><span class="p">,</span>
+    <span class="s2">"CLI 本体ランタイム"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.5</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Command ツリー + ExecuteC + __complete</span><span class="se">\n</span><span class="s2">非テスト 14 ファイル (4,066 LOC)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"defaultUsageFunc / defaultHelpFunc</span><span class="se">\n</span><span class="s2">純粋な fmt.Fprintf 出力 (text/template 不使用)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"spf13/pflag v1.0.9 + mousetrap (win)</span><span class="se">\n</span><span class="s2">リンカ DCE 有効 (MethodByName 到達不能)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">46.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: Offline Doc Generator Subpackage</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"github.com/spf13/cobra/doc"</span><span class="p">,</span>
+    <span class="s2">"ドキュメント生成専用"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.5</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">98</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"GenMarkdownTree / GenManTree / GenYaml</span><span class="se">\n</span><span class="s2">非テスト 5 ファイル (822 LOC)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"cpuguy83/go-md2man/v2 (v2.0.6)</span><span class="se">\n</span><span class="s2">+ russross/blackfriday/v2"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"go.yaml.in/yaml/v3 (v3.0.4)</span><span class="se">\n</span><span class="s2">cmdDoc / cmdOption 構造体直列化"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">138</span><span class="p">,</span> <span class="mf">46.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">138</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Cross-package arrow: doc imports cobra</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">98</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span> <span class="p">(</span><span class="mi">88</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">93</span><span class="p">,</span> <span class="mf">57.5</span><span class="p">),</span> <span class="s2">"imports"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>2. ソースファイル一覧（非テスト <code>19</code> ファイル、計 <code>4,888 LOC</code>）</h2>
+<p>本ガイドで解説する各サブシステムと、Cobra v1.10.2 リポジトリ内のソースファイルの対応関係は以下の通りです。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">レイヤー</th>
+<th style="text-align:left">サブシステム</th>
+<th style="text-align:left">対象ソースファイル (<code>spf13/cobra</code> v1.10.2)</th>
+<th style="text-align:left">非テスト LOC</th>
+<th style="text-align:left">主要な内部シンボル・関数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>L1</strong></td>
+<td style="text-align:left"><strong>複合ツリー &amp; <code>FlagSet</code> トポロジ</strong></td>
+<td style="text-align:left"><code>command.go</code>, <code>cobra.go</code>, <code>command_win.go</code>, <code>command_notwin.go</code></td>
+<td style="text-align:left"><code>2,383</code></td>
+<td style="text-align:left"><code>Command</code>, <code>AddCommand</code>, <code>mergePersistentFlags</code>, <code>updateParentsPflags</code>, <code>tmpl</code>, <code>defaultUsageFunc</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L2</strong></td>
+<td style="text-align:left"><strong>パーサー &amp; コマンド解決</strong></td>
+<td style="text-align:left"><code>command.go</code> (<code>L654–L897</code>)</td>
+<td style="text-align:left"><em>(<code>command.go</code> 内)</em></td>
+<td style="text-align:left"><code>Find</code>, <code>Traverse</code>, <code>stripFlags</code>, <code>argsMinusFirstX</code>, <code>findNext</code>, <code>hasNoOptDefVal</code>, <code>ld</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L2</strong></td>
+<td style="text-align:left"><strong>ライフサイクル実行エンジン</strong></td>
+<td style="text-align:left"><code>command.go</code> (<code>L905–L1314</code>)</td>
+<td style="text-align:left"><em>(<code>command.go</code> 内)</em></td>
+<td style="text-align:left"><code>ExecuteContextC</code>, <code>ExecuteC</code>, <code>execute</code>, <code>preRun</code>, <code>postRun</code>, <code>checkCommandGroups</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L3</strong></td>
+<td style="text-align:left"><strong>関係フラググループ &amp; 引数検証</strong></td>
+<td style="text-align:left"><code>flag_groups.go</code> (<code>291</code>), <code>args.go</code> (<code>132</code>)</td>
+<td style="text-align:left"><code>423</code></td>
+<td style="text-align:left"><code>ValidateFlagGroups</code>, <code>processFlagForGroupAnnotation</code>, <code>enforceFlagGroupsForCompletion</code>, <code>MatchAll</code>, <code>legacyArgs</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L3</strong></td>
+<td style="text-align:left"><strong>Completion V2 実行時エンジン</strong></td>
+<td style="text-align:left"><code>completions.go</code> (<code>1,021</code>), <code>active_help.go</code> (<code>61</code>), <code>shell_completions.go</code> (<code>99</code>)</td>
+<td style="text-align:left"><code>1,181</code></td>
+<td style="text-align:left"><code>initCompleteCmd</code>, <code>getCompletions</code>, <code>checkIfFlagCompletion</code>, <code>ShellCompDirective</code>, <code>AppendActiveHelp</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L4</strong></td>
+<td style="text-align:left"><strong>4大シェルスクリプト生成器</strong></td>
+<td style="text-align:left"><code>bash_completionsV2.go</code> (<code>485</code>), <code>bash_completions.go</code> (<code>649</code>), <code>zsh_completions.go</code> (<code>309</code>), <code>fish_completions.go</code> (<code>293</code>), <code>powershell_completions.go</code> (<code>351</code>)</td>
+<td style="text-align:left"><code>2,087</code> <em>(旧 v1 含む)</em></td>
+<td style="text-align:left"><code>genBashComp</code>, <code>genZshComp</code>, <code>genFishComp</code>, <code>genPowerShellComp</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>L4</strong></td>
+<td style="text-align:left"><strong>AST不要ドキュメント合成</strong></td>
+<td style="text-align:left"><code>doc/md_docs.go</code> (<code>159</code>), <code>doc/man_docs.go</code> (<code>247</code>), <code>doc/rest_docs.go</code> (<code>187</code>), <code>doc/yaml_docs.go</code> (<code>176</code>), <code>doc/util.go</code> (<code>53</code>)</td>
+<td style="text-align:left"><code>822</code></td>
+<td style="text-align:left"><code>GenMarkdownCustom</code>, <code>GenMan</code>, <code>GenReSTCustom</code>, <code>GenYamlCustom</code>, <code>hasSeeAlso</code>, <code>byName</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. 内部アーキテクチャ詳細チャプター（全6章）</h2>
+<p>以下のリンクから各サブシステムの内部設計と実装詳細へ直接移動できます。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">章</th>
+<th style="text-align:left">アーキテクチャ主題</th>
+<th style="text-align:left">解説対象の主要ファイル</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><a href="01_package_and_tree/command_tree_topology.html">1. Command ツリーと FlagSet 遅延初期化</a></strong></td>
+<td style="text-align:left">GoF Composite パターン (<code>parent</code>, <code>commands</code>)、パディング長キャッシュ、5つの遅延初期化 <code>*pflag.FlagSet</code> (<code>flags</code>, <code>pflags</code>, <code>lflags</code>, <code>iflags</code>, <code>parentsPflags</code>)、<code>mergePersistentFlags()</code>、および Go リンカのデッドコード除去 (<code>TestDeadcodeElimination</code>)。</td>
+<td style="text-align:left"><code>command.go</code>, <code>cobra.go</code>, <code>cobra_test.go</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><a href="02_parser_and_dispatch/find_traverse_and_stripflags.html">2. Find / Traverse と stripFlags パーサー</a></strong></td>
+<td style="text-align:left"><code>Find</code> と <code>Traverse</code> の解決セマンティクス比較、ステートレスな <code>stripFlags()</code> トークンスキャナ、<code>NoOptDefVal</code> による短・長フラグ値スキップ判定、<code>argsMinusFirstX</code>、<code>findNext()</code> のサブコマンド照合順序。</td>
+<td style="text-align:left"><code>command.go:654–881</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><a href="03_execution_engine/executec_and_hook_chain.html">3. ExecuteC・execute() とフック連鎖</a></strong></td>
+<td style="text-align:left"><code>ExecuteContextC</code> -&gt; <code>ExecuteC</code> の Root 再アンカー、Windows <code>mousetrap</code>、<code>help</code>/<code>__complete</code>/<code>completion</code> の動的注入、<code>c.execute()</code> の検証順序、および <code>PersistentPreRunE</code>〜<code>PersistentPostRunE</code> の6段階フックパイプライン (<code>EnableTraverseRunHooks</code>)。</td>
+<td style="text-align:left"><code>command.go:905–1314</code>, <code>command_win.go</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><a href="04_flag_groups_and_args/relational_flag_engine.html">4. Annotation フラググループとバリデータ</a></strong></td>
+<td style="text-align:left"><code>pflag.Flag.Annotations</code> へのグループ制約格納、<code>ValidateFlagGroups()</code> の状態テーブル構築、<code>enforceFlagGroupsForCompletion()</code> による補完候補の動的制御、および <code>PositionalArgs</code> 関数コンビネータ (<code>MatchAll</code>, <code>OnlyValidArgs</code>)。</td>
+<td style="text-align:left"><code>flag_groups.go</code>, <code>args.go</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><a href="05_completion_v2_engine/complete_protocol_and_shells.html">5. __complete プロトコルとシェル生成</a></strong></td>
+<td style="text-align:left">隠しコマンド <code>__complete</code> / <code>__completeNoDesc</code> の注入、<code>getCompletions()</code> 状態機械、<code>checkIfFlagCompletion()</code>、<code>NArg()</code> を用いた <code>--</code> 境界検出、<code>_activeHelp_ </code> マーカー、<code>:directive</code> ビットマスク通信プロトコル、4シェルのスクリプト生成。</td>
+<td style="text-align:left"><code>completions.go</code>, <code>active_help.go</code>, <code>*_completions*.go</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><a href="06_doc_synthesis/ast_free_doc_generators.html">6. cobra/doc の再帰ツリー直列化</a></strong></td>
+<td style="text-align:left">AST 解析を行わないメモリ上 <code>*cobra.Command</code> ツリーの内省、後順（post-order）再帰 <code>*TreeCustom</code> 走査、<code>hasSeeAlso</code> と <code>byName</code> による相互リンク生成、<code>go-md2man/v2</code> の roff パイプライン (<code>SOURCE_DATE_EPOCH</code>)、<code>yaml/v3</code> の <code>forceMultiLine</code> 出力。</td>
+<td style="text-align:left"><code>doc/md_docs.go</code>, <code>doc/man_docs.go</code>, <code>doc/rest_docs.go</code>, <code>doc/yaml_docs.go</code>, <code>doc/util.go</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>4. 関連ドキュメントポータル</h2>
+<p>本 <strong>内部アーキテクチャガイド</strong> は、<code>spf13/cobra</code> v1.10.2 の4部構成ドキュメントスイートの第3ポータルです。</p>
+<ul>
+<li><strong><a href="https://cobra.drawlib.com/">Cobra ユーザーガイド (<code>https://cobra.drawlib.com/</code>)</a></strong>: CLI 構築チュートリアル、サブコマンド設計、Viper とのフラグ連携、シェル補完の導入手順。</li>
+<li><strong><a href="https://cobra.drawlib.com/api/">Cobra API リファレンス (<code>https://cobra.drawlib.com/api/</code>)</a></strong>: <code>cobra</code> および <code>cobra/doc</code> パッケージの全公開型・メソッド・関数・定数・変数の完全リファレンス。</li>
+<li><strong><a href="https://cobra.drawlib.com/reports/pni501/">PNI501 診断レポート (<code>https://cobra.drawlib.com/reports/pni501/</code>)</a></strong>: Cobra v1.10.2 の静的解析、テストカバレッジ分析、およびアーキテクチャ健全性レポート。</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式の内部アーキテクチャ解説であり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

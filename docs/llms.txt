@@ -1,0 +1,41 @@
+# Cobra User Guide (Unofficial)
+
+> Practical user guide, enterprise Go CLI architecture patterns, and feature reference for spf13/cobra v1.10.2.
+
+## Overview
+
+- [Guide Overview](https://cobra.drawlib.com/en/): Cobra (github.com/spf13/cobra v1.10.2) is the industry-standard Go library for building modern, hierarchical command-line interfaces (APPNAME VERB NOUN…
+
+## 1. Introduction & Quickstart
+
+- [Why Cobra & CLI Design Philosophy](https://cobra.drawlib.com/en/01_getting_started/overview.html): Great command-line interfaces feel like natural human sentences rather than cryptic lists of flags. Created by Steve Francia (spf13) for Hugo and rapidly…
+- [Quickstart & First Subcommand Tree](https://cobra.drawlib.com/en/01_getting_started/quickstart.html): This quickstart walks you step-by-step from an empty directory to a working multi-command Go CLI (myapp) powered by github.com/spf13/cobra v1.10.2. You will…
+
+## 2. Enterprise CLI Architecture
+
+- [Factory Pattern, Options & DI](https://cobra.drawlib.com/en/02_enterprise_cli_architecture/factory_pattern_and_di.html): Many introductory Cobra tutorials—and the legacy cobra-cli scaffolding tool—declare commands as package-level global variables (var rootCmd =…
+- [Multi-Package Layout & Hermetic Testing](https://cobra.drawlib.com/en/02_enterprise_cli_architecture/package_layout_and_testing.html): When a CLI grows past 15–20 subcommands, placing every New*Cmd() file inside a single flat cmd/ package creates a crowded namespace where any command can…
+
+## 3. Commands, Flags & Arguments
+
+- [Persistent, Local & Inherited Flags](https://cobra.drawlib.com/en/03_commands_flags_and_args/persistent_and_local_flags.html): Cobra delegates flag registration and parsing to github.com/spf13/pflag, a drop-in replacement for Go's standard flag package that implements POSIX/GNU-style…
+- [Positional Args & Flag Group Constraints](https://cobra.drawlib.com/en/03_commands_flags_and_args/positional_args_and_flag_groups.html): In production CLIs, input validation should happen declaratively at the command boundary rather than cluttering business logic with repetitive if len(args)…
+
+## 4. Configuration & Viper
+
+- [6-Tier Config Precedence & Viper Binding](https://cobra.drawlib.com/en/04_configuration_and_viper/viper_precedence_and_binding.html): Modern twelve-factor CLIs accept configuration from multiple sources simultaneously: command-line flags, environment variables, workspace configuration files…
+
+## 5. Shell Completions & UX
+
+- [Shell Completion V2 & Directives](https://cobra.drawlib.com/en/05_completions_and_ux/shell_completions_v2.html): Cobra's Shell Completion V2 engine (completions.go) transforms how Go CLIs implement auto-completion. Instead of forcing developers to write custom Bash or…
+- [ActiveHelp, Suggestions & Help Templates](https://cobra.drawlib.com/en/05_completions_and_ux/active_help_and_suggestions.html): Great developer experience (DX) in a CLI goes beyond fast execution: it guides users interactively while they type, recovers gracefully from typos, and…
+
+## 6. Execution, Lifecycle & Docs
+
+- [Lifecycle Hooks, Errors & Context Signals](https://cobra.drawlib.com/en/06_execution_and_operations/lifecycle_hooks_and_context.html): Understanding the exact execution order inside (*Command).execute() (command.go:905-1045) is essential for building reliable enterprise CLIs. Without it…
+- [Doc Generation (MD/Man/YAML) & Releases](https://cobra.drawlib.com/en/06_execution_and_operations/doc_generation_and_release.html): Because a cobra.Command tree already declares every subcommand path, synopsis, flag type, default value, and usage example in structured Go fields, your code…
+
+## Locales
+
+- [English (en)](https://cobra.drawlib.com/en/): Practical user guide, enterprise Go CLI architecture patterns, and feature reference for spf13/cobra v1.10.2.
+- [日本語 (ja)](https://cobra.drawlib.com/ja/): spf13/cobra v1.10.2 の実践ユーザーガイド・大規模 Go CLI アプリケーション設計ベストプラクティス・機能別リファレンス（非公式）。

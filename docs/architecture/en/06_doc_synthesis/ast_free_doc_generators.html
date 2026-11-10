@@ -1,0 +1,1042 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AST-Free Recursive Documentation Synthesis in `cobra/doc` — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/06_doc_synthesis/ast_free_doc_generators.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html">
+    
+    
+    
+    <meta name="description" content="While the root github.com/spf13/cobra package handles live CLI flag parsing, lifecycle execution, and runtime shell completion, offline reference…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra Architecture">
+    <meta property="og:title" content="AST-Free Recursive Documentation Synthesis in cobra/doc — Cobra Architecture">
+    <meta property="og:description" content="While the root github.com/spf13/cobra package handles live CLI flag parsing, lifecycle execution, and runtime shell completion, offline reference…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AST-Free Recursive Documentation Synthesis in cobra/doc — Cobra Architecture">
+    <meta name="twitter:description" content="While the root github.com/spf13/cobra package handles live CLI flag parsing, lifecycle execution, and runtime shell completion, offline reference…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra Architecture">
+                    
+                    Cobra Architecture
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Architecture Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Package &amp; Composite Tree</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command Tree &amp; FlagSet Topology</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Parser &amp; Command Dispatch</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find, Traverse &amp; stripFlags Parser</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Lifecycle Execution Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC, execute() &amp; Hook Chain</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Flag Groups &amp; PositionalArgs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation Flag Groups &amp; Validators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete Protocol &amp; Shell Scripts</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Reference Doc Synthesis</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="ast_free_doc_generators.html" >AST-Free cobra/doc Generators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra User Guide<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">AST-Free Recursive Documentation Synthesis in `cobra/doc`</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="ast_free_doc_generators.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/06_doc_synthesis/ast_free_doc_generators.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>AST-Free Recursive Documentation Synthesis in <code>cobra/doc</code></h1>
+<p>While the root <code>github.com/spf13/cobra</code> package handles live CLI flag parsing, lifecycle execution, and runtime shell completion, offline reference documentation is isolated in the <code>github.com/spf13/cobra/doc</code> subpackage (<code>5</code> non-test Go files, <code>822 LOC</code>). Rather than statically parsing <code>.go</code> files via <code>go/ast</code> or <code>go/parser</code>, <code>cobra/doc</code> introspects a live in-memory <code>*cobra.Command</code> tree and synthesizes multi-file reference suites across four target formats: <strong>Markdown</strong> (<code>doc/md_docs.go</code>), <strong>UNIX Man Pages / roff</strong> (<code>doc/man_docs.go</code>), <strong>reStructuredText</strong> (<code>doc/rest_docs.go</code>), and <strong>YAML</strong> (<code>doc/yaml_docs.go</code>).</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_doc_synthesis/ast_free_doc_generators/cobra_doc_synthesis_pipeline.png" alt="ast_free_doc_generators_1" />
+  <figcaption class="drawlib-caption">Figure 1: AST-Free Live Command Tree Introspection, Post-Order Traversal, and Four-Backend Synthesis in cobra/doc</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">116</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">111.5</span><span class="p">),</span>
+    <span class="s2">"cobra/doc: AST-Free Introspection &amp; 4-Backend Synthesis (822 LOC)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Top-Left Panel: Stage 1 - Live Tree Introspection</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. Live Tree Introspection"</span><span class="p">,</span>
+    <span class="s2">"Zero go/ast"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">41</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"InitDefaultHelpCmd() + HelpFlag()</span><span class="se">\n</span><span class="s2">Lazy --help &amp; help subcmd injection"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">magnifying_glass</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Live *cobra.Command Accessors</span><span class="se">\n</span><span class="s2">CommandPath | UseLine | Local/InheritedFlags"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mf">86.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mf">80.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Top-Right Panel: Stage 2 - Post-Order Tree Walker</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. Post-Order Tree Walker"</span><span class="p">,</span>
+    <span class="s2">"*TreeCustom()"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">41</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Filter &amp; Recurse Children First</span><span class="se">\n</span><span class="s2">IsAvailableCommand &amp;&amp; !IsAdditionalHelpTopic"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">file_arrow_down</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Accent</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Emit &lt;CommandPath&gt;.&lt;ext&gt;</span><span class="se">\n</span><span class="s2">filePrepender(path) + Single-Node Gen*"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">140</span><span class="p">,</span> <span class="mf">86.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">80.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Horizontal link between Stage 1 and Stage 2</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">88</span><span class="p">,</span> <span class="mi">83</span><span class="p">),</span> <span class="p">(</span><span class="mi">96</span><span class="p">,</span> <span class="mi">83</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Bottom Panel: Stage 3 - Four Format Backends</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. Four Format Backends"</span><span class="p">,</span>
+    <span class="s2">"5 Files / 822 LOC"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">172</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">51</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">file_text</span><span class="p">((</span><span class="mf">12.5</span><span class="p">,</span> <span class="mf">39.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">39.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Markdown: doc/md_docs.go (159 LOC)</span><span class="se">\n</span><span class="s2">printOptions() -&gt; flags.PrintDefaults()</span><span class="se">\n</span><span class="s2">Custom linkHandler(link) + SEE ALSO"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">((</span><span class="mf">96.5</span><span class="p">,</span> <span class="mf">39.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">39.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Man/roff: doc/man_docs.go (247 LOC)</span><span class="se">\n</span><span class="s2">fillHeader(SOURCE_DATE_EPOCH) -&gt; genMan()</span><span class="se">\n</span><span class="s2">cpuguy83/go-md2man/v2 -&gt; UNIX roff"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">book_open</span><span class="p">((</span><span class="mf">12.5</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ReST: doc/rest_docs.go (187 LOC)</span><span class="se">\n</span><span class="s2">.. _&lt;ref&gt;: targets &amp; ~~~ underlines</span><span class="se">\n</span><span class="s2">:: literal blocks + indentString()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">brackets_curly</span><span class="p">((</span><span class="mf">96.5</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">136</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"YAML: doc/yaml_docs.go (176 LOC)</span><span class="se">\n</span><span class="s2">cmdDoc / cmdOption + forceMultiLine(&gt;60)</span><span class="se">\n</span><span class="s2">go.yaml.in/yaml/v3 Marshal(&amp;yamlDoc)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Vertical arrows from Top Panels to Bottom Panel</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">140</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Why <code>cobra/doc</code> Is &quot;AST-Free&quot;</h2>
+<p>Many Go documentation generators parse <code>.go</code> source files using <code>go/token</code>, <code>go/parser</code>, and <code>go/ast</code> to extract struct literals and doc comments. For a CLI framework like Cobra, static AST parsing fails whenever command hierarchies, flag defaults, or descriptions are computed dynamically in <code>init()</code> functions, factory constructors, or configuration closures.</p>
+<p>Instead, all four single-command generators in <code>cobra/doc</code> — <code>GenMarkdownCustom</code> (<code>doc/md_docs.go:57–117</code>), <code>GenMan</code> (<code>doc/man_docs.go:105–116</code>), <code>GenReSTCustom</code> (<code>doc/rest_docs.go:62–130</code>), and <code>GenYamlCustom</code> (<code>doc/yaml_docs.go:93–147</code>) — operate directly on an <strong>already-constructed <code>*cobra.Command</code> graph in memory</strong>:</p>
+<h3>1.1 Pre-Synthesis Lazy Initialization (<code>InitDefaultHelpCmd</code> &amp; <code>InitDefaultHelpFlag</code>)</h3>
+<p>During normal CLI execution, <code>Command.ExecuteC()</code> (<code>command.go:1109–1111</code>) lazily injects the built-in <code>help [command]</code> subcommand and <code>--help</code> (<code>-h</code>) flag immediately before command dispatch. Because offline documentation tools typically construct the root <code>*cobra.Command</code> tree and pass it directly to <code>doc.Gen*</code> without calling <code>Execute()</code>, every single-node generator starts with the same two initialization calls:</p>
+<pre><code class="language-go"><span class="c1">// Invoked at entry of:</span>
+<span class="c1">// - GenMarkdownCustom (doc/md_docs.go:58-59)</span>
+<span class="c1">// - genMan            (doc/man_docs.go:203-204)</span>
+<span class="c1">// - GenReSTCustom     (doc/rest_docs.go:63-64)</span>
+<span class="c1">// - GenYamlCustom     (doc/yaml_docs.go:94-95)</span>
+<span class="nx">cmd</span><span class="p">.</span><span class="nx">InitDefaultHelpCmd</span><span class="p">()</span>
+<span class="nx">cmd</span><span class="p">.</span><span class="nx">InitDefaultHelpFlag</span><span class="p">()</span>
+</code></pre>
+<p>Tracing these two calls into <code>command.go</code> reveals three side effects essential for accurate documentation output:</p>
+<ol>
+<li><strong><code>cmd.InitDefaultHelpCmd()</code> (<code>command.go:1263–1318</code>)</strong>:
+<ul>
+<li>Checks <code>if !c.HasSubCommands() { return }</code> (<code>L1264–1266</code>). Leaf commands do not receive a <code>help</code> subcommand.</li>
+<li>If <code>c.helpCommand == nil</code>, constructs the default <code>help [command]</code> <code>*Command</code> (<code>L1268–1310</code>) and attaches it via <code>c.AddCommand(c.helpCommand)</code> (<code>L1316</code>).</li>
+<li>Attaching <code>c.helpCommand</code> ensures <code>c.Parent().helpCommand == c</code> holds when <code>IsAvailableCommand()</code> (<code>command.go:1612–1614</code>) inspects children, preventing the auto-generated <code>help</code> command from polluting <code>SEE ALSO</code> cross-reference links or generating standalone <code>myapp_help.md</code> files.</li>
+</ul>
+</li>
+<li><strong><code>cmd.InitDefaultHelpFlag()</code> (<code>command.go:1219–1232</code>)</strong>:
+<ul>
+<li>Calls <code>c.mergePersistentFlags()</code> (<code>L1220</code>), which merges ancestor <code>PersistentFlags()</code> into <code>c.parentsPflags</code> and <code>c.Flags()</code>.</li>
+<li>If <code>c.Flags().Lookup(&quot;help&quot;) == nil</code>, registers <code>-h, --help</code> (<code>help for &lt;DisplayName&gt;</code>) on <code>c.Flags()</code> and marks it with <code>FlagSetByCobraAnnotation</code> (<code>L1229–1230</code>). Consequently, <code>-h, --help</code> is automatically included when <code>cmd.NonInheritedFlags()</code> is rendered.</li>
+</ul>
+</li>
+<li><strong><code>InitDefaultVersionFlag()</code> Is Intentionally Not Called</strong>:
+<ul>
+<li>Unlike <code>ExecuteC()</code> (<code>command.go:1111</code>), <code>cobra/doc</code> does not invoke <code>cmd.InitDefaultVersionFlag()</code>, so the auto-generated <code>--version</code> flag only appears in synthesized docs if initialized prior to calling <code>cobra/doc</code>.</li>
+</ul>
+</li>
+</ol>
+<h3>1.2 Runtime Introspection Accessors</h3>
+<p>After initializing help state, the four generators extract command metadata exclusively through <code>*cobra.Command</code> fields and methods:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Introspected Member</th>
+<th style="text-align:left">Source Location</th>
+<th style="text-align:left">Role in <code>cobra/doc</code> Synthesis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>cmd.CommandPath()</code></td>
+<td style="text-align:left"><code>command.go:1465–1470</code></td>
+<td style="text-align:left">Recursively joins <code>c.Parent().CommandPath() + &quot; &quot; + c.Name()</code> rooted at <code>c.DisplayName()</code>. Used for document titles, filenames, and <code>SEE ALSO</code> labels.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.Short</code> / <code>cmd.Long</code></td>
+<td style="text-align:left"><code>command.go:63–66</code></td>
+<td style="text-align:left">Brief summary and full synopsis. <code>GenMan</code> (<code>man_docs.go:144–147</code>) and <code>GenReSTCustom</code> (<code>rest_docs.go:70–73</code>) fall back to <code>cmd.Short</code> if <code>len(cmd.Long) == 0</code>; <code>GenMarkdownCustom</code> (<code>md_docs.go:66–69</code>) omits <code>### Synopsis</code> when <code>cmd.Long</code> is empty.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.Runnable()</code></td>
+<td style="text-align:left"><code>command.go:1596–1598</code></td>
+<td style="text-align:left">Returns `c.Run != nil</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.UseLine()</code></td>
+<td style="text-align:left"><code>command.go:1482–1497</code></td>
+<td style="text-align:left">Prepends <code>c.parent.CommandPath()</code> to <code>c.Use</code> (with <code>Name()</code> replaced by <code>DisplayName()</code>) and appends <code>&quot; [flags]&quot;</code> if <code>c.HasAvailableFlags() &amp;&amp; !c.DisableFlagsInUseLine</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.Example</code></td>
+<td style="text-align:left"><code>command.go:69</code></td>
+<td style="text-align:left">Multi-line usage examples rendered as fenced code blocks (<code>.md</code>, <code>.1</code>), indented literal blocks (<code>.rst</code>), or scalar strings (<code>.yaml</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.NonInheritedFlags()</code></td>
+<td style="text-align:left"><code>command.go:1770–1772</code></td>
+<td style="text-align:left">Delegates to <code>c.LocalFlags()</code> (<code>command.go:1718–1740</code>), returning flags defined directly on <code>cmd</code> (both local <code>Flags()</code> and <code>cmd</code>'s own <code>PersistentFlags()</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cmd.InheritedFlags()</code></td>
+<td style="text-align:left"><code>command.go:1744–1766</code></td>
+<td style="text-align:left">Calls <code>c.mergePersistentFlags()</code> and populates <code>c.iflags</code> from <code>c.parentsPflags</code>, excluding any flag shadowed by <code>c.LocalFlags()</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. Post-Order Recursive Tree Traversal (<code>*TreeCustom</code>)</h2>
+<p>Every format provides a convenience wrapper (<code>GenMarkdownTree</code>, <code>GenManTree</code>, <code>GenReSTTree</code>, <code>GenYamlTree</code>) that delegates to a customizable tree walker:</p>
+<ul>
+<li><code>GenMarkdownTreeCustom(cmd, dir, filePrepender, linkHandler)</code> (<code>doc/md_docs.go:133–158</code>)</li>
+<li><code>GenManTreeFromOpts(cmd, opts GenManTreeOptions)</code> (<code>doc/man_docs.go:48–80</code>)</li>
+<li><code>GenReSTTreeCustom(cmd, dir, filePrepender, linkHandler)</code> (<code>doc/rest_docs.go:145–170</code>)</li>
+<li><code>GenYamlTreeCustom(cmd, dir, filePrepender, linkHandler)</code> (<code>doc/yaml_docs.go:60–85</code>)</li>
+</ul>
+<h3>2.1 Bottom-Up Child Filtering &amp; Traversal Loop</h3>
+<p>All four tree walkers execute an identical <strong>post-order (bottom-up) depth-first traversal</strong>:</p>
+<pre><code class="language-go"><span class="c1">// Excerpt from GenMarkdownTreeCustom (doc/md_docs.go:133-158)</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenMarkdownTreeCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Commands</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">IsAvailableCommand</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">IsAdditionalHelpTopicCommand</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">GenMarkdownTreeCustom</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">basename</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">ReplaceAll</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CommandPath</span><span class="p">(),</span><span class="w"> </span><span class="s">" "</span><span class="p">,</span><span class="w"> </span><span class="s">"_"</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">markdownExtension</span>
+<span class="w">	</span><span class="nx">filename</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">dir</span><span class="p">,</span><span class="w"> </span><span class="nx">basename</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Create</span><span class="p">(</span><span class="nx">filename</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">f</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">WriteString</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">(</span><span class="nx">filename</span><span class="p">));</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">GenMarkdownCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p>Before recursing into a child <code>c</code>, the loop enforces a two-part guard (<code>!c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand()</code>):</p>
+<ol>
+<li><strong><code>c.IsAvailableCommand()</code> (<code>command.go:1607–1621</code>)</strong>:
+<ul>
+<li>Rejects commands where <code>len(c.Deprecated) != 0 || c.Hidden</code> (<code>L1608–1610</code>).</li>
+<li>Rejects the auto-generated <code>help</code> subcommand via <code>if c.HasParent() &amp;&amp; c.Parent().helpCommand == c { return false }</code> (<code>L1612–1614</code>).</li>
+<li>Requires <code>c.Runnable() || c.HasAvailableSubCommands()</code> (<code>L1616–1618</code>).</li>
+</ul>
+</li>
+<li><strong><code>!c.IsAdditionalHelpTopicCommand()</code> (<code>command.go:1628–1641</code>)</strong>:
+<ul>
+<li>An &quot;additional help topic&quot; is a non-runnable, non-deprecated, non-hidden <code>*Command</code> whose subcommands (if any) are also help topics (e.g., <code>kubectl help env</code>). Although <code>IsAvailableCommand()</code> already returns <code>false</code> for leaf help topics (since <code>!c.Runnable() &amp;&amp; !c.HasAvailableSubCommands()</code>), checking <code>IsAdditionalHelpTopicCommand()</code> explicitly guards parent help-topic containers.</li>
+</ul>
+</li>
+</ol>
+<h3>2.2 Output Filename Construction, <code>filePrepender</code>, and <code>headerCopy</code></h3>
+<p>Once all descendants of <code>cmd</code> have been written to disk, the walker creates the file for <code>cmd</code> itself:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Generator</th>
+<th style="text-align:left">Separator</th>
+<th style="text-align:left">Extension</th>
+<th style="text-align:left">Prepend Hook / Header Isolation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>GenMarkdownTreeCustom</code> (<code>md_docs.go:143–156</code>)</td>
+<td style="text-align:left"><code>&quot;_&quot;</code></td>
+<td style="text-align:left"><code>&quot;.md&quot;</code> (<code>markdownExtension</code>)</td>
+<td style="text-align:left">Writes <code>filePrepender(filename)</code> to <code>f</code> before <code>GenMarkdownCustom(cmd, f, linkHandler)</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>GenManTreeFromOpts</code> (<code>man_docs.go:61–79</code>)</td>
+<td style="text-align:left"><code>&quot;_&quot;</code> default (<code>&quot;-&quot;</code> via <code>GenManTree</code> <code>L42</code>)</td>
+<td style="text-align:left"><code>&quot;.&quot; + section</code> (<code>&quot;1&quot;</code> default)</td>
+<td style="text-align:left">Copies <code>headerCopy := *header</code> (<code>L78</code>) before <code>GenMan(cmd, &amp;headerCopy, f)</code> so <code>fillHeader</code> mutating <code>header.Title</code> per command never leaks across siblings (<code>TestGenManTree</code>, <code>man_docs_test.go:181–183</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>GenReSTTreeCustom</code> (<code>rest_docs.go:155–168</code>)</td>
+<td style="text-align:left"><code>&quot;_&quot;</code></td>
+<td style="text-align:left"><code>&quot;.rst&quot;</code></td>
+<td style="text-align:left">Writes <code>filePrepender(filename)</code> to <code>f</code> before <code>GenReSTCustom(cmd, f, linkHandler)</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>GenYamlTreeCustom</code> (<code>yaml_docs.go:70–83</code>)</td>
+<td style="text-align:left"><code>&quot;_&quot;</code></td>
+<td style="text-align:left"><code>&quot;.yaml&quot;</code></td>
+<td style="text-align:left">Writes <code>filePrepender(filename)</code> to <code>f</code> before <code>GenYamlCustom(cmd, f, linkHandler)</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 The <code>-</code> / <code>_</code> Filename Collision Caveat</h3>
+<p>All four <code>*Tree</code> docstrings (<code>md_docs.go:121–124</code>, <code>man_docs.go:34–37</code>, <code>rest_docs.go:134–137</code>, <code>yaml_docs.go:49–52</code>) document an architectural limitation of flattening <code>cmd.CommandPath()</code> into a single-directory filename:</p>
+<blockquote>
+<p>If <code>cmd</code> has two subcommands <code>sub</code> and <code>sub-third</code> (or <code>sub_third</code>), and <code>sub</code> itself has a subcommand named <code>third</code>, both <code>cmd sub third</code> and <code>cmd sub-third</code> flatten to the same filename (<code>cmd-sub-third.1</code> or <code>cmd_sub_third.md</code>), causing the later node in the post-order walk to overwrite the earlier file.</p>
+</blockquote>
+<hr />
+<h2>3. Cross-Reference Synthesis &amp; <code>DisableAutoGenTag</code> Propagation</h2>
+<p>Three shared helpers in <code>doc/util.go</code> (<code>53 LOC</code>) coordinate cross-references and formatting across the four backends.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_doc_synthesis/ast_free_doc_generators/genman_and_seealso_internals.png" alt="ast_free_doc_generators_2" />
+  <figcaption class="drawlib-caption">Figure 2: GenMan Two-Stage Markdown-to-Roff Pipeline and SEE ALSO / DisableAutoGenTag Ancestor Propagation</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"GenMan Two-Stage Roff Pipeline &amp; SEE ALSO Ancestor Propagation"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: GenMan 2-Stage Pipeline</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"GenMan 2-Stage Pipeline"</span><span class="p">,</span>
+    <span class="s2">"doc/man_docs.go"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">83</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">96</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">clock</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">85.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">85.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. fillHeader() (L118-141)</span><span class="se">\n</span><span class="s2">Title=UPPER(name), Section=</span><span class="se">\"</span><span class="s2">1</span><span class="se">\"\n</span><span class="s2">SOURCE_DATE_EPOCH -&gt; time.Unix()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">51</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">72.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">file_text</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. genMan() Markdown (L202-246)</span><span class="se">\n</span><span class="s2">manPreamble: % </span><span class="se">\"</span><span class="s2">TITLE</span><span class="se">\"</span><span class="s2"> </span><span class="se">\"</span><span class="s2">SEC</span><span class="se">\"</span><span class="s2"> ...</span><span class="se">\n</span><span class="s2">manPrintFlags: **-s**, **--flag**"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">51</span><span class="p">,</span> <span class="mf">58.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">52.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">link</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. SEE ALSO &amp; HISTORY (L217-244)</span><span class="se">\n</span><span class="s2">**parent(1)**, **cmd-sub(1)**</span><span class="se">\n</span><span class="s2"># HISTORY (if !DisableAutoGenTag)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">51</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">31.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">gear</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Accent</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">51</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. md2man.Render(b) (L114)</span><span class="se">\n</span><span class="s2">cpuguy83/go-md2man/v2 -&gt; UNIX roff</span><span class="se">\n</span><span class="s2">.TH / .SH / .PP / </span><span class="se">\\</span><span class="s2">fB...</span><span class="se">\\</span><span class="s2">fP"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Right Panel: SEE ALSO &amp; DisableAutoGenTag Propagation</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"SEE ALSO &amp; Tag Propagation"</span><span class="p">,</span>
+    <span class="s2">"doc/util.go + Gen*"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">95</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">83</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">96</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">question</span><span class="p">((</span><span class="mi">101</span><span class="p">,</span> <span class="mf">85.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">85.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. hasSeeAlso(cmd) (util.go:26-37)</span><span class="se">\n</span><span class="s2">cmd.HasParent() == true OR</span><span class="se">\n</span><span class="s2">any child IsAvailable &amp;&amp; !HelpTopic"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">140</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">72.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_out_line_vertical</span><span class="p">((</span><span class="mi">101</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. Parent Link &amp; VisitParents()</span><span class="se">\n</span><span class="s2">Emit parent link first, then scan</span><span class="se">\n</span><span class="s2">ancestors for DisableAutoGenTag"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">140</span><span class="p">,</span> <span class="mf">58.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">52.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">sort_ascending</span><span class="p">((</span><span class="mi">101</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. Deterministic Child Sorting</span><span class="se">\n</span><span class="s2">sort.Sort(byName(cmd.Commands()))</span><span class="se">\n</span><span class="s2">Filter available non-help children"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">140</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">31.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">shield_check</span><span class="p">((</span><span class="mi">101</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">140</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. Auto-Gen Footer Gate</span><span class="se">\n</span><span class="s2">Inherited DisableAutoGenTag suppresses</span><span class="se">\n</span><span class="s2">footer in Markdown / Man / ReST"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>3.1 <code>hasSeeAlso(cmd)</code> Gate (<code>doc/util.go:26–37</code>)</h3>
+<p>Before emitting a <code>SEE ALSO</code> section, every generator calls <code>hasSeeAlso(cmd)</code>:</p>
+<pre><code class="language-go"><span class="c1">// doc/util.go:26-37</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">hasSeeAlso</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HasParent</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Commands</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">IsAvailableCommand</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">IsAdditionalHelpTopicCommand</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre>
+<ul>
+<li>Any subcommand (<code>cmd.HasParent() == true</code>) always has at least one <code>SEE ALSO</code> entry (its parent).</li>
+<li>A root command (<code>cmd.HasParent() == false</code>) only emits <code>SEE ALSO</code> if it has at least one subcommand that satisfies <code>c.IsAvailableCommand() &amp;&amp; !c.IsAdditionalHelpTopicCommand()</code>. A single-command CLI with no subcommands omits <code>SEE ALSO</code> entirely.</li>
+</ul>
+<h3>3.2 Parent Link Emission &amp; <code>VisitParents</code> <code>DisableAutoGenTag</code> Propagation</h3>
+<p>When <code>hasSeeAlso(cmd)</code> returns <code>true</code> and <code>cmd.HasParent()</code> holds, the generators emit the parent reference <strong>first</strong>, and then immediately walk upward via <code>cmd.VisitParents</code> (<code>command.go:884–889</code>) to propagate <code>DisableAutoGenTag</code>:</p>
+<pre><code class="language-go"><span class="c1">// Identical propagation block in:</span>
+<span class="c1">// - GenMarkdownCustom (doc/md_docs.go:91-95)</span>
+<span class="c1">// - genMan            (doc/man_docs.go:225-229)</span>
+<span class="c1">// - GenReSTCustom     (doc/rest_docs.go:105-109)</span>
+<span class="nx">cmd</span><span class="p">.</span><span class="nx">VisitParents</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">DisableAutoGenTag</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">DisableAutoGenTag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">DisableAutoGenTag</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">})</span>
+</code></pre>
+<ul>
+<li><strong>Why <code>VisitParents</code> lives inside <code>if cmd.HasParent()</code></strong>: A command only has ancestor nodes when <code>cmd.HasParent()</code> is <code>true</code> (which also guarantees <code>hasSeeAlso(cmd) == true</code>). By mutating <code>cmd.DisableAutoGenTag</code> during the <code>SEE ALSO</code> pass, setting <code>rootCmd.DisableAutoGenTag = true</code> on the root command automatically suppresses the <code>&quot;Auto generated by spf13/cobra...&quot;</code> footer across all descendant commands in Markdown (<code>md_docs.go:112</code>), Man (<code>man_docs.go:242</code>), and ReST (<code>rest_docs.go:125</code>).</li>
+<li><strong>Subtle Ordering Nuance in <code>GenMan</code> (<code>doc/man_docs.go:109</code> vs <code>L225</code>)</strong>: In <code>GenMan</code>, <code>fillHeader(header, cmd.CommandPath(), cmd.DisableAutoGenTag)</code> runs at <code>L109</code> <em>before</em> <code>genMan(cmd, header)</code> executes <code>cmd.VisitParents</code> at <code>L225–229</code>. Consequently, if <code>DisableAutoGenTag</code> is set only on <code>rootCmd</code> and not on a child <code>subCmd</code>, <code>genMan</code> will suppress the <code># HISTORY</code> section on <code>subCmd</code> (<code>L242</code>), but <code>fillHeader</code> (<code>L137</code>) will still populate <code>header.Source = &quot;Auto generated by spf13/cobra&quot;</code> unless <code>subCmd.DisableAutoGenTag</code> or <code>header.Source</code> was explicitly set beforehand.</li>
+</ul>
+<h3>3.3 Deterministic Child Sorting via <code>byName</code> (<code>doc/util.go:48–52</code>)</h3>
+<p>After emitting the parent entry, each generator obtains <code>children := cmd.Commands()</code> and sorts the slice with <code>sort.Sort(byName(children))</code>:</p>
+<pre><code class="language-go"><span class="c1">// doc/util.go:48-52</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">byName</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="nx">byName</span><span class="p">)</span><span class="w"> </span><span class="nx">Len</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span><span class="w">           </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="nx">byName</span><span class="p">)</span><span class="w"> </span><span class="nx">Swap</span><span class="p">(</span><span class="nx">i</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">j</span><span class="p">],</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="nx">byName</span><span class="p">)</span><span class="w"> </span><span class="nx">Less</span><span class="p">(</span><span class="nx">i</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">j</span><span class="p">].</span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</code></pre>
+<p>Even if an application disables runtime command sorting (<code>cobra.EnableCommandSorting = false</code>), <code>cobra/doc</code> enforces strict lexicographical ordering by <code>Name()</code> in all <code>SEE ALSO</code> lists (<code>md_docs.go:99</code>, <code>man_docs.go:232</code>, <code>rest_docs.go:113</code>, <code>yaml_docs.go:127</code>).</p>
+<hr />
+<h2>4. Format-Specific Backend Pipelines</h2>
+<h3>4.1 Markdown Backend (<code>doc/md_docs.go</code>, <code>159 LOC</code>)</h3>
+<p><code>GenMarkdownCustom(cmd, w, linkHandler)</code> (<code>L57–117</code>) synthesizes GitHub-Flavored / CommonMark documentation into an in-memory <code>*bytes.Buffer</code> before flushing <code>buf.WriteTo(w)</code>:</p>
+<ol>
+<li><strong>Header &amp; Synopsis (<code>L64–78</code>)</strong>:
+<ul>
+<li>Writes <code>## &lt;CommandPath&gt;\n\n&lt;Short&gt;\n\n</code>.</li>
+<li>Emits <code>### Synopsis\n\n&lt;Long&gt;\n\n</code> only when <code>len(cmd.Long) &gt; 0</code>.</li>
+<li>Emits <code>```\n&lt;UseLine&gt;\n```\n\n</code> only when <code>cmd.Runnable()</code> is <code>true</code>.</li>
+<li>Emits <code>### Examples</code> with a fenced code block when <code>len(cmd.Example) &gt; 0</code>.</li>
+</ul>
+</li>
+<li><strong><code>printOptions</code> via <code>pflag.FlagSet.SetOutput</code> Redirection (<code>L32–49</code>)</strong>:
+<ul>
+<li>Rather than formatting flags manually, <code>printOptions</code> temporarily points <code>cmd.NonInheritedFlags()</code> and <code>cmd.InheritedFlags()</code> at <code>buf</code> using <code>flags.SetOutput(buf)</code> (<code>L34</code>, <code>L42</code>) and invokes <code>flags.PrintDefaults()</code> (<code>L37</code>, <code>L45</code>) inside fenced code blocks under <code>### Options</code> and <code>### Options inherited from parent commands</code>.</li>
+</ul>
+</li>
+<li><strong>Custom Link Rewriting (<code>L88–90</code>, <code>L106–108</code>)</strong>:
+<ul>
+<li>Each <code>SEE ALSO</code> target filename is computed as <code>strings.ReplaceAll(targetPath + &quot;.md&quot;, &quot; &quot;, &quot;_&quot;)</code> and passed through <code>linkHandler(link)</code> so static site generators (Hugo, Docusaurus, MkDocs) can rewrite links without regex post-processing.</li>
+</ul>
+</li>
+</ol>
+<h3>4.2 UNIX Man Page Backend (<code>doc/man_docs.go</code>, <code>247 LOC</code>)</h3>
+<p>Unlike the other three backends that write their final syntax directly to a buffer, <code>GenMan(cmd, header, w)</code> (<code>L105–116</code>) implements a <strong>two-stage compilation pipeline</strong>:</p>
+<ol>
+<li><strong>Header Filling &amp; <code>SOURCE_DATE_EPOCH</code> Reproducibility (<code>fillHeader</code>, <code>L118–141</code>)</strong>:
+<ul>
+<li>Defaults <code>header.Title</code> to <code>strings.ToUpper(strings.ReplaceAll(name, &quot; &quot;, &quot;\\-&quot;))</code> and <code>header.Section</code> to <code>&quot;1&quot;</code>.</li>
+<li>When <code>header.Date == nil</code>, checks <code>os.Getenv(&quot;SOURCE_DATE_EPOCH&quot;)</code> (<code>L127–133</code>). If set, parses the Unix timestamp via <code>strconv.ParseInt(epoch, 10, 64)</code> and constructs <code>time.Unix(unixEpoch, 0)</code> so Linux distribution package builds (Debian, RPM, Nix, Homebrew) produce bit-for-bit reproducible <code>.1</code> files regardless of build wall-clock time.</li>
+<li>Formats <code>header.date = header.Date.Format(&quot;Jan 2006&quot;)</code> (<code>L136</code>) for the <code>.TH</code> footer and <code># HISTORY</code> date <code>header.Date.Format(&quot;2-Jan-2006&quot;)</code> (<code>L243</code>).</li>
+</ul>
+</li>
+<li><strong>Pandoc / <code>go-md2man</code> Intermediate Markdown Synthesis (<code>genMan</code>, <code>L202–246</code>)</strong>:
+<ul>
+<li><strong><code>manPreamble</code> (<code>L143–157</code>)</strong>: Uses <code>cobra.WriteStringAndCheck</code> (<code>cobra.go:243–246</code>) to write the 5-field pandoc metadata header <code>% &quot;TITLE&quot; &quot;SECTION&quot; &quot;DATE&quot; &quot;SOURCE&quot; &quot;MANUAL&quot;</code> (<code>L149</code>), <code># NAME</code> (<code>&lt;dashedName&gt; \- &lt;Short&gt;</code>), <code># SYNOPSIS</code> (<code>**&lt;UseLine&gt;**</code>), and <code># DESCRIPTION</code> (<code>cmd.Long</code> falling back to <code>cmd.Short</code>).</li>
+<li><strong><code>manPrintOptions</code> &amp; <code>manPrintFlags</code> (<code>L159–200</code>)</strong>: Because <code>pflag.PrintDefaults()</code> outputs plain monospace text unsuitable for roff macro styling, <code>manPrintFlags</code> walks <code>flags.VisitAll</code> directly:
+<ul>
+<li>Skips deprecated or hidden flags: <code>if len(flag.Deprecated) &gt; 0 || flag.Hidden { return }</code> (<code>L161</code>).</li>
+<li>Suppresses deprecated shorthands: emits <code>**-%s**, **--%s**</code> only when <code>len(flag.Shorthand) &gt; 0 &amp;&amp; len(flag.ShorthandDeprecated) == 0</code>, falling back to <code>**--%s**</code> (<code>L165–169</code>).</li>
+<li>Formats optional values with <code>[...]</code> when <code>len(flag.NoOptDefVal) &gt; 0</code> (<code>L170–181</code>) and quotes default values with <code>=%q</code> when <code>flag.Value.Type() == &quot;string&quot;</code> (or <code>=%s</code> otherwise, <code>L173–178</code>), followed by <code>\n\t%s\n\n</code>.</li>
+</ul>
+</li>
+<li><strong>Inline <code>SEE ALSO</code> List (<code>L217–241</code>)</strong>: Collects bold man references (<code>**parent(1)**, **cmd-child(1)**</code>) and joins them with <code>&quot;, &quot;</code>.</li>
+</ul>
+</li>
+<li><strong>Roff Compilation via <code>md2man.Render</code> (<code>L113–115</code>)</strong>:
+<ul>
+<li>Calls <code>md2man.Render(b)</code> (<code>github.com/cpuguy83/go-md2man/v2/md2man</code>), which parses the intermediate Markdown with <code>russross/blackfriday/v2</code> and emits troff/groff macros (<code>.TH</code>, <code>.SH</code>, <code>.PP</code>, <code>\fB...\fP</code>).</li>
+</ul>
+</li>
+</ol>
+<h3>4.3 reStructuredText Backend (<code>doc/rest_docs.go</code>, <code>187 LOC</code>)</h3>
+<p><code>GenReSTCustom(cmd, w, linkHandler)</code> (<code>L62–130</code>) targets Sphinx and Python <code>docutils</code> toolchains:</p>
+<ol>
+<li><strong>Reference Targets &amp; Adornment Underlines (<code>L74–83</code>)</strong>:
+<ul>
+<li>Emits an explicit cross-reference label <code>.. _&lt;ref&gt;:\n\n</code> (<code>L76</code>, where <code>ref</code> replaces spaces with <code>_</code>), followed by <code>name</code> underlined with <code>strings.Repeat(&quot;-&quot;, len(name))</code> (<code>L78</code>) and subsections (<code>Synopsis</code>, <code>Examples</code>, <code>Options</code>, <code>SEE ALSO</code>) underlined with <code>~~~~~~~</code>.</li>
+</ul>
+</li>
+<li><strong>Literal Blocks (<code>::</code>) &amp; <code>indentString</code> (<code>L84–95</code>, <code>L173–186</code>)</strong>:
+<ul>
+<li>In ReST, a <code>::</code> paragraph followed by a blank line starts an indented literal block.</li>
+<li>For <code>cmd.UseLine()</code> (<code>L85</code>), a single <code>&quot;  &quot;</code> prefix suffices.</li>
+<li>For multi-line <code>cmd.Example</code> (<code>L91</code>), <code>indentString(cmd.Example, &quot;  &quot;)</code> (<code>L173–186</code>, adapted from <code>kr/text</code>) iterates byte-by-byte tracking beginning-of-line state (<code>bol := true</code>) and prepends <code>&quot;  &quot;</code> only when <code>bol &amp;&amp; c != '\n'</code>, avoiding trailing spaces on blank lines.</li>
+<li>For <code>printOptionsReST</code> (<code>L30–49</code>), <code>flags.PrintDefaults()</code> natively indents every flag line with leading spaces, so writing <code>::\n\n</code> before <code>flags.PrintDefaults()</code> forms a valid ReST literal block without extra indentation.</li>
+</ul>
+</li>
+<li><strong>Two-Parameter <code>linkHandler(name, ref string) string</code> (<code>L52–54</code>)</strong>:
+<ul>
+<li>Unlike Markdown's 1-argument <code>linkHandler</code>, ReST passes both the human-readable command path <code>name</code> and underscore-normalized <code>ref</code>. <code>defaultLinkHandler</code> formats external <code>.rst</code> links as <code>fmt.Sprintf(&quot;`%s &lt;%s.rst&gt;`_&quot;, name, ref)</code>.</li>
+</ul>
+</li>
+</ol>
+<h3>4.4 YAML Backend (<code>doc/yaml_docs.go</code>, <code>176 LOC</code>)</h3>
+<p><code>GenYamlCustom(cmd, w, linkHandler)</code> (<code>L93–147</code>) serializes structured metadata via <code>go.yaml.in/yaml/v3</code>:</p>
+<ol>
+<li><strong>Serialization Schema (<code>cmdDoc</code> &amp; <code>cmdOption</code>, <code>L30–46</code>)</strong>:<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">cmdOption</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Name</span><span class="w">         </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Shorthand</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">DefaultValue</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`yaml:"default_value,omitempty"`</span>
+<span class="w">	</span><span class="nx">Usage</span><span class="w">        </span><span class="kt">string</span><span class="w"> </span><span class="s">`yaml:",omitempty"`</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">cmdDoc</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Name</span><span class="w">             </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Synopsis</span><span class="w">         </span><span class="kt">string</span><span class="w">      </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">Description</span><span class="w">      </span><span class="kt">string</span><span class="w">      </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">Usage</span><span class="w">            </span><span class="kt">string</span><span class="w">      </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">Options</span><span class="w">          </span><span class="p">[]</span><span class="nx">cmdOption</span><span class="w"> </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">InheritedOptions</span><span class="w"> </span><span class="p">[]</span><span class="nx">cmdOption</span><span class="w"> </span><span class="s">`yaml:"inherited_options,omitempty"`</span>
+<span class="w">	</span><span class="nx">Example</span><span class="w">          </span><span class="kt">string</span><span class="w">      </span><span class="s">`yaml:",omitempty"`</span>
+<span class="w">	</span><span class="nx">SeeAlso</span><span class="w">          </span><span class="p">[]</span><span class="kt">string</span><span class="w">    </span><span class="s">`yaml:"see_also,omitempty"`</span>
+<span class="p">}</span>
+</code></pre>
+</li>
+<li><strong>The <code>forceMultiLine</code> Heuristic (<code>doc/util.go:41–46</code>)</strong>:<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">forceMultiLine</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">60</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">s</span><span class="p">,</span><span class="w"> </span><span class="s">"\n"</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">s</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">"\n"</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">s</span>
+<span class="p">}</span>
+</code></pre>
+<ul>
+<li>Applied to <code>yamlDoc.Synopsis</code> (<code>L100</code>), <code>yamlDoc.Description</code> (<code>L101</code>), and flag fields inside <code>genFlagResult</code> (<code>L149–175</code>) to work around YAML serializer line-wrapping quirks on single-line strings exceeding <code>60</code> bytes.</li>
+</ul>
+</li>
+<li><strong>Implementation Specifics in <code>GenYamlCustom</code> &amp; <code>genFlagResult</code> (<code>L111–175</code>)</strong>:
+<ul>
+<li><strong>Unfiltered <code>HasFlags()</code> &amp; <code>VisitAll</code></strong>: Unlike Markdown, Man, and ReST (which check <code>flags.HasAvailableFlags()</code> and skip hidden/deprecated flags), <code>GenYamlCustom</code> checks <code>flags.HasFlags()</code> (<code>L112</code>, <code>L116</code>) and <code>genFlagResult</code> visits all flags via <code>flags.VisitAll</code> (<code>L152</code>) without filtering <code>flag.Hidden</code> or <code>flag.Deprecated</code> (only checking <code>len(flag.ShorthandDeprecated) == 0 &amp;&amp; len(flag.Shorthand) &gt; 0</code> at <code>L156</code> to omit deprecated shorthands).</li>
+<li><strong>Unused <code>linkHandler</code> Parameter &amp; <code>os.Exit(1)</code> on Marshal Error</strong>: <code>GenYamlCustom</code> accepts <code>linkHandler func(string) string</code> for signature parity with <code>GenMarkdownCustom</code>, but formats <code>yamlDoc.SeeAlso</code> entries directly as <code>parent.CommandPath() + &quot; - &quot; + parent.Short</code> (<code>L124</code>, <code>L132</code>). Finally, it marshals <code>&amp;yamlDoc</code> via <code>yaml.Marshal(&amp;yamlDoc)</code> (<code>L137–141</code>) and writes the resulting bytes to <code>w</code>.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>5. Summary Comparison of the Four <code>cobra/doc</code> Backends</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Dimension</th>
+<th style="text-align:left">Markdown (<code>doc/md_docs.go</code>)</th>
+<th style="text-align:left">Man / roff (<code>doc/man_docs.go</code>)</th>
+<th style="text-align:left">ReST (<code>doc/rest_docs.go</code>)</th>
+<th style="text-align:left">YAML (<code>doc/yaml_docs.go</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Non-Test LOC</strong></td>
+<td style="text-align:left"><code>159</code></td>
+<td style="text-align:left"><code>247</code></td>
+<td style="text-align:left"><code>187</code></td>
+<td style="text-align:left"><code>176</code> (+ <code>53</code> in <code>doc/util.go</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Single-Node Entrypoint</strong></td>
+<td style="text-align:left"><code>GenMarkdownCustom(cmd, w, linkHandler)</code></td>
+<td style="text-align:left"><code>GenMan(cmd, header, w)</code></td>
+<td style="text-align:left"><code>GenReSTCustom(cmd, w, linkHandler)</code></td>
+<td style="text-align:left"><code>GenYamlCustom(cmd, w, linkHandler)</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Tree Entrypoint</strong></td>
+<td style="text-align:left"><code>GenMarkdownTreeCustom</code></td>
+<td style="text-align:left"><code>GenManTreeFromOpts</code></td>
+<td style="text-align:left"><code>GenReSTTreeCustom</code></td>
+<td style="text-align:left"><code>GenYamlTreeCustom</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Default Filename Pattern</strong></td>
+<td style="text-align:left"><code>&lt;cmd_path&gt;.md</code> (<code>_</code> sep)</td>
+<td style="text-align:left"><code>&lt;cmd-path&gt;.&lt;section&gt;</code> (<code>-</code> sep in <code>GenManTree</code>)</td>
+<td style="text-align:left"><code>&lt;cmd_path&gt;.rst</code> (<code>_</code> sep)</td>
+<td style="text-align:left"><code>&lt;cmd_path&gt;.yaml</code> (<code>_</code> sep)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Flag Rendering Strategy</strong></td>
+<td style="text-align:left"><code>flags.SetOutput(buf)</code> + <code>flags.PrintDefaults()</code></td>
+<td style="text-align:left">Custom <code>manPrintFlags()</code> (<code>VisitAll</code>, skips <code>Hidden</code>/<code>Deprecated</code>)</td>
+<td style="text-align:left"><code>flags.SetOutput(buf)</code> + <code>::</code> + <code>flags.PrintDefaults()</code></td>
+<td style="text-align:left"><code>genFlagResult()</code> -&gt; <code>[]cmdOption</code> (<code>VisitAll</code> + <code>forceMultiLine</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>External Serializer</strong></td>
+<td style="text-align:left">Standard library (<code>bytes</code>, <code>fmt</code>)</td>
+<td style="text-align:left"><code>github.com/cpuguy83/go-md2man/v2/md2man</code></td>
+<td style="text-align:left">Standard library + <code>indentString</code></td>
+<td style="text-align:left"><code>go.yaml.in/yaml/v3</code> (<code>yaml.Marshal</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>DisableAutoGenTag</code> Support</strong></td>
+<td style="text-align:left">Yes (<code>###### Auto generated...</code> + <code>VisitParents</code>)</td>
+<td style="text-align:left">Yes (<code>header.Source</code> + <code># HISTORY</code> + <code>VisitParents</code>)</td>
+<td style="text-align:left">Yes (<code>*Auto generated...*</code> + <code>VisitParents</code>)</td>
+<td style="text-align:left">N/A (no auto-gen footer in YAML schema)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Navigation</h2>
+<ul>
+<li><strong>Previous Chapter</strong>: <a href="../05_completion_v2_engine/complete_protocol_and_shells.html">Chapter 5: <code>__complete</code> Protocol &amp; Shell Scripts</a></li>
+<li><strong>Architecture Index</strong>: <a href="../index.html">Cobra v1.10.2 Internal Architecture Overview</a></li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial internal architecture guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

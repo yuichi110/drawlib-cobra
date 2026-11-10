@@ -1,0 +1,969 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>`ExecuteC` と `Command.execute()` ライフサイクルエンジン (`command.go:905–1314`, `command_win.go`) — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    
+    
+    
+    <meta name="description" content="構築された Cobra CLI の実行は、*Command に定義された4つの公開エントリーメソッド — Execute()、ExecuteC()、ExecuteContext(ctx)、ExecuteContextC(ctx) (command.go:1062–1084)…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra 内部アーキテクチャ">
+    <meta property="og:title" content="ExecuteC と Command.execute() ライフサイクルエンジン (command.go:905–1314, command_win.go) — Cobra 内部アーキテクチャ">
+    <meta property="og:description" content="構築された Cobra CLI の実行は、*Command に定義された4つの公開エントリーメソッド — Execute()、ExecuteC()、ExecuteContext(ctx)、ExecuteContextC(ctx) (command.go:1062–1084)…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ExecuteC と Command.execute() ライフサイクルエンジン (command.go:905–1314, command_win.go) — Cobra 内部アーキテクチャ">
+    <meta name="twitter:description" content="構築された Cobra CLI の実行は、*Command に定義された4つの公開エントリーメソッド — Execute()、ExecuteC()、ExecuteContext(ctx)、ExecuteContextC(ctx) (command.go:1062–1084)…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra 内部アーキテクチャ">
+                    
+                    Cobra 内部アーキテクチャ
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >アーキテクチャ概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. パッケージ構成と複合ツリー</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command ツリーと FlagSet 遅延初期化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. パーサーとコマンド解決</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find / Traverse と stripFlags パーサー</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. ライフサイクル実行エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="executec_and_hook_chain.html" >ExecuteC・execute() とフック連鎖</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 関係フラググループと引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation フラググループとバリデータ</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete プロトコルとシェル生成</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. ドキュメント合成エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >cobra/doc の再帰ツリー直列化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra ユーザーガイド<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">`ExecuteC` と `Command.execute()` ライフサイクルエンジン (`command.go:905–1314`, `command_win.go`)</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/03_execution_engine/executec_and_hook_chain.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="executec_and_hook_chain.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1><code>ExecuteC</code> と <code>Command.execute()</code> ライフサイクルエンジン (<code>command.go:905–1314</code>, <code>command_win.go</code>)</h1>
+<p>構築された Cobra CLI の実行は、<code>*Command</code> に定義された4つの公開エントリーメソッド — <code>Execute()</code>、<code>ExecuteC()</code>、<code>ExecuteContext(ctx)</code>、<code>ExecuteContextC(ctx)</code> (<code>command.go:1062–1084</code>) — のいずれかから開始されます。これら4つのメソッドはすべて、以下の2フェーズ実行エンジンへ集約されます。</p>
+<ol>
+<li><strong><code>ExecuteC()</code> (<code>command.go:1084–1170</code>)</strong>: ツリー全体のオーケストレーション — <code>context.Context</code> の初期化、<code>c.Root()</code> への再アンカー、Windows <code>mousetrap</code> 起動チェック、組み込みコマンド（<code>help</code>、<code>__complete</code>、<code>completion</code>）の遅延注入、コマンドグループ整合性チェック、<code>Traverse</code> または <code>Find</code> による解決、およびトップレベルのエラー／<code>flag.ErrHelp</code> 出力制御を担います。</li>
+<li><strong><code>c.execute(a []string)</code> (<code>command.go:905–1045</code>)</strong>: 単一ノードのライフサイクル実行 — <code>--help</code>／<code>--version</code> フラグの直前登録、<code>ParseFlags(a)</code> の実行、<code>OnInitialize</code>／<code>OnFinalize</code> コールバックの発火、<code>ValidateArgs</code> による位置引数検証、および <strong>6段階のフック＆フラグ検証パイプライン</strong> を駆動します。</li>
+</ol>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_execution_engine/executec_and_hook_chain/executec_dispatch_pipeline_ja.png" alt="executec_and_hook_chain_1" />
+  <figcaption class="drawlib-caption">図1: 2フェーズ実行パイプライン — ExecuteC() によるツリー制御と cmd.execute() のノードライフサイクル (command.go:905–1170)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"Cobra v1.10.2 実行エンジン: ExecuteC() -&gt; cmd.execute(flags)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: ExecuteC() Tree Orchestrator</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"ExecuteC() ツリー制御"</span><span class="p">,</span>
+    <span class="s2">"command.go:1084"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">84</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">95</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. Context 初期化 &amp; Root 再アンカー (L1085–1097)</span><span class="se">\n</span><span class="s2">ctx = Background() | c.Root().ExecuteC() | win mousetrap"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. 組み込みコマンド遅延注入 &amp; Group 検証 (L1100–1117)</span><span class="se">\n</span><span class="s2">InitDefaultHelpCmd | __complete | completion | Groups"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">52.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. コマンドツリー解決 (L1120–1135)</span><span class="se">\n</span><span class="s2">Traverse(args) または Find(args) -&gt; (cmd, flags, err)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. 呼び出し名記録 &amp; Context 伝播 (L1137–1148)</span><span class="se">\n</span><span class="s2">commandCalledAs.called = true | cmd.ctx = c.ctx"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">14.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5. エラー・ErrHelp・Usage 出力ゲート (L1149–1169)</span><span class="se">\n</span><span class="s2">errors.Is(ErrHelp) -&gt; HelpFunc() (nil を返却)</span><span class="se">\n</span><span class="s2">!SilenceErrors -&gt; PrintErrln | !SilenceUsage -&gt; Usage"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">74.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">63.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">58.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">47.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">31.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">24.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: cmd.execute(flags) Lifecycle</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"cmd.execute(a) 実行エンジン"</span><span class="p">,</span>
+    <span class="s2">"command.go:905"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">95</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. 直前フラグ注入 &amp; ParseFlags(a) (L910–922)</span><span class="se">\n</span><span class="s2">Deprecated 警告 | Help/VersionFlag | FlagErrorFunc"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. 早期短絡判定ゲート (L926–957)</span><span class="se">\n</span><span class="s2">--help -&gt; ErrHelp | --version -&gt; Template | !Runnable"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">52.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. 全体初期化 &amp; 位置引数検証 (L959–970)</span><span class="se">\n</span><span class="s2">preRun (OnInitialize) | defer postRun | ValidateArgs"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. PreRun フック &amp; フラグ検証 (L972–1012)</span><span class="se">\n</span><span class="s2">PersistentPreRunE -&gt; PreRunE -&gt; Validate*Flags()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">14.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5. 本処理 &amp; PostRun フック連鎖 (L1014–1044)</span><span class="se">\n</span><span class="s2">RunE/Run -&gt; PostRunE -&gt; PersistentPostRunE</span><span class="se">\n</span><span class="s2">-&gt; defer postRun (OnFinalize)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">74.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">63.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">58.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">47.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">31.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">24.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Cross-panel invocation arrow</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">90</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">96</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. フェーズ1: <code>ExecuteC()</code> によるツリーレベル制御 (<code>command.go:1062–1170</code>)</h2>
+<h3>1.1 4つの公開エントリーポイント (<code>command.go:1062–1084</code>)</h3>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ctx</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Execute</span><span class="p">()</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Execute</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ExecuteC</span><span class="p">()</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContextC</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ctx</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ExecuteC</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre>
+<p>これら4メソッドはすべて <code>ExecuteC() (cmd *Command, err error)</code> (<code>command.go:1084</code>) に合流し、以下の10ステップを順番に実行します。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">ステップ</th>
+<th style="text-align:left">ソースコード行</th>
+<th style="text-align:left">実行内容</th>
+<th style="text-align:left">アーキテクチャ上の意図</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. デフォルト <code>ctx</code> 生成</strong></td>
+<td style="text-align:left"><code>command.go:1085–1087</code></td>
+<td style="text-align:left"><code>if c.ctx == nil { c.ctx = context.Background() }</code></td>
+<td style="text-align:left"><code>Execute()</code> 開始後、<code>ValidArgsFunction</code> や各 <code>*Run*</code> フック内で <code>cmd.Context()</code> が決して <code>nil</code> にならないことを保証します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. Root への再アンカー</strong></td>
+<td style="text-align:left"><code>command.go:1090–1092</code></td>
+<td style="text-align:left"><code>if c.HasParent() { return c.Root().ExecuteC() }</code></td>
+<td style="text-align:left">呼び出し側が誤って子コマンド <code>subCmd.Execute()</code> を呼んだ場合でも、必ず <code>Root()</code> まで遡って CLI 全体として引数解決を開始します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Windows <code>preExecHookFn</code></strong></td>
+<td style="text-align:left"><code>command.go:1095–1097</code><br><code>command_win.go:28–41</code></td>
+<td style="text-align:left"><code>if preExecHookFn != nil { preExecHookFn(c) }</code></td>
+<td style="text-align:left">Windows ビルド (<code>//go:build windows</code>) 時のみ <code>mousetrap.StartedByExplorer()</code> を判定します。エクスプローラーから直接ダブルクリック起動され <code>MousetrapHelpText != &quot;&quot;</code> の場合、案内文を表示し <code>MousetrapDisplayDuration</code>（既定 <code>5秒</code>、<code>&lt;=0</code> なら <code>fmt.Scanln()</code>）待機後に <code>os.Exit(1)</code> で終了します（非 Windows の <code>command_notwin.go:20</code> では <code>nil</code>）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. <code>InitDefaultHelpCmd()</code></strong></td>
+<td style="text-align:left"><code>command.go:1100</code><br><code>command.go:1263–1314</code></td>
+<td style="text-align:left"><code>c.HasSubCommands()</code> が真なら <code>c.helpCommand</code> (<code>help [command]</code>) を遅延生成・再登録</td>
+<td style="text-align:left">ユーザーが <code>AddCommand</code> 後に <code>SetHelpCommand</code> や <code>SetHelpCommandGroupID</code> を設定できるよう、実行開始の最終タイミングまで遅延されます（<code>L1312–1313</code> で <code>RemoveCommand</code> + <code>AddCommand</code>）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. 引数スライス決定 (<code>#155</code>)</strong></td>
+<td style="text-align:left"><code>command.go:1102–1107</code></td>
+<td style="text-align:left"><code>args := c.args</code><br><code>if c.args == nil &amp;&amp; filepath.Base(os.Args[0]) != &quot;cobra.test&quot; { args = os.Args[1:] }</code></td>
+<td style="text-align:left"><code>SetArgs(a)</code> 未指定時は <code>os.Args[1:]</code> を採用しますが、<code>go test -v</code> 実行時にテストバイナリ <code>cobra.test</code> に渡される <code>-test.v</code> 等のフラグを誤パースしないようガードしています。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. <code>__complete</code> 遅延注入</strong></td>
+<td style="text-align:left"><code>command.go:1110</code><br><code>completions.go:195</code></td>
+<td style="text-align:left"><code>c.initCompleteCmd(args)</code></td>
+<td style="text-align:left"><code>args[0]</code> が補完リクエストである場合に隠しコマンド <code>__complete</code> / <code>__completeNoDesc</code> を注入します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>7. <code>completion</code> 遅延注入</strong></td>
+<td style="text-align:left"><code>command.go:1113</code><br><code>shell_completions.go:29</code></td>
+<td style="text-align:left"><code>c.InitDefaultCompletionCmd(args...)</code></td>
+<td style="text-align:left"><code>CompletionOptions.DisableDefaultCmd</code> が無効かつサブコマンドが存在する場合にデフォルトの <code>completion [bash|zsh|fish|powershell]</code> コマンドを追加します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>8. <code>checkCommandGroups()</code></strong></td>
+<td style="text-align:left"><code>command.go:1117</code><br><code>command.go:1205–1214</code></td>
+<td style="text-align:left">全子孫コマンドについて <code>sub.GroupID == &quot;&quot; || c.ContainsGroup(sub.GroupID)</code> を再帰検証</td>
+<td style="text-align:left">親に未登録の <code>GroupID</code> を持つサブコマンドが存在する場合、設定バグとして <strong>即座に <code>panic</code></strong> (<code>panic(fmt.Sprintf(&quot;group id '%s' is not defined for subcommand '%s'&quot;, ...))</code>) させます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>9. <code>Traverse</code> / <code>Find</code> 分岐</strong></td>
+<td style="text-align:left"><code>command.go:1120–1135</code></td>
+<td style="text-align:left"><code>c.Traverse(args)</code> または <code>c.Find(args)</code> を実行。エラー時は <code>!c.SilenceErrors</code> ならエラーと <code>--help</code> 案内を出力</td>
+<td style="text-align:left">対象コマンド <code>cmd</code> と残余引数スライス <code>flags</code> を確定します（詳細は <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html">第2章</a> 参照）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>10. <code>cmd.execute(flags)</code> とエラー処理</strong></td>
+<td style="text-align:left"><code>command.go:1137–1169</code></td>
+<td style="text-align:left"><code>cmd.commandCalledAs.called = true</code> の設定、<code>cmd.ctx = c.ctx</code> の伝播、<code>cmd.execute(flags)</code> の呼び出し、および <code>ErrHelp</code> / エラー / Usage 出力</td>
+<td style="text-align:left"><code>flag.ErrHelp</code> のヘルプ変換および <code>SilenceErrors</code> / <code>SilenceUsage</code> の親子継承を一元処理します。</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 実行後の <code>flag.ErrHelp</code>・<code>SilenceErrors</code>・<code>SilenceUsage</code> 制御 (<code>command.go:1148–1169</code>)</h3>
+<p><code>err = cmd.execute(flags)</code> が非 <code>nil</code> エラーを返した場合 (<code>command.go:1149</code>)、<code>ExecuteC()</code> は以下の優先順位でエラー出力を制御します。</p>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">execute</span><span class="p">(</span><span class="nx">flags</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="c1">// Always show help if requested, even if SilenceErrors is in</span>
+<span class="w">		</span><span class="c1">// effect</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ErrHelp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HelpFunc</span><span class="p">()(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="c1">// If root command has SilenceErrors flagged,</span>
+<span class="w">		</span><span class="c1">// all subcommands should respect it</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SilenceErrors</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">SilenceErrors</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">c</span><span class="p">.</span><span class="nx">PrintErrln</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ErrPrefix</span><span class="p">(),</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="c1">// If root command has SilenceUsage flagged,</span>
+<span class="w">		</span><span class="c1">// all subcommands should respect it</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SilenceUsage</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">SilenceUsage</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">c</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">UsageString</span><span class="p">())</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+</code></pre>
+<ol>
+<li><strong><code>flag.ErrHelp</code> は常にヘルプを表示して <code>nil</code> エラーを返す (<code>L1152–1155</code>)</strong>: <code>--help</code> / <code>-h</code> フラグ指定時 (<code>L935</code>) または実行関数を持たない親コマンド単体の呼び出し時 (<code>!c.Runnable()</code>、<code>L956</code>) には <code>flag.ErrHelp</code> が返されます。<code>ExecuteC</code> は <code>SilenceErrors</code> の有無にかかわらず <code>cmd.HelpFunc()(cmd, args)</code> を実行し（<code>cmd.OutOrStdout()</code> へ出力、<code>L495</code>）、<strong>戻り値のエラーを <code>nil</code> にクリアして <code>cmd, nil</code> を返します</strong>。</li>
+<li><strong>ルート設定を継承する <code>SilenceErrors</code> (<code>L1159–1161</code>)</strong>: 実行対象コマンド <code>cmd.SilenceErrors</code> <strong>または</strong> ルートコマンド <code>c.SilenceErrors</code> のいずれかが <code>true</code> であれば、<code>c.PrintErrln(cmd.ErrPrefix(), err.Error())</code> は抑止されます。なお <code>cmd.ErrPrefix()</code> (<code>L643–652</code>) は親ツリーを遡って <code>SetErrPrefix</code> の設定を探し、未設定時は <code>&quot;Error:&quot;</code> を返します。</li>
+<li><strong>ルート設定を継承する <code>SilenceUsage</code> (<code>L1165–1167</code>)</strong>: <code>cmd.SilenceUsage</code> <strong>または</strong> <code>c.SilenceUsage</code> のいずれかが <code>true</code> であれば、エラー発生時の <code>c.Println(cmd.UsageString())</code> 出力が抑止されます。</li>
+</ol>
+<hr />
+<h2>2. フェーズ2: <code>Command.execute(a []string)</code> と6段階フックパイプライン (<code>command.go:905–1045</code>)</h2>
+<p><code>c.execute(a []string)</code> (<code>command.go:905</code>) では、解決された単一のコマンドノード <code>c</code> に対してフラグ解析・引数検証・フック実行を行います。<code>c.execute</code> 内の処理順序は Cobra アーキテクチャにおいて最も重要な契約の一つです。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_execution_engine/executec_and_hook_chain/hook_chain_traversal_ja.png" alt="executec_and_hook_chain_2" />
+  <figcaption class="drawlib-caption">図2: c.execute() 内の6段階フック＆バリデーション実行順序と EnableTraverseRunHooks の伝播方向 (command.go:968–1042)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">108</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">103.5</span><span class="p">),</span>
+    <span class="s2">"6段階フックパイプラインと EnableTraverseRunHooks の伝播制御"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: 6-Stage Hook &amp; Validation Sequence</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"c.execute() フック実行順序"</span><span class="p">,</span>
+    <span class="s2">"command.go:959"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">86</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">91</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"前処理: preRun() + ValidateArgs(argWoFlags) (L959–970)</span><span class="se">\n</span><span class="s2">OnInitialize() 実行後、全 *PreRun より前に位置引数を検証"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">68.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"段階1: PersistentPreRunE / PersistentPreRun (L972–998)</span><span class="se">\n</span><span class="s2">祖先フックに (葉コマンド c, argWoFlags) を渡して実行"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"段階2: c.PreRunE / c.PreRun (L999–1005)</span><span class="se">\n</span><span class="s2">段階3の検証前にプログラムから動的にフラグ値を設定可能!"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">41.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"段階3: ValidateRequiredFlags &amp; ValidateFlagGroups</span><span class="se">\n</span><span class="s2">(L1007–1012) PreRunE によるフラグ変更の後に検証!"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">28.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"段階4: c.RunE / c.Run (L1014–1020)</span><span class="se">\n</span><span class="s2">コマンド本体のメイン処理を (c, argWoFlags) で実行"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">14.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"段階5 &amp; 6: PostRunE -&gt; PersistentPostRunE (L1021–1042)</span><span class="se">\n</span><span class="s2">関数終了時に defer c.postRun() (OnFinalize) が必ず発火"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">72.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">63.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">46.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">36.75</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">23.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">19.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: EnableTraverseRunHooks Comparison</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"永続フックの伝播モード"</span><span class="p">,</span>
+    <span class="s2">"L972 &amp; L1028"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">98</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">91</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">75.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">18.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"既定: EnableTraverseRunHooks = false</span><span class="se">\n</span><span class="s2">• 葉から上向きに探索: c -&gt; Parent() -&gt; Root()</span><span class="se">\n</span><span class="s2">• 最初に見つかった非 nil フック 1つだけを実行</span><span class="se">\n</span><span class="s2">• 実行直後に break (L990 / L1034)</span><span class="se">\n</span><span class="s2">• 子の Persistent*Run は親のフックを隠蔽する"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">48.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"オプトイン: EnableTraverseRunHooks = true</span><span class="se">\n</span><span class="s2">PersistentPreRunE (Root -&gt; 葉へ下向き実行)</span><span class="se">\n</span><span class="s2">• 先頭挿入: parents = append([]*Command</span><span class="si">{p}</span><span class="s2">, ...)</span><span class="se">\n</span><span class="s2">• 順序: Root -&gt; Parent -&gt; 葉ノード c (L978–998)</span><span class="se">\n</span><span class="s2">• いずれかが error を返した時点で即座に中断"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">19.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"オプトイン: EnableTraverseRunHooks = true</span><span class="se">\n</span><span class="s2">PersistentPostRunE (葉 -&gt; Root へ上向き実行)</span><span class="se">\n</span><span class="s2">• ループ: for p := c; p != nil; p = p.Parent()</span><span class="se">\n</span><span class="s2">• 順序: 葉ノード c -&gt; Parent -&gt; Root (L1028–1042)</span><span class="se">\n</span><span class="s2">• PreRun と対称な入れ子構造で RunE を包む"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>2.1 直前フラグ登録・<code>ParseFlags</code>・早期短絡ゲート (<code>command.go:906–957</code>)</h3>
+<p>フックやバリデータに入る前に、<code>c.execute(a []string)</code> は以下の6つの準備および短絡チェックを実行します。</p>
+<ol>
+<li><strong>非推奨（Deprecated）警告の出力 (<code>L910–912</code>)</strong>:<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">Deprecated</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Command %q is deprecated, %s\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Name</span><span class="p">(),</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Deprecated</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<code>c.Printf</code> は <code>c.OutOrStderr()</code> (<code>command.go:1435–1447</code>) に出力するため、<code>SetOut</code> が呼ばれていなければ標準エラー (<code>os.Stderr</code>) に出力されます。</li>
+<li><strong><code>--help</code> と <code>--version</code> フラグの直前注入 (<code>L916–917</code>, <code>L1219–1258</code>)</strong>:
+<ul>
+<li><code>c.InitDefaultHelpFlag()</code> は <code>c.mergePersistentFlags()</code> を呼び、<code>c.Flags().Lookup(&quot;help&quot;) == nil</code> の場合に <code>--help</code> / <code>-h</code> (<code>BoolP</code>) を追加して <code>FlagSetByCobraAnnotation: []string{&quot;true&quot;}</code> アノテーションを付与します。</li>
+<li><code>c.InitDefaultVersionFlag()</code> は <code>c.Version == &quot;&quot;</code> なら何もしません。<code>c.Version</code> が設定されており <code>c.Flags().Lookup(&quot;version&quot;) == nil</code> の場合、<strong><code>c.Flags().ShorthandLookup(&quot;v&quot;) == nil</code> のときのみ <code>-v</code> 短縮形付きの <code>BoolP</code> を登録</strong>し (<code>L1251–1255</code>)、すでに <code>-v</code>（<code>--verbose</code> など）が使われていれば長フラグ <code>--version</code> のみを登録します。</li>
+</ul>
+</li>
+<li><strong>最終フラグ解析と <code>FlagErrorFunc</code> (<code>L919–922</code>)</strong>:<pre><code class="language-go"><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">FlagErrorFunc</span><span class="p">()(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<code>c.ParseFlags(a)</code> (<code>command.go:1868–1889</code>) は <code>c.DisableFlagParsing</code> が <code>true</code> なら即座に <code>nil</code> を返します。それ以外は永続フラグをマージし、<code>c.FParseErrWhitelist</code> を <code>c.Flags().ParseErrorsAllowlist</code> にコピーして <code>c.Flags().Parse(a)</code> を呼びます。エラー発生時は親ツリーを遡る <code>c.FlagErrorFunc()</code> (<code>L547–558</code>) を通してエラーを返します。</li>
+<li><strong><code>--help</code> 短絡リターン (<code>L926–936</code>)</strong>: <code>c.Flags().GetBool(helpFlagName)</code> が <code>true</code> であれば、後続の処理をすべてスキップして <code>flag.ErrHelp</code> を返します。</li>
+<li><strong><code>--version</code> 短絡リターン (<code>L939–953</code>)</strong>: <code>c.Version != &quot;&quot;</code> かつ <code>c.Flags().GetBool(&quot;version&quot;)</code> が <code>true</code> の場合、<code>c.getVersionTemplateFunc()</code> (<code>L631–640</code>、既定では <code>defaultVersionFunc</code>) を <code>c.OutOrStdout()</code> に対して実行し、<code>OnInitialize</code> や <code>*Run*</code> フックを一切呼ばずに終了します。</li>
+<li><strong>実行可能 (<code>Runnable</code>) チェック (<code>L955–957</code>)</strong>:<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">Runnable</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ErrHelp</span>
+<span class="p">}</span>
+</code></pre>
+<code>c.Runnable()</code> (<code>L1595–1598</code>) は <code>c.Run != nil || c.RunE != nil</code> を判定します。グルーピング専用の親コマンドが呼ばれた場合はここで <code>flag.ErrHelp</code> が返され、<code>ExecuteC</code> 側でヘルプが表示されます。</li>
+</ol>
+<h3>2.2 <code>OnInitialize</code> / <code>OnFinalize</code> と早期 <code>ValidateArgs</code> (<code>command.go:959–970</code>)</h3>
+<p><code>c.Runnable()</code> を通過すると、グローバルコールバックと位置引数検証が実行されます。</p>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">preRun</span><span class="p">()</span>
+
+<span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">postRun</span><span class="p">()</span>
+
+<span class="w">	</span><span class="nx">argWoFlags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">Args</span><span class="p">()</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">DisableFlagParsing</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">argWoFlags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">a</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateArgs</span><span class="p">(</span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>実行順序に関する2つの重要な設計契約 (<code>command.go:959–970</code>)</strong>:</p>
+<ol>
+<li><strong><code>OnFinalize</code> は <code>defer</code> で確実に実行される (<code>L961</code>)</strong>: <code>c.preRun()</code> (<code>L1047–1051</code>) が <code>cobra.OnInitialize(...)</code> (<code>cobra.go:99–101</code>) の登録関数を実行した直後、<code>defer c.postRun()</code> (<code>L961</code>, <code>L1053–1057</code>) が <code>cobra.OnFinalize(...)</code> (<code>cobra.go:104–107</code>) の登録関数を遅延スケジュールします。そのため、以降の <code>ValidateArgs</code>、<code>*PreRunE</code>、<code>Validate*Flags</code>、<code>RunE</code> のどこでエラーが返っても、<code>OnFinalize</code> は必ず実行されます。</li>
+<li><strong><code>ValidateArgs</code> は <code>*PreRun</code> フックより前、必須フラグ検証は <code>PreRunE</code> より後 (<code>L968</code> vs <code>L1007</code>)</strong>: 位置引数の検証 (<code>c.ValidateArgs(argWoFlags)</code>、<code>L1172–1177</code>) は <strong>段階1 (<code>PersistentPreRunE</code>) および段階2 (<code>PreRunE</code>) より前</strong> に実行されます。一方、必須フラグ検証 (<code>ValidateRequiredFlags</code>) とフラググループ検証 (<code>ValidateFlagGroups</code>) は <strong>段階2 (<code>PreRunE</code>) の後</strong> (<code>L1007–1012</code>) に実行されます。</li>
+</ol>
+</blockquote>
+<hr />
+<h2>3. 6段階フックパイプラインの詳細 (<code>command.go:972–1042</code>)</h2>
+<h3>3.1 段階1: <code>PersistentPreRunE</code> / <code>PersistentPreRun</code> (<code>command.go:972–998</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">parents</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Parent</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// When EnableTraverseRunHooks is set:</span>
+<span class="w">			</span><span class="c1">// - Execute all persistent pre-runs from the root parent till this command.</span>
+<span class="w">			</span><span class="c1">// - Execute all persistent post-runs from this command till the root parent.</span>
+<span class="w">			</span><span class="nx">parents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">{</span><span class="nx">p</span><span class="p">},</span><span class="w"> </span><span class="nx">parents</span><span class="p">...)</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// Otherwise, execute only the first found persistent hook.</span>
+<span class="w">			</span><span class="nx">parents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">parents</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">parents</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>段階1における重要なポイントは以下の2点です。</p>
+<ul>
+<li><strong>フックに渡される第1引数は常に葉コマンド <code>c</code></strong>: 親コマンド <code>p</code>（例: <code>rootCmd</code>）に定義された <code>p.PersistentPreRunE(c, argWoFlags)</code> が呼ばれる際も、第1引数には <code>p</code> ではなく <strong>実際に実行される葉コマンド <code>c</code></strong> が渡されます。</li>
+<li><strong><code>EnableTraverseRunHooks</code> (<code>cobra.go:66</code>) による挙動の違い</strong>:
+<ul>
+<li><code>false</code>（デフォルト）の場合: <code>parents</code> スライスは <code>[c, parent, ..., root]</code> の下から上順で構築され、最初に見つかった非 <code>nil</code> フックを1つ実行した時点で <code>break</code> (<code>L990</code>, <code>L995</code>) します。つまり、子コマンドに <code>PersistentPreRun</code> を定義すると親の <code>PersistentPreRun</code> は上書き（隠蔽）されます。</li>
+<li><code>true</code> の場合: <code>append([]*Command{p}, parents...)</code> による先頭挿入で <code>[root, ..., parent, c]</code> の上から下順でスライスが構築され、ルートから葉に向かってすべての非 <code>nil</code> フックが順番に実行されます。</li>
+</ul>
+</li>
+</ul>
+<h3>3.2 段階2: <code>PreRunE</code> / <code>PreRun</code> (<code>command.go:999–1005</code>)</h3>
+<p>続いて、対象コマンド <code>c</code> 固有の事前フックが実行されます。</p>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>全フック段階（<code>PersistentPreRun*</code>、<code>PreRun*</code>、<code>Run*</code>、<code>PostRun*</code>、<code>PersistentPostRun*</code>）において、エラーを返す <code>*E</code> 関数が非 <code>*E</code> 関数より <code>if / else if</code> で優先されます。</p>
+<h3>3.3 段階3: なぜ <code>ValidateRequiredFlags</code> と <code>ValidateFlagGroups</code> は <code>PreRunE</code> の後に実行されるのか (<code>command.go:1007–1012</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateRequiredFlags</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateFlagGroups</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>なぜ Cobra は <code>ParseFlags</code> の直後ではなく、<code>PersistentPreRunE</code> と <code>PreRunE</code> が完了した <strong>後</strong> に必須フラグ検証 (<code>command.go:1180–1201</code>) とフラググループ検証 (<code>flag_groups.go:200</code>) を行うのでしょうか？</p>
+<ul>
+<li>実運用の Cobra + Viper アプリケーションでは、設定ファイルや環境変数からの値の読み込みを <code>PersistentPreRunE</code> または <code>PreRunE</code> 内で実行し、<code>cmd.Flags().Set(name, val)</code> によってフラグへ反映するパターンが多用されます。</li>
+<li><code>Flags().Set(...)</code> を呼ぶと、対象 <code>*pflag.Flag</code> の <code>Changed</code> フィールドが <code>true</code> に更新されます。</li>
+<li><code>ValidateRequiredFlags()</code> は <code>BashCompOneRequiredFlag</code> アノテーションを持つフラグに対して <code>if (requiredAnnotation[0] == &quot;true&quot;) &amp;&amp; !pflag.Changed</code> (<code>command.go:1192</code>) を検査するため、段階3を <code>PreRunE</code> の後に配置することで、<strong><code>PreRun</code> フック内で動的にセットされたフラグ値が必須フラグ要件やグループ制約を満たすことができる</strong>よう設計されています。</li>
+</ul>
+<h3>3.4 段階4・5・6: <code>RunE</code>、<code>PostRunE</code>、<code>PersistentPostRunE</code> (<code>command.go:1014–1042</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">RunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">RunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">Run</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Parent</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">実行ステージ</th>
+<th style="text-align:left">ソースコード行</th>
+<th style="text-align:left">走査方向 (<code>EnableTraverseRunHooks = false</code>)</th>
+<th style="text-align:left">走査方向 (<code>EnableTraverseRunHooks = true</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>OnInitialize</code> (<code>c.preRun</code>)</strong></td>
+<td style="text-align:left"><code>L959</code>, <code>L1047–1051</code></td>
+<td style="text-align:left">グローバル <code>initializers</code> スライス順 (<code>0 .. len-1</code>)</td>
+<td style="text-align:left">グローバル <code>initializers</code> スライス順 (<code>0 .. len-1</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>ValidateArgs</code></strong></td>
+<td style="text-align:left"><code>L968</code>, <code>L1172–1177</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>1. <code>PersistentPreRun[E]</code></strong></td>
+<td style="text-align:left"><code>L972–998</code></td>
+<td style="text-align:left">最も近い祖先のフック1つのみ（<code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code> で最初に見つかった時点で <code>break</code>）</td>
+<td style="text-align:left"><strong>上から下 (Top-Down)</strong>: <code>Root</code> -&gt; <code>Parent</code> -&gt; <code>c</code>（全非 <code>nil</code> フック）</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. <code>PreRun[E]</code></strong></td>
+<td style="text-align:left"><code>L999–1005</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. <code>ValidateRequiredFlags</code> &amp; <code>ValidateFlagGroups</code></strong></td>
+<td style="text-align:left"><code>L1007–1012</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> の統合済み <code>Flags()</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> の統合済み <code>Flags()</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. <code>Run[E]</code></strong></td>
+<td style="text-align:left"><code>L1014–1020</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. <code>PostRun[E]</code></strong></td>
+<td style="text-align:left"><code>L1021–1027</code></td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+<td style="text-align:left">対象コマンド <code>c</code> のみ</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. <code>PersistentPostRun[E]</code></strong></td>
+<td style="text-align:left"><code>L1028–1042</code></td>
+<td style="text-align:left">最も近い祖先のフック1つのみ（<code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code> で最初に見つかった時点で <code>break</code>）</td>
+<td style="text-align:left"><strong>下から上 (Bottom-Up)</strong>: <code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code>（全非 <code>nil</code> フック）</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>OnFinalize</code> (<code>defer c.postRun</code>)</strong></td>
+<td style="text-align:left"><code>L961</code>, <code>L1053–1057</code></td>
+<td style="text-align:left">グローバル <code>finalizers</code> スライス順（<code>defer</code> によりエラー時も必ず実行）</td>
+<td style="text-align:left">グローバル <code>finalizers</code> スライス順（<code>defer</code> によりエラー時も必ず実行）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>関連チャプター・相互リンク</h2>
+<ul>
+<li><strong>前のチャプター</strong>: <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html">第2章 — Find / Traverse と stripFlags パーサー</a></li>
+<li><strong>次のチャプター</strong>: <a href="../04_flag_groups_and_args/relational_flag_engine.html">第4章 — Annotation フラググループと PositionalArgs バリデータ</a></li>
+<li><strong>関連チャプター</strong>:
+<ul>
+<li><a href="../01_package_and_tree/command_tree_topology.html">第1章 — Command ツリーと FlagSet 遅延初期化</a></li>
+<li><a href="../05_completion_v2_engine/complete_protocol_and_shells.html">第5章 — <code>__complete</code> プロトコルとシェル補完スクリプト生成</a></li>
+<li><a href="../index.html">内部アーキテクチャガイド トップ</a></li>
+</ul>
+</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式の内部アーキテクチャ解説であり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

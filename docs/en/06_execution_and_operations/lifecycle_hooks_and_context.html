@@ -1,0 +1,681 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifecycle Hooks, Errors &amp; Context Signals — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/en/06_execution_and_operations/lifecycle_hooks_and_context.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/ja/06_execution_and_operations/lifecycle_hooks_and_context.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/en/06_execution_and_operations/lifecycle_hooks_and_context.html">
+    
+    
+    
+    <meta name="description" content="Understanding the exact execution order inside (*Command).execute() (command.go:905-1045) is essential for building reliable enterprise CLIs. Without it…">
+    <link rel="canonical" href="https://cobra.drawlib.com/en/06_execution_and_operations/lifecycle_hooks_and_context.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Lifecycle Hooks, Errors &amp; Context Signals — Cobra User Guide">
+    <meta property="og:description" content="Understanding the exact execution order inside (*Command).execute() (command.go:905-1045) is essential for building reliable enterprise CLIs. Without it…">
+    <meta property="og:url" content="https://cobra.drawlib.com/en/06_execution_and_operations/lifecycle_hooks_and_context.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Lifecycle Hooks, Errors &amp; Context Signals — Cobra User Guide">
+    <meta name="twitter:description" content="Understanding the exact execution order inside (*Command).execute() (command.go:905-1045) is essential for building reliable enterprise CLIs. Without it…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">UNOFFICIAL GUIDE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Community User Guide for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Lifecycle Hooks, Errors &amp; Context Signals</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="lifecycle_hooks_and_context.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/06_execution_and_operations/lifecycle_hooks_and_context.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Lifecycle Hooks, Errors &amp; Context Signals</h1>
+<p>Understanding the exact execution order inside <code>(*Command).execute()</code> (<code>command.go:905-1045</code>) is essential for building reliable enterprise CLIs. Without it, engineers routinely encounter three classic pitfalls: root <code>PersistentPreRunE</code> hooks silently skipped when a subcommand defines its own hook, runtime errors dumping 40 lines of <code>--help</code> usage text, and Ctrl-C (<code>SIGINT</code>) leaving orphaned remote operations.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_execution_and_operations/lifecycle_hooks_and_context/ug_lifecycle_hooks_hero.png" alt="lifecycle_hooks_and_context_1" />
+  <figcaption class="drawlib-caption">The Complete Cobra Command Execution Lifecycle & EnableTraverseRunHooks Chaining</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChevronProcess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">62</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">57</span><span class="p">),</span>
+    <span class="s2">"Cobra (*Command).execute() Lifecycle Pipeline (command.go:959-1045)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">stages</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. OnInitialize"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Global preRun()"</span><span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"2. PersistentPre"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Root -&gt; Child"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3. PreRunE"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Local setup"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. RunE"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Core workload"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"5. PostRunE"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Local teardown"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"6. PersistentPost"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Child -&gt; Root"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">stages</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">38</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">136</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+
+<span class="c1"># Bottom comparison: Default vs EnableTraverseRunHooks = true</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mi">17</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">23.5</span><span class="p">),</span> <span class="s2">"Default (EnableTraverseRunHooks = false)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">18.0</span><span class="p">),</span> <span class="s2">"Searches bottom-up (Child -&gt; Parent -&gt; Root)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span> <span class="s2">"Stops at the FIRST PersistentPreRunE found!"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">),</span> <span class="s2">"Child hook silently shadows Root auth/config!"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mi">17</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">23.5</span><span class="p">),</span> <span class="s2">"cobra.EnableTraverseRunHooks = true"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">18.0</span><span class="p">),</span> <span class="s2">"PersistentPreRunE:  Root -&gt; Parent -&gt; Child"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span> <span class="s2">"PersistentPostRunE: Child -&gt; Parent -&gt; Root"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">),</span> <span class="s2">"defer OnFinalize() always runs on any return!"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mi">38</span><span class="p">),</span> <span class="p">(</span><span class="mi">38</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mi">38</span><span class="p">),</span> <span class="p">(</span><span class="mi">106</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Exact Sequence in <code>(*Command).execute()</code> (<code>command.go</code>)</h2>
+<p>Once <code>ExecuteC()</code> resolves the target leaf <code>cmd</code> and strips flags via <code>c.ParseFlags(a)</code>, <code>cmd.execute(flags)</code> runs the following sequence in strict order:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Step</th>
+<th style="text-align:left">Method / Hook Invoked</th>
+<th style="text-align:left">Source Line (<code>command.go</code>)</th>
+<th style="text-align:left">Failure / Short-Circuit Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1</strong></td>
+<td style="text-align:left"><code>c.preRun()</code> (<code>cobra.OnInitialize</code> callbacks)</td>
+<td style="text-align:left">Line <code>959</code></td>
+<td style="text-align:left">Runs before <code>ValidateArgs</code>; <code>defer c.postRun()</code> (<code>OnFinalize</code>) is armed at Line <code>961</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2</strong></td>
+<td style="text-align:left"><code>c.ValidateArgs(argWoFlags)</code> (<code>cmd.Args</code>)</td>
+<td style="text-align:left">Line <code>968</code></td>
+<td style="text-align:left">Returns immediately on invalid positional args; skips all <code>*Run*</code> hooks.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3</strong></td>
+<td style="text-align:left"><code>PersistentPreRunE</code> / <code>PersistentPreRun</code></td>
+<td style="text-align:left">Lines <code>972–998</code></td>
+<td style="text-align:left">Runs nearest ancestor (or <code>Root -&gt; Child</code> if <code>EnableTraverseRunHooks == true</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4</strong></td>
+<td style="text-align:left"><code>PreRunE</code> / <code>PreRun</code></td>
+<td style="text-align:left">Lines <code>999–1005</code></td>
+<td style="text-align:left">Runs target command's local pre-run hook; aborts before flag group validation on error.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5</strong></td>
+<td style="text-align:left"><code>ValidateRequiredFlags()</code> &amp; <code>ValidateFlagGroups()</code></td>
+<td style="text-align:left">Lines <code>1007–1012</code></td>
+<td style="text-align:left">Enforces <code>MarkFlagRequired</code> and <code>flag_groups.go</code> constraints right before <code>RunE</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6</strong></td>
+<td style="text-align:left"><code>RunE</code> / <code>Run</code></td>
+<td style="text-align:left">Lines <code>1014–1020</code></td>
+<td style="text-align:left">Executes the primary command action.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>7</strong></td>
+<td style="text-align:left"><code>PostRunE</code> / <code>PostRun</code></td>
+<td style="text-align:left">Lines <code>1021–1027</code></td>
+<td style="text-align:left">Runs <strong>only</strong> if <code>RunE</code> returned <code>nil</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>8</strong></td>
+<td style="text-align:left"><code>PersistentPostRunE</code> / <code>PersistentPostRun</code></td>
+<td style="text-align:left">Lines <code>1028–1042</code></td>
+<td style="text-align:left">Runs <strong>only</strong> if <code>RunE</code> and <code>PostRunE</code> returned <code>nil</code> (<code>Child -&gt; Root</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>9</strong></td>
+<td style="text-align:left"><code>defer c.postRun()</code> (<code>cobra.OnFinalize</code> callbacks)</td>
+<td style="text-align:left">Line <code>961</code></td>
+<td style="text-align:left">Always runs via <code>defer</code> whenever step 1 was reached, even if <code>RunE</code> failed!</td>
+</tr>
+</tbody>
+</table>
+<h3>Chaining Parent Hooks with <code>cobra.EnableTraverseRunHooks = true</code></h3>
+<p>By default (<code>EnableTraverseRunHooks = false</code>), Cobra climbs from <code>c</code> up to <code>Root()</code> and breaks out of the loop as soon as it executes the <strong>first</strong> non-nil <code>PersistentPreRunE</code> (<code>command.go:989</code>). In a multi-level CLI (<code>root -&gt; cluster -&gt; node -&gt; drain</code>), if <code>root</code> initializes telemetry/Viper in <code>PersistentPreRunE</code> and <code>cluster</code> initializes a Kubernetes client in its own <code>PersistentPreRunE</code>, <code>root</code>'s hook will <strong>never run</strong>!</p>
+<p>Always enable <code>cobra.EnableTraverseRunHooks = true</code> in multi-level CLIs so parent hooks compose predictably like middleware:</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// Execute PersistentPreRunE top-down (Root -&gt; Parent -&gt; Child)</span>
+<span class="w">	</span><span class="c1">// and PersistentPostRunE bottom-up (Child -&gt; Parent -&gt; Root)</span>
+<span class="w">	</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>2. Taming Error Output: <code>SilenceUsage</code>, <code>SilenceErrors</code> &amp; Exit Codes</h2>
+<p>By default, when <code>RunE</code> returns <strong>any</strong> error—even a backend database timeout or HTTP 503—Cobra performs two actions inside <code>ExecuteC()</code> (<code>command.go:1149-1160</code>):</p>
+<ol>
+<li>Prints <code>Error: &lt;err.Error()&gt;</code> to <code>c.ErrOrStderr()</code> (unless <code>SilenceErrors: true</code>).</li>
+<li>Prints the entire <code>--help</code> usage text to <code>c.ErrOrStderr()</code> (unless <code>SilenceUsage: true</code>).</li>
+</ol>
+<p>If your <code>main()</code> function <em>also</em> logs the returned error (<code>if err != nil { fmt.Fprintln(os.Stderr, err) }</code>), users see the error message <strong>twice</strong> separated by a wall of irrelevant <code>--help</code> text!</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_execution_and_operations/lifecycle_hooks_and_context/ug_error_handling_matrix.png" alt="lifecycle_hooks_and_context_2" />
+  <figcaption class="drawlib-caption">Centralized Error Handling Architecture with SilenceUsage, SilenceErrors, and POSIX Exit Codes</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">58</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span>
+    <span class="s2">"Error Output &amp; Exit Code Control Matrix (SilenceUsage &amp; SilenceErrors)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"Configuration Pattern"</span><span class="p">,</span> <span class="s2">"SilenceUsage"</span><span class="p">,</span> <span class="s2">"SilenceErrors"</span><span class="p">,</span> <span class="s2">"Behavior on RunE Error &amp; Recommended Use"</span><span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"Cobra Default"</span><span class="p">,</span>
+        <span class="s2">"false"</span><span class="p">,</span>
+        <span class="s2">"false"</span><span class="p">,</span>
+        <span class="s2">"Prints 'Error: ...' + full '--help' usage dump"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"Quiet Runtime Errors"</span><span class="p">,</span>
+        <span class="s2">"true"</span><span class="p">,</span>
+        <span class="s2">"false"</span><span class="p">,</span>
+        <span class="s2">"Prints 'Error: ...' once without '--help' dump"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"Centralized main.go Handler"</span><span class="p">,</span>
+        <span class="s2">"true"</span><span class="p">,</span>
+        <span class="s2">"true"</span><span class="p">,</span>
+        <span class="s2">"Prints nothing; main() formats error &amp; exit code"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">47</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mi">34</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">62</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">72</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">136</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">5.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">),</span>
+    <span class="s2">"Tip: Set SilenceUsage: true and SilenceErrors: true on rootCmd so main() owns all error formatting and exit codes."</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>3. Graceful <code>SIGINT</code> / <code>SIGTERM</code> Cancellation with <code>ExecuteContext</code></h2>
+<p>Every <code>cobra.Command</code> carries a <code>context.Context</code> accessible via <code>cmd.Context()</code>. By wiring <code>signal.NotifyContext</code> into <code>rootCmd.ExecuteContext(ctx)</code> in <code>main.go</code>, pressing <code>Ctrl+C</code> (<code>os.Interrupt</code>) or sending <code>SIGTERM</code> in Kubernetes cancels in-flight HTTP calls, database transactions, and child processes cleanly:</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"context"</span>
+<span class="w">	</span><span class="s">"errors"</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"os"</span>
+<span class="w">	</span><span class="s">"os/signal"</span>
+<span class="w">	</span><span class="s">"syscall"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// ExitError wraps an error with a deterministic process exit code.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ExitError</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Code</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">	</span><span class="nx">Err</span><span class="w">  </span><span class="kt">error</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">ExitError</span><span class="p">)</span><span class="w"> </span><span class="nx">Error</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">e</span><span class="p">.</span><span class="nx">Err</span><span class="p">.</span><span class="nx">Error</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">ExitError</span><span class="p">)</span><span class="w"> </span><span class="nx">Unwrap</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">e</span><span class="p">.</span><span class="nx">Err</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">os</span><span class="p">.</span><span class="nx">Exit</span><span class="p">(</span><span class="nx">run</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">run</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// 1. Bind OS signals (SIGINT / SIGTERM) to the root context</span>
+<span class="w">	</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">stop</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">signal</span><span class="p">.</span><span class="nx">NotifyContext</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Interrupt</span><span class="p">,</span><span class="w"> </span><span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">)</span>
+<span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">stop</span><span class="p">()</span>
+
+<span class="w">	</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">NewRootCommand</span><span class="p">()</span>
+
+<span class="w">	</span><span class="c1">// 2. Execute command tree with signal-aware context</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">ExecuteContext</span><span class="p">(</span><span class="nx">ctx</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Canceled</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintln</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"\nOperation canceled by signal (SIGINT/SIGTERM)"</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="mi">130</span><span class="w"> </span><span class="c1">// Standard POSIX exit code for 128 + SIGINT(2)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="kd">var</span><span class="w"> </span><span class="nx">exitErr</span><span class="w"> </span><span class="o">*</span><span class="nx">ExitError</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">As</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">exitErr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"Error: %v\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">exitErr</span><span class="p">.</span><span class="nx">Err</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">exitErr</span><span class="p">.</span><span class="nx">Code</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"Error: %v\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="mi">0</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewRootCommand</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">           </span><span class="s">"mycli"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w">         </span><span class="s">"Production CLI with context-aware lifecycle"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">SilenceUsage</span><span class="p">:</span><span class="w">  </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// Never dump --help on runtime errors</span>
+<span class="w">		</span><span class="nx">SilenceErrors</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// Let run() format errors and exit codes once</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// Retrieve the signal-bound context inside any hook or RunE</span>
+<span class="w">			</span><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Context</span><span class="p">()</span>
+<span class="w">			</span><span class="k">select</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Done</span><span class="p">():</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Err</span><span class="p">()</span>
+<span class="w">			</span><span class="k">default</span><span class="p">:</span>
+<span class="w">				</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">"Executing workload with context..."</span><span class="p">)</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>Related Guides</h2>
+<ul>
+<li><a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html">Factory Pattern, Options &amp; DI</a></li>
+<li><a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html">Positional Args &amp; Flag Group Constraints</a></li>
+<li><a href="../04_configuration_and_viper/viper_precedence_and_binding.html">6-Tier Config Precedence &amp; Viper Binding</a></li>
+<li><a href="doc_generation_and_release.html">Doc Generation (MD/Man/YAML) &amp; Releases</a></li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

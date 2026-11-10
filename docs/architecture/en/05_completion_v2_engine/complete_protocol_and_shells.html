@@ -1,0 +1,956 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Shell Completion V2 Engine — `__complete` Protocol, `getCompletions` State Machine &amp; 4-Shell Script Generators — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    
+    
+    <meta name="description" content="While legacy completion generators (bash_completions.go, 649 LOC) attempted to compile static command trees and flag lists into massive shell scripts…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra Architecture">
+    <meta property="og:title" content="Chapter 5: Shell Completion V2 Engine — complete Protocol, getCompletions State Machine &amp; 4-Shell Script Generators — Cobra Architecture">
+    <meta property="og:description" content="While legacy completion generators (bash_completions.go, 649 LOC) attempted to compile static command trees and flag lists into massive shell scripts…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Chapter 5: Shell Completion V2 Engine — complete Protocol, getCompletions State Machine &amp; 4-Shell Script Generators — Cobra Architecture">
+    <meta name="twitter:description" content="While legacy completion generators (bash_completions.go, 649 LOC) attempted to compile static command trees and flag lists into massive shell scripts…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra Architecture">
+                    
+                    Cobra Architecture
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Architecture Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Package &amp; Composite Tree</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command Tree &amp; FlagSet Topology</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Parser &amp; Command Dispatch</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find, Traverse &amp; stripFlags Parser</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Lifecycle Execution Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC, execute() &amp; Hook Chain</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Flag Groups &amp; PositionalArgs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation Flag Groups &amp; Validators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="complete_protocol_and_shells.html" >__complete Protocol &amp; Shell Scripts</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Reference Doc Synthesis</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >AST-Free cobra/doc Generators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra User Guide<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Chapter 5: Shell Completion V2 Engine — `__complete` Protocol, `getCompletions` State Machine &amp; 4-Shell Script Generators</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="complete_protocol_and_shells.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/05_completion_v2_engine/complete_protocol_and_shells.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Chapter 5: Shell Completion V2 Engine — <code>__complete</code> Protocol, <code>getCompletions</code> State Machine &amp; 4-Shell Script Generators</h1>
+<p>While legacy completion generators (<code>bash_completions.go</code>, <code>649 LOC</code>) attempted to compile static command trees and flag lists into massive shell scripts, Cobra's <strong>Shell Completion V2 Engine</strong> (<code>completions.go</code>, <code>active_help.go</code>, <code>shell_completions.go</code> — <code>1,181 LOC</code>) combined with the <strong>four V2 shell script generators</strong> (<code>bash_completionsV2.go</code>, <code>zsh_completions.go</code>, <code>fish_completions.go</code>, <code>powershell_completions.go</code> — <code>1,438 LOC</code>) moves the entire completion intelligence into the compiled Go binary itself. Whenever a user presses <code>&lt;TAB&gt;</code>, the shell invokes the binary with a hidden subcommand (<code>&lt;program&gt; __complete [args...]</code>), receives structured completion lines plus a trailing <code>:&lt;directive&gt;</code> integer bitmask over <code>stdout</code>, and translates that bitmask into native shell completion primitives.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completion_v2_engine/complete_protocol_and_shells/complete_v2_wire_protocol.png" alt="complete_protocol_and_shells_1" />
+  <figcaption class="drawlib-caption">Figure 1: End-to-End Shell Completion V2 Wire Protocol Between Shell Adapters, __complete, getCompletions(), stdout, and stderr</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">((</span><span class="mi">24</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"Shell Completion V2: End-to-End __complete IPC Wire Protocol"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_left_right</span><span class="p">((</span><span class="mi">164</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Shell Script Adapter (bash / zsh / fish / pwsh)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. Shell Adapters"</span><span class="p">,</span>
+    <span class="s2">"4 Shells"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"User presses &lt;TAB&gt; on CLI</span><span class="se">\n</span><span class="s2">Truncate words to cursor pos</span><span class="se">\n</span><span class="s2">Append </span><span class="se">\"\"</span><span class="s2"> if trailing space"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">17</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Spawn IPC Subprocess:</span><span class="se">\n</span><span class="s2">&lt;prog&gt; __complete [args...]</span><span class="se">\n</span><span class="s2">(or __completeNoDesc)</span><span class="se">\n</span><span class="s2">2&gt;/dev/null (stderr ignored)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Parse stdout &amp; Apply Bitmask:</span><span class="se">\n</span><span class="s2">• Strip :&lt;directive&gt; last line</span><span class="se">\n</span><span class="s2">• Extract _activeHelp_ lines</span><span class="se">\n</span><span class="s2">• Split &lt;choice&gt;</span><span class="se">\\</span><span class="s2">t&lt;desc&gt;</span><span class="se">\n</span><span class="s2">• Apply compopt / _describe /</span><span class="se">\n</span><span class="s2">  complete -k / CompletionResult"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: __complete Runtime Engine in Go Binary</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. __complete Cmd"</span><span class="p">,</span>
+    <span class="s2">"L231-306"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ExecuteC() -&gt; initCompleteCmd()</span><span class="se">\n</span><span class="s2">Adds hidden __complete cmd</span><span class="se">\n</span><span class="s2">(Removed if not invoked!)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">17</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"__complete.Run(cmd, args):</span><span class="se">\n</span><span class="s2">DisableFlagParsing: true</span><span class="se">\n</span><span class="s2">Bypasses finalCmd.execute()</span><span class="se">\n</span><span class="s2">(Zero PreRun / OnInitialize!)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"cmd.getCompletions(args):</span><span class="se">\n</span><span class="s2">1. Resolve finalCmd &amp; flags</span><span class="se">\n</span><span class="s2">2. Filter ActiveHelp &amp; </span><span class="se">\\</span><span class="s2">t desc</span><span class="se">\n</span><span class="s2">3. Sanitize multiline (</span><span class="se">\\</span><span class="s2">n)</span><span class="se">\n</span><span class="s2">4. Write stdout + stderr"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3A: stdout Wire Stream</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3A. stdout Stream"</span><span class="p">,</span>
+    <span class="s2">"L258-290"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">81.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">19</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Line 1..N: Choices &amp; Help</span><span class="se">\n</span><span class="s2">&lt;choice&gt;</span><span class="se">\\</span><span class="s2">t&lt;description&gt;</span><span class="se">\n</span><span class="s2">_activeHelp_ &lt;message&gt;"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">155</span><span class="p">,</span> <span class="mi">72</span><span class="p">),</span> <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">67</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Final Line: :&lt;directive&gt;</span><span class="se">\n</span><span class="s2">e.g. :4 (NoFileComp bitmask)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3B: stderr &amp; Debug Log</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3B. stderr &amp; Debug"</span><span class="p">,</span>
+    <span class="s2">"L952-989"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">38</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Ignored by Shell (2&gt;/dev/null):</span><span class="se">\n\"</span><span class="s2">Completion ended with</span><span class="se">\n</span><span class="s2"> directive: ShellComp...</span><span class="se">\"\n</span><span class="s2">+ BASH_COMP_DEBUG_FILE log"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel connectors</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">61</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Ephemeral <code>__complete</code> Command Injection (<code>initCompleteCmd</code>, <code>completions.go:231–306</code>)</h2>
+<p>During <code>ExecuteC()</code> (<code>command.go:1110</code>), right after <code>InitDefaultHelpCmd()</code> and before <code>InitDefaultCompletionCmd()</code>, the root command calls <code>c.initCompleteCmd(args)</code>.</p>
+<h3>1.1 Anatomy of the Hidden <code>__complete</code> Command (<code>completions.go:28–35, 232–295</code>)</h3>
+<p><code>initCompleteCmd</code> constructs a hidden <code>Command</code> configured with:</p>
+<ul>
+<li><strong><code>Use: &quot;__complete [command-line]&quot;</code></strong> (<code>ShellCompRequestCmd = &quot;__complete&quot;</code> at <code>L31</code>),</li>
+<li><strong><code>Aliases: []string{&quot;__completeNoDesc&quot;}</code></strong> (<code>ShellCompNoDescRequestCmd = &quot;__completeNoDesc&quot;</code> at <code>L34</code>),</li>
+<li><strong><code>Hidden: true</code></strong> and <strong><code>DisableFlagsInUseLine: true</code></strong> (<code>L235–236</code>),</li>
+<li><strong><code>DisableFlagParsing: true</code></strong> (<code>L237</code>): Crucial so <code>ExecuteC()</code>'s initial <code>Find(args)</code> or <code>Traverse(args)</code> does not strip or parse flags meant for the target command being completed! Instead, <code>__complete</code> receives the entire raw user command line as its positional <code>args</code> slice.</li>
+<li><strong><code>Args: MinimumNArgs(1)</code></strong> (<code>L238</code>): Requires at least the word currently being completed (<code>toComplete</code>, which is <code>&quot;&quot;</code> if the user pressed <code>&lt;TAB&gt;</code> after a space).</li>
+</ul>
+<h3>1.2 Why <code>initCompleteCmd</code> Immediately Removes <code>__complete</code> on Normal CLI Runs (<code>completions.go:296–305</code>)</h3>
+<p>After attaching <code>completeCmd</code> via <code>c.AddCommand(completeCmd)</code>, <code>initCompleteCmd</code> immediately probes <code>c.Find(args)</code>:</p>
+<pre><code class="language-go"><span class="c1">// completions.go:296-305</span>
+<span class="nx">c</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">completeCmd</span><span class="p">)</span>
+<span class="nx">subCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">subCmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">ShellCompRequestCmd</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// Only create this special command if it is actually being called.</span>
+<span class="w">	</span><span class="c1">// This reduces possible side-effects of creating such a command;</span>
+<span class="w">	</span><span class="c1">// for example, having this command would cause problems to a</span>
+<span class="w">	</span><span class="c1">// cobra program that only consists of the root command, since this</span>
+<span class="w">	</span><span class="c1">// command would cause the root command to suddenly have a subcommand.</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">RemoveCommand</span><span class="p">(</span><span class="nx">completeCmd</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<p>Why is this immediate removal necessary even though <code>completeCmd.Hidden</code> is <code>true</code>?
+Recall from <a href="../04_flag_groups_and_args/relational_flag_engine.html">Chapter 4</a> that <code>Command.HasSubCommands()</code> (<code>command.go:1619–1626</code>) checks <code>len(c.commands) &gt; 0</code> and only ignores <code>c.helpCommand</code>—it does <strong>not</strong> ignore arbitrary hidden commands! If <code>__complete</code> remained attached during a normal CLI invocation of a single-command root binary (e.g., <code>mytool file1.txt</code>), <code>rootCmd.HasSubCommands()</code> would evaluate to <code>true</code>, causing <code>legacyArgs()</code> (<code>args.go:35</code>) to reject <code>file1.txt</code> with <code>unknown command &quot;file1.txt&quot; for &quot;mytool&quot;</code>. By removing <code>completeCmd</code> whenever <code>subCmd.Name() != &quot;__complete&quot;</code>, Cobra guarantees zero side effects on normal CLI execution.</p>
+<h3>1.3 Why <code>__complete</code> Never Calls <code>finalCmd.execute()</code> (Zero Hook Side Effects)</h3>
+<p>When the user presses <code>&lt;TAB&gt;</code>, <code>ExecuteC()</code> resolves <code>cmd</code> to <code>completeCmd</code> (<code>__complete</code>) and invokes <code>completeCmd.execute(flags)</code>. Because <code>completeCmd</code> defines no <code>PersistentPreRun*</code> or <code>PreRun*</code> hooks, and because its <code>Run</code> closure calls <code>cmd.getCompletions(args)</code> (<code>L243</code>) directly without <strong>ever</strong> calling <code>finalCmd.execute()</code>, <code>&lt;TAB&gt;</code> completion completely bypasses:</p>
+<ul>
+<li><code>cobra.OnInitialize(...)</code> callbacks (<code>c.preRun()</code> only runs on <code>completeCmd</code>, or is avoided on <code>finalCmd</code>),</li>
+<li><code>finalCmd.PersistentPreRunE</code> / <code>PersistentPreRun</code>,</li>
+<li><code>finalCmd.PreRunE</code> / <code>PreRun</code>,</li>
+<li><code>finalCmd.RunE</code> / <code>Run</code>.</li>
+</ul>
+<p>This architectural boundary ensures that pressing <code>&lt;TAB&gt;</code> on a destructive command (e.g., <code>mycli delete-cluster --region &lt;TAB&gt;</code>) never initializes database connections, mutates state, or triggers pre-run side effects on <code>finalCmd</code>.</p>
+<hr />
+<h2>2. Step-by-Step Walkthrough of the <code>getCompletions</code> State Machine (<code>completions.go:316–582</code>)</h2>
+<p>Inside <code>__complete</code>'s <code>Run</code> handler, <code>finalCmd, completions, directive, err := cmd.getCompletions(args)</code> (<code>L243</code>) executes a six-stage state machine to compute completions for <code>args</code>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completion_v2_engine/complete_protocol_and_shells/getcompletions_state_machine.png" alt="complete_protocol_and_shells_2" />
+  <figcaption class="drawlib-caption">Figure 2: getCompletions() Six-Stage Decision State Machine, checkIfFlagCompletion() Parser, and ShellCompDirective Bitmask Table (completions.go)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">114</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">magnifying_glass</span><span class="p">((</span><span class="mi">22</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span>
+    <span class="s2">"getCompletions() 6-Stage State Machine &amp; ShellCompDirective Bitmask"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_fork</span><span class="p">((</span><span class="mi">166</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Stages 1-3 (Split, Flag Probe, '--' Detection)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. Pre-Parse Probe"</span><span class="p">,</span>
+    <span class="s2">"L316-395"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 1-2: Target Resolution</span><span class="se">\n</span><span class="s2">toComplete = args[len-1]</span><span class="se">\n</span><span class="s2">Remove __complete if 1 subcmd</span><span class="se">\n</span><span class="s2">Traverse() or Find(trimmed)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">71</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 3: checkIfFlagCompletion</span><span class="se">\n</span><span class="s2">(L362, L654-738 BEFORE Parse):</span><span class="se">\n</span><span class="s2">• --flag=val / -asd=val</span><span class="se">\n</span><span class="s2">• Two-word: --flag &lt;TAB&gt;</span><span class="se">\n</span><span class="s2">• Reset flag=nil if NoOptDefVal"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">47.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">26.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">29</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 4-5: '--' Probe &amp; Parse</span><span class="se">\n</span><span class="s2">Compare NArg() on append(</span><span class="se">\"</span><span class="s2">--</span><span class="se">\"</span><span class="s2">)</span><span class="se">\n</span><span class="s2">vs ParseFlags(finalArgs)</span><span class="se">\n</span><span class="s2">If newArg &gt; realArg -&gt; no flags</span><span class="se">\n</span><span class="s2">Short-circuit --help/--version"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: Stage 6 (Annotations, Flag Names, Nouns, Custom Funcs)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. Candidate Match"</span><span class="p">,</span>
+    <span class="s2">"L402-582"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6A. Flag Value Annotations:</span><span class="se">\n</span><span class="s2">• BashCompFilenameExt -&gt; :8</span><span class="se">\n</span><span class="s2">• BashCompSubdirsInDir -&gt; :16</span><span class="se">\n</span><span class="s2">+ enforceFlagGroups (L430)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">71</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6B. Flag Names (toComplete[0]=='-'):</span><span class="se">\n</span><span class="s2">1st: completeRequireFlags()</span><span class="se">\n</span><span class="s2">2nd: Inherited + NonInherited</span><span class="se">\n</span><span class="s2">(!Changed || SliceValue/Array)</span><span class="se">\n</span><span class="s2">Single '=' -&gt; DirectiveNoSpace"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">47.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">26.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">29</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6C. Nouns &amp; CompletionFunc:</span><span class="se">\n</span><span class="s2">• Subcommands + RequiredFlags</span><span class="se">\n</span><span class="s2">• ValidArgs + ArgAliases (L532)</span><span class="se">\n</span><span class="s2">• flagCompletionFunctions[flag]</span><span class="se">\n</span><span class="s2">  (RWMutex) or ValidArgsFunction"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3: ShellCompDirective Bitmask &amp; ActiveHelp</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. Directive Mask"</span><span class="p">,</span>
+    <span class="s2">"L56-96"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Bitmask Constants (1 &lt;&lt; iota):</span><span class="se">\n</span><span class="s2">• :0  Default (file fallback)</span><span class="se">\n</span><span class="s2">• :1  Error (ignore all)</span><span class="se">\n</span><span class="s2">• :2  NoSpace (no trailing ' ')</span><span class="se">\n</span><span class="s2">• :4  NoFileComp (no _files)</span><span class="se">\n</span><span class="s2">• :8  FilterFileExt (ext list)</span><span class="se">\n</span><span class="s2">• :16 FilterDirs (subdir only)</span><span class="se">\n</span><span class="s2">• :32 KeepOrder (no sort)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">27</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ActiveHelp &amp; Env Overrides:</span><span class="se">\n</span><span class="s2">• _activeHelp_ prefix (L23)</span><span class="se">\n</span><span class="s2">• &lt;PROG&gt;_ACTIVE_HELP=0</span><span class="se">\n</span><span class="s2">• COBRA_ACTIVE_HELP=0</span><span class="se">\n</span><span class="s2">• COBRA_COMPLETION_DESCRIPTIONS"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel connectors</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>Stage 1: Splitting <code>toComplete</code> and <code>trimmedArgs</code> (<code>completions.go:319–320</code>)</h3>
+<p>The shell script always passes the token currently under the user's cursor as the final argument (or <code>&quot;&quot;</code> if the cursor follows a space). <code>getCompletions</code> splits <code>args</code>:</p>
+<pre><code class="language-go"><span class="nx">toComplete</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="nx">trimmedArgs</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</code></pre>
+<h3>Stage 2: Resolving <code>finalCmd</code> and Restoring Single-Command Root Invariant (<code>completions.go:327–356</code>)</h3>
+<p>To locate the <code>finalCmd</code> being completed, Cobra calls <code>c.Root().Traverse(trimmedArgs)</code> if <code>c.Root().TraverseChildren</code> is enabled (<code>L327–328</code>), or <code>rootCmd.Find(trimmedArgs)</code> otherwise (<code>L329–341</code>).
+Notice lines <code>L335–338</code>:</p>
+<pre><code class="language-go"><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Root</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">Commands</span><span class="p">())</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">RemoveCommand</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">finalCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">trimmedArgs</span><span class="p">)</span>
+</code></pre>
+<p>When <code>__complete</code> (<code>c</code>) is the <em>only</em> subcommand on <code>rootCmd</code> (<code>len(rootCmd.Commands()) == 1</code>), <code>getCompletions</code> removes <code>c</code> from <code>rootCmd</code> <strong>before</strong> calling <code>rootCmd.Find(trimmedArgs)</code>. Otherwise, <code>Find()</code> -&gt; <code>legacyArgs()</code> would see <code>rootCmd.HasSubCommands() == true</code> and fail with an error whenever the user already typed one positional argument on a root-only CLI (e.g., <code>mytool arg1 &lt;TAB&gt;</code>)!
+Once <code>finalCmd</code> is found, Cobra copies <code>finalCmd.ctx = c.ctx</code> (<code>L346</code>) and—because <code>finalCmd.execute()</code> is never called—manually initializes <code>--help</code> and <code>--version</code> via <code>finalCmd.InitDefaultHelpFlag()</code> and <code>finalCmd.InitDefaultVersionFlag()</code> (<code>L353–356</code>) unless <code>finalCmd.DisableFlagParsing</code> is <code>true</code>.</p>
+<h3>Stage 3: Pre-Parse Flag Value Detection (<code>checkIfFlagCompletion</code>, <code>completions.go:362, 654–738</code>)</h3>
+<p>Before calling <code>finalCmd.ParseFlags(finalArgs)</code>, Cobra <strong>must</strong> check whether the user is currently completing a flag's value (<code>checkIfFlagCompletion(finalCmd, finalArgs, toComplete)</code> at <code>L362</code>). Why before <code>ParseFlags</code>? Because if the user typed <code>mycli --count &lt;TAB&gt;</code> (a two-word flag expecting an <code>int</code>), <code>finalArgs</code> ends with <code>[&quot;--count&quot;]</code> with no value following it; passing <code>[&quot;--count&quot;]</code> directly to <code>ParseFlags</code> would fail with <code>flag needs an argument: --count</code>!</p>
+<p><code>checkIfFlagCompletion</code> (<code>L654–738</code>) handles three cases:</p>
+<ol>
+<li><strong>Inline <code>=</code> Flag (<code>--flag=val</code> or <code>-asd=val</code>, <code>L669–688</code>)</strong>:
+If <code>lastArg</code> (<code>toComplete</code>) starts with <code>'-'</code> and contains <code>'='</code> at <code>index</code>:
+<ul>
+<li>If <code>strings.HasPrefix(lastArg[:index], &quot;--&quot;)</code>, extracts long <code>flagName = lastArg[2:index]</code> (<code>L674</code>).</li>
+<li>Otherwise, extracts the <strong>final shorthand character</strong> before <code>'='</code>: <code>flagName = lastArg[index-1 : index]</code> (<code>L680</code>), supporting stacked short flags like <code>-asd=val</code> (extracting <code>'d'</code>, issue <code>#1257</code>).</li>
+<li>Strips the prefix from <code>lastArg</code>: <code>lastArg = lastArg[index+1:]</code> and sets <code>flagWithEqual = true</code> (<code>L682–683</code>).</li>
+</ul>
+</li>
+<li><strong>Two-Word Flag (<code>--flag &lt;TAB&gt;</code> or <code>-asd &lt;TAB&gt;</code>, <code>L690–714</code>)</strong>:
+If <code>lastArg</code> does not start with <code>'-'</code> (or has no <code>'='</code>), inspects <code>prevArg := args[len(args)-1]</code>. If <code>isFlagArg(prevArg)</code> is <code>true</code> and <code>prevArg</code> contains no <code>'='</code>:
+<ul>
+<li>Extracts <code>flagName = prevArg[2:]</code> (for <code>--flag</code>) or <code>flagName = prevArg[len(prevArg)-1:]</code> (for <code>-asd</code>).</li>
+<li><strong>Strips the dangling flag from <code>trimmedArgs</code></strong>: <code>trimmedArgs = args[:len(args)-1]</code> (<code>L710</code>) so <code>ParseFlags</code> will not error on the incomplete flag!</li>
+</ul>
+</li>
+<li><strong>Boolean <code>NoOptDefVal</code> Reset (<code>L721–735</code>)</strong>:
+Looks up <code>flag := findFlag(finalCmd, flagName)</code> (<code>L721</code>, which resolves short flags via <code>ShorthandLookup</code> at <code>L929–946</code>). If <code>flag == nil</code>, returns <code>&amp;flagCompError{subCommand: finalCmd.Name(), flagName: flagName}</code> (<code>L724</code>).
+Crucially, if <code>!flagWithEqual &amp;&amp; len(flag.NoOptDefVal) != 0</code> (<code>L727–735</code>), the preceding flag was actually a <strong>boolean flag</strong> (e.g., <code>--verbose &lt;TAB&gt;</code>), which takes no space-separated argument! <code>checkIfFlagCompletion</code> restores <code>trimmedArgs = args</code> and resets <code>flag = nil</code> so <code>getCompletions</code> performs normal positional/subcommand completion instead of flag value completion.</li>
+</ol>
+<h3>Stage 4: Detecting Prior <code>--</code> or <code>Interspersed == false</code> via <code>NArg()</code> Probing (<code>completions.go:368–388</code>)</h3>
+<p>How does Cobra know if the user already typed a <code>--</code> terminator earlier on the command line (or if <code>Flags().SetInterspersed(false)</code> stopped flag parsing after a positional argument), given that <code>pflag.Parse()</code> consumes <code>--</code>?
+Cobra uses an clever two-parse <code>NArg()</code> probe (<code>L368–381</code>):</p>
+<pre><code class="language-go"><span class="c1">// completions.go:368-381</span>
+<span class="nx">flagCompletion</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kc">true</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nb">append</span><span class="p">(</span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="s">"--"</span><span class="p">))</span>
+<span class="nx">newArgCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">NArg</span><span class="p">()</span>
+
+<span class="c1">// Parse the flags early so we can check if required flags are set</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">finalArgs</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="nx">Completion</span><span class="p">{},</span><span class="w"> </span><span class="nx">ShellCompDirectiveDefault</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"Error while parsing flags from args %v: %s"</span><span class="p">,</span><span class="w"> </span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="nx">realArgCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">NArg</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">newArgCount</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">realArgCount</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// don't do flag completion (see above)</span>
+<span class="w">	</span><span class="nx">flagCompletion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre>
+<ul>
+<li>Normally, appending <code>&quot;--&quot;</code> to <code>finalArgs</code> is swallowed by <code>pflag</code> as the flag-termination marker, so <code>newArgCount == realArgCount</code>.</li>
+<li>However, if <code>&quot;--&quot;</code> was <em>already</em> present in <code>finalArgs</code> (or if <code>Interspersed == false</code> and a positional argument already appeared), <code>pflag</code> treats the newly appended <code>&quot;--&quot;</code> as a literal positional argument, making <code>newArgCount &gt; realArgCount</code>!</li>
+<li>In that case, <code>flagCompletion</code> is set to <code>false</code> (<code>L380</code>), disabling all subsequent flag completion and ignoring any <code>flagCompError</code> (<code>L383–388</code>).</li>
+</ul>
+<h3>Stage 5: <code>--help</code> / <code>--version</code> Short-Circuit (<code>completions.go:392–394, 584–594</code>)</h3>
+<p>Next, <code>helpOrVersionFlagPresent(finalCmd)</code> (<code>L392–394</code>, <code>L584–594</code>) checks if the Cobra-injected <code>--version</code> or <code>--help</code> flag (verified via <code>FlagSetByCobraAnnotation</code>) has <code>Changed == true</code>. If either is present on the command line, <code>getCompletions</code> immediately returns <code>[]Completion{}, ShellCompDirectiveNoFileComp, nil</code> so no further arguments or flags are suggested.</p>
+<h3>Stage 6: Candidate Generation &amp; <code>CompletionFunc</code> Dispatch (<code>completions.go:402–581</code>)</h3>
+<p>Finally, <code>getCompletions</code> resolves candidates across four branches:</p>
+<ol>
+<li><strong>Flag Value Annotations (<code>L402–424</code>)</strong>:
+If <code>flag != nil &amp;&amp; flagCompletion</code>:
+<ul>
+<li>If <code>flag.Annotations[BashCompFilenameExt]</code> is present and non-empty (set via <code>MarkFlagFilename</code>), returns <code>validExts</code> with <code>ShellCompDirectiveFilterFileExt</code> (<code>L404–408</code>).</li>
+<li>If <code>flag.Annotations[BashCompSubdirsInDir]</code> is present (set via <code>MarkFlagDirname</code>), returns <code>subDir</code> (or empty slice) with <code>ShellCompDirectiveFilterDirs</code> (<code>L416–423</code>).</li>
+</ul>
+</li>
+<li><strong>Relational Flag Group Enforcement (<code>L430</code>)</strong>:
+Calls <code>finalCmd.enforceFlagGroupsForCompletion()</code> (<code>flag_groups.go:225–290</code>) to mark group peers as required or hidden (as detailed in <a href="../04_flag_groups_and_args/relational_flag_engine.html">Chapter 4</a>).</li>
+<li><strong>Flag Name Completion (<code>flag == nil &amp;&amp; toComplete[0] == '-' &amp;&amp; !strings.Contains(toComplete, &quot;=&quot;) &amp;&amp; flagCompletion</code>, <code>L438–487</code>)</strong>:
+<ul>
+<li>First calls <code>completeRequireFlags(finalCmd, toComplete)</code> (<code>L440</code>, <code>L629–652</code>), which scans <code>InheritedFlags()</code> and <code>NonInheritedFlags()</code> for unset flags carrying <code>BashCompOneRequiredFlag</code>.</li>
+<li>Only if <code>len(completions) == 0</code> (<code>L443</code>) does it suggest regular flags from <code>InheritedFlags()</code> and <code>NonInheritedFlags()</code>. A flag is suggested if <code>!flag.Changed</code> <strong>or</strong> if it accepts multiple values (<code>_, acceptsMultiple := flag.Value.(SliceValue)</code> or its <code>flag.Value.Type()</code> contains <code>&quot;Slice&quot;</code>, <code>&quot;Array&quot;</code>, or starts with <code>&quot;stringTo&quot;</code>, <code>L445–455</code>).</li>
+<li>Sets <code>directive = ShellCompDirectiveNoFileComp</code> (<code>L474</code>), or <code>ShellCompDirectiveNoSpace</code> if a single completion ends with <code>&quot;=&quot;</code> (<code>L475–479</code>). Returns immediately unless <code>finalCmd.DisableFlagParsing</code> is <code>true</code> (<code>L481–487</code>).</li>
+</ul>
+</li>
+<li><strong>Subcommand, Required Flag, <code>ValidArgs</code>, <code>ArgAliases</code> &amp; Custom <code>CompletionFunc</code> (<code>L488–580</code>)</strong>:
+<ul>
+<li>Initializes <code>directive</code> to <code>ShellCompDirectiveDefault</code> (<code>0</code>), walking up <code>for cmd := finalCmd; cmd != nil; cmd = cmd.parent</code> to check for a custom <code>*cmd.CompletionOptions.DefaultShellCompDirective</code> (<code>L489–496</code>).</li>
+<li>If <code>flag == nil</code>:
+<ul>
+<li><strong>Subcommands (<code>L513–525</code>)</strong>: If <code>len(finalArgs) == 0 &amp;&amp; !foundLocalNonPersistentFlag</code>, completes available subcommands (<code>subCmd.IsAvailableCommand() || subCmd == finalCmd.helpCommand</code>) via <code>CompletionWithDesc(subCmd.Name(), subCmd.Short)</code> and sets <code>ShellCompDirectiveNoFileComp</code>.</li>
+<li><strong>Unset Required Flags (<code>L528</code>)</strong>: Appends <code>completeRequireFlags(finalCmd, toComplete)</code> even when the user has not typed <code>-</code> yet!</li>
+<li><strong><code>ValidArgs</code> &amp; <code>ArgAliases</code> (<code>L532–556</code>)</strong>: If <code>len(finalCmd.ValidArgs) &gt; 0</code>, completes matching <code>ValidArgs</code> for the first argument (<code>len(finalArgs) == 0</code>), falling back to <code>finalCmd.ArgAliases</code> (<code>L544–550</code>) if no completions matched, and <strong>returns early</strong> (<code>L555</code>) because <code>ValidArgs</code> and <code>ValidArgsFunction</code> are mutually exclusive.</li>
+</ul>
+</li>
+<li><strong>Custom <code>CompletionFunc</code> (<code>L564–580</code>)</strong>:
+<ul>
+<li>If <code>flag != nil &amp;&amp; flagCompletion</code>, acquires a read lock (<code>flagCompletionMutex.RLock()</code>) and looks up <code>completionFn = flagCompletionFunctions[flag]</code> (<code>L567–569</code>).</li>
+<li>Otherwise, uses <code>completionFn = finalCmd.ValidArgsFunction</code> (<code>L571</code>).</li>
+<li>If <code>completionFn != nil</code>, invokes <code>comps, directive = completionFn(finalCmd, finalArgs, toComplete)</code> and appends <code>comps</code> to <code>completions</code> (<code>L576–578</code>).</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>3. Wire Protocol on <code>stdout</code> vs <code>stderr</code> (<code>completions.go:251–294</code>, <code>active_help.go</code>)</h2>
+<p>Once <code>getCompletions</code> returns <code>(finalCmd, completions, directive, err)</code> to <code>__complete</code>'s <code>Run</code> function (<code>completions.go:243</code>), Cobra serializes the response across <code>stdout</code> (consumed by the shell script) and <code>stderr</code> (ignored by the shell script via <code>2&gt;/dev/null</code>, or inspected by developers debugging completions).</p>
+<h3>3.1 <code>stdout</code> Payload Format &amp; Sanitization Pipeline (<code>completions.go:251–290</code>)</h3>
+<p>For each string <code>comp</code> in <code>completions</code>:</p>
+<ol>
+<li><strong>ActiveHelp Filtering (<code>L257, L260–263</code>, <code>active_help.go:23–60</code>)</strong>:
+<code>AppendActiveHelp(compArray, activeHelpStr)</code> (<code>active_help.go:38–40</code>) prefixes contextual hints with <code>activeHelpMarker = &quot;_activeHelp_ &quot;</code>. <code>GetActiveHelpConfig(finalCmd)</code> (<code>active_help.go:47–53</code>) checks <code>os.Getenv(&quot;COBRA_ACTIVE_HELP&quot;)</code>; if not <code>&quot;0&quot;</code>, it checks <code>os.Getenv(&quot;&lt;PROGRAM&gt;_ACTIVE_HELP&quot;)</code>. If the resulting value equals <code>&quot;0&quot;</code> (<code>activeHelpGlobalDisable</code>), <code>__complete</code> skips all lines prefixed with <code>&quot;_activeHelp_ &quot;</code>.</li>
+<li><strong>Description Stripping (<code>L251–256, L264–267</code>)</strong>:
+If invoked via the alias <code>__completeNoDesc</code> (<code>cmd.CalledAs() == ShellCompNoDescRequestCmd</code>) or if <code>&lt;PROGRAM&gt;_COMPLETION_DESCRIPTIONS</code> / <code>COBRA_COMPLETION_DESCRIPTIONS</code> parses to <code>false</code> (<code>L253–255</code>), Cobra strips everything after the first tab character: <code>comp = strings.SplitN(comp, &quot;\t&quot;, 2)[0]</code>.</li>
+<li><strong>Multiline Truncation &amp; Whitespace Trim (<code>L273, L280</code>)</strong>:
+Cobra truncates any embedded newlines (<code>comp = strings.SplitN(comp, &quot;\n&quot;, 2)[0]</code>) so multi-line flag usage strings never inject bogus completion lines into the shell, and trims trailing tabs/spaces (<code>strings.TrimSpace(comp)</code>) so Zsh's <code>_describe</code> never renders an empty <code>--</code> separator.</li>
+<li><strong>Trailing <code>:&lt;directive&gt;</code> Line (<code>L289</code>)</strong>:
+After printing all completion lines to <code>out := finalCmd.OutOrStdout()</code>, Cobra prints the final directive line:<pre><code class="language-go"><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">out</span><span class="p">,</span><span class="w"> </span><span class="s">":%d\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">directive</span><span class="p">)</span>
+</code></pre>
+</li>
+</ol>
+<h3>3.2 <code>ShellCompDirective</code> Bitmask Specification (<code>completions.go:56–96</code>)</h3>
+<p><code>ShellCompDirective</code> is an <code>int</code> bitmask defined via <code>1 &lt;&lt; iota</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Constant</th>
+<th style="text-align:left">Bit Expression</th>
+<th style="text-align:left">Decimal</th>
+<th style="text-align:left">Wire Line</th>
+<th style="text-align:left">Instructed Shell Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveDefault</code></td>
+<td style="text-align:left"><code>0</code></td>
+<td style="text-align:left"><code>0</code></td>
+<td style="text-align:left"><code>:0</code></td>
+<td style="text-align:left">Standard shell behavior (fall back to local file completion if no choices match).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveError</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 0</code></td>
+<td style="text-align:left"><code>1</code></td>
+<td style="text-align:left"><code>:1</code></td>
+<td style="text-align:left">An error occurred during completion; ignore all returned choices.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveNoSpace</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 1</code></td>
+<td style="text-align:left"><code>2</code></td>
+<td style="text-align:left"><code>:2</code></td>
+<td style="text-align:left">Do not append a trailing space after inserting a single completion.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveNoFileComp</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 2</code></td>
+<td style="text-align:left"><code>4</code></td>
+<td style="text-align:left"><code>:4</code></td>
+<td style="text-align:left">Disable local filename fallback even when zero completions are returned.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveFilterFileExt</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 3</code></td>
+<td style="text-align:left"><code>8</code></td>
+<td style="text-align:left"><code>:8</code></td>
+<td style="text-align:left">Treat returned completion strings as file extension filters (e.g., <code>yaml</code>, <code>json</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveFilterDirs</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 4</code></td>
+<td style="text-align:left"><code>16</code></td>
+<td style="text-align:left"><code>:16</code></td>
+<td style="text-align:left">Complete only directory names (within <code>completions[0]</code> if provided, else <code>.</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveKeepOrder</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 5</code></td>
+<td style="text-align:left"><code>32</code></td>
+<td style="text-align:left"><code>:32</code></td>
+<td style="text-align:left">Preserve the exact slice order returned by Go instead of sorting alphabetically.</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 <code>stderr</code> Diagnostics &amp; <code>BASH_COMP_DEBUG_FILE</code> (<code>completions.go:293, 952–989</code>)</h3>
+<p>On <code>finalCmd.ErrOrStderr()</code>, line <code>L293</code> always writes a human-readable bitmask summary:</p>
+<pre><code class="language-text">Completion ended with directive: ShellCompDirectiveNoFileComp, ShellCompDirectiveKeepOrder
+</code></pre>
+<p>Additionally, <code>CompDebug(msg, printToStdErr)</code> (<code>L952–970</code>) and <code>CompError(msg)</code> (<code>L980–984</code>) append <code>[Debug]</code> / <code>[Error]</code> traces to the file path specified in <code>os.Getenv(&quot;BASH_COMP_DEBUG_FILE&quot;)</code> (and <code>os.Stderr</code> when <code>printToStdErr</code> is <code>true</code>), allowing developers to tail a single log file containing interleaved traces from both the Go binary and the shell completion script!</p>
+<hr />
+<h2>4. How the Four Shell Script Generators Consume <code>__complete</code></h2>
+<p>When <code>&lt;program&gt; completion [bash|zsh|fish|powershell]</code> runs (<code>completions.go:745–927</code>), Cobra invokes one of the four Layer-4 script generators. While all four scripts speak the exact same <code>__complete</code> wire protocol, each adapts the output to its shell's native completion engine:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Feature / Mechanism</th>
+<th style="text-align:left">Bash V2 (<code>bash_completionsV2.go</code>, <code>485 LOC</code>)</th>
+<th style="text-align:left">Zsh (<code>zsh_completions.go</code>, <code>309 LOC</code>)</th>
+<th style="text-align:left">Fish (<code>fish_completions.go</code>, <code>293 LOC</code>)</th>
+<th style="text-align:left">PowerShell (<code>powershell_completions.go</code>, <code>351 LOC</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Generator Entry Point</strong></td>
+<td style="text-align:left"><code>GenBashCompletionV2(w, includeDesc)</code> (<code>L482</code>) -&gt; <code>genBashComp</code> (<code>L31</code>)</td>
+<td style="text-align:left"><code>GenZshCompletion(w)</code> (<code>L31</code>) / <code>GenZshCompletionNoDesc(w)</code> (<code>L42</code>) -&gt; <code>genZshComp</code> (<code>L87</code>)</td>
+<td style="text-align:left"><code>GenFishCompletion(w, includeDesc)</code> (<code>L276</code>) -&gt; <code>genFishComp</code> (<code>L25</code>)</td>
+<td style="text-align:left"><code>GenPowerShellCompletionWithDesc(w)</code> (<code>L348</code>) / <code>GenPowerShellCompletion(w)</code> (<code>L337</code>) -&gt; <code>genPowerShellComp</code> (<code>L28</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Shell Registration Hook</strong></td>
+<td style="text-align:left"><code>complete -o default -F __start_&lt;name&gt; &lt;name&gt;</code> (<code>L456–460</code>)</td>
+<td style="text-align:left"><code>#compdef &lt;name&gt;</code> + <code>compdef _&lt;name&gt; &lt;name&gt;</code> (<code>L92–93</code>)</td>
+<td style="text-align:left"><code>complete -c &lt;name&gt; -n ... -f -a '$__&lt;var&gt;_comp_results'</code> (<code>L263–269</code>, with <code>-k</code> rule for <code>KeepOrder</code>)</td>
+<td style="text-align:left"><code>Register-ArgumentCompleter -CommandName '&lt;name&gt;' -ScriptBlock ${__&lt;var&gt;CompleterBlock}</code> (<code>L307</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Extracting <code>:&lt;directive&gt;</code></strong></td>
+<td style="text-align:left"><code>directive=${out##*:}</code> and <code>out=${out%%:*}</code> (<code>L87–89</code>)</td>
+<td style="text-align:left">Reads <code>lastLine</code>; <code>directive=${lastLine[2,-1]}</code> and slices <code>out=${out[1,-$suffix]}</code> (<code>L155–166</code>)</td>
+<td style="text-align:left"><code>set -l directive (string sub --start 2 $__..._result[-1])</code> (<code>L129</code>, <code>L165</code>), caching result in <code>__&lt;var&gt;_perform_completion_once_result</code> (<code>L93–109</code>)</td>
+<td style="text-align:left"><code>[int]$Directive = $Out[-1].TrimStart(':')</code> and filters <code>$Out</code> (<code>L132–140</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Handling <code>--flag=val</code> Prefixes</strong></td>
+<td style="text-align:left"><code>_init_completion -n =:</code> plus <code>cur=&quot;${cur#*=}&quot;</code> (<code>L78–80</code>) and <code>__&lt;name&gt;_handle_special_char &quot;$cur&quot; =</code> (<code>L177, L368–379</code>)</td>
+<td style="text-align:left">Regex <code>[[ &quot;${lastParam}&quot; =~ '-.*=' ]]</code> sets <code>flagPrefix=&quot;-P ${BASH_REMATCH}&quot;</code> passed to <code>_describe</code> / <code>_arguments</code> (<code>L133–137</code>)</td>
+<td style="text-align:left"><code>set -l flagPrefix (string match -r -- '-.*=' &quot;$lastArg&quot;)</code> prepended to each completion (<code>L79–87</code>)</td>
+<td style="text-align:left">Splits <code>$Flag,$WordToComplete = $WordToComplete.Split(&quot;=&quot;,2)</code> (<code>L99–104</code>) and rejoins <code>$_.Name = $Flag + &quot;=&quot; + $_.Name</code> (<code>L192–195</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Descriptions (<code>\t</code>)</strong></td>
+<td style="text-align:left">Formats aligned <code>comp  (desc)</code> truncated to <code>$COLUMNS</code> with <code>…</code> when <code>&gt;1</code> match (<code>__&lt;name&gt;_format_comp_descriptions</code>, <code>L381–425</code>); strips description when <code>1</code> match (<code>L358–361</code>) or <code>COMP_TYPE</code> is <code>37|42</code> (<code>L274–294</code>).</td>
+<td style="text-align:left">Escapes literal <code>:</code> (<code>${comp//:/\\:}</code>), converts <code>\t</code> to <code>:</code>, and delegates to Zsh's native <code>_describe</code> (<code>L205–213, L272</code>).</td>
+<td style="text-align:left">Native Fish support: Fish natively parses <code>&lt;choice&gt;\t&lt;description&gt;</code> in <code>-a</code> lists; splits on <code>\t</code> only when applying the single-item <code>NoSpace</code> trick (<code>$split[1].</code> at <code>L218–235</code>).</td>
+<td style="text-align:left">Splits <code>$Name, $Description = $_.Split(&quot;</code>t&quot;,2)<code> (</code>L152<code>) and constructs </code>[System.Management.Automation.CompletionResult]<code>across</code>Complete<code>, </code>MenuComplete<code>, and </code>TabCompleteNext<code> modes (</code>L237–302`).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>ActiveHelp (<code>_activeHelp_ </code>)</strong></td>
+<td style="text-align:left"><strong>Supported</strong>: <code>__&lt;name&gt;_extract_activeHelp</code> (<code>L250–268</code>) and <code>__&lt;name&gt;_handle_activeHelp</code> (<code>L183–234</code>) print lines on second <code>&lt;TAB&gt;</code> (<code>COMP_TYPE -eq 63</code>) and reprint <code>${PS1@P}${COMP_LINE[@]}</code>.</td>
+<td style="text-align:left"><strong>Supported</strong>: Calls <code>compadd -x &quot;${comp}&quot;</code> (<code>L188–195</code>) and adds <code>compadd -x &quot;--&quot;</code> delimiter if choices or file completions follow (<code>L219–225</code>).</td>
+<td style="text-align:left"><strong>Disabled</strong>: Prepends <code>&lt;PROGRAM&gt;_ACTIVE_HELP=0</code> directly to <code>requestComp</code> (<code>L56</code>).</td>
+<td style="text-align:left"><strong>Disabled</strong>: Sets <code>${env:&lt;PROGRAM&gt;_ACTIVE_HELP}=0</code> before <code>Invoke-Expression</code> (<code>L125</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>FilterFileExt</code> (<code>:8</code>) &amp; <code>FilterDirs</code> (<code>:16</code>)</strong></td>
+<td style="text-align:left">Calls <code>_filedir $fullFilter</code> (<code>L157</code>) or <code>pushd &quot;$subdir&quot; &amp;&amp; _filedir -d</code> (<code>L167–170</code>).</td>
+<td style="text-align:left">Calls <code>_arguments '*:filename:_files -g \*.$filter'</code> (<code>L237–251</code>) or <code>_arguments '*:dirname:_files -/'</code> (<code>L252–269</code>).</td>
+<td style="text-align:left">Not supported by Fish; returns <code>1</code> from <code>__&lt;var&gt;_prepare_completions</code> to fall back to full file completion (<code>L188–194</code>).</td>
+<td style="text-align:left">Not supported by PowerShell; returns early (<code>L179–185</code>) so native path completion takes over.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. Summary &amp; Next Steps</h2>
+<ul>
+<li><strong>Zero-Pollution <code>__complete</code> Injection (<code>completions.go:231–306</code>)</strong>: <code>initCompleteCmd</code> registers <code>__complete</code> (and alias <code>__completeNoDesc</code>) with <code>DisableFlagParsing: true</code>, immediately removes it if <code>c.Find(args)</code> does not match <code>__complete</code>, and runs <code>cmd.getCompletions(args)</code> inside <code>__complete.Run</code> so <code>finalCmd</code>'s lifecycle hooks never execute on <code>&lt;TAB&gt;</code>.</li>
+<li><strong>Six-Stage <code>getCompletions</code> Engine (<code>completions.go:316–582</code>)</strong>: Strips <code>toComplete</code>, resolves <code>finalCmd</code>, runs <code>checkIfFlagCompletion()</code> <em>before</em> <code>ParseFlags()</code>, detects prior <code>--</code> boundaries via a double-parse <code>NArg()</code> comparison, enforces relational flag groups, and dispatches to <code>flagCompletionFunctions</code> (guarded by <code>flagCompletionMutex</code>) or <code>ValidArgsFunction</code>.</li>
+<li><strong>Structured <code>stdout</code> Wire Protocol (<code>completions.go:251–294</code>)</strong>: Emits <code>&lt;choice&gt;\t&lt;description&gt;</code> and <code>_activeHelp_ &lt;msg&gt;</code> lines terminated by <code>:&lt;directive&gt;</code>, keeping all human/debug output on <code>stderr</code> and <code>BASH_COMP_DEBUG_FILE</code>.</li>
+<li><strong>Four-Shell Script Adapters (<code>*_completions*.go</code>)</strong>: Bash V2, Zsh, Fish, and PowerShell scripts invoke <code>__complete</code> and translate the <code>6</code>-bit <code>ShellCompDirective</code> mask into native shell completion primitives.</li>
+</ul>
+<p>Continue to <strong><a href="../06_doc_synthesis/ast_free_doc_generators.html">Chapter 6: AST-Free Reference Doc Synthesis (<code>cobra/doc</code>)</a></strong> to see how Cobra's <code>cobra/doc</code> subpackage introspects the live <code>*cobra.Command</code> tree to generate Markdown, Man pages (<code>roff</code>), ReStructuredText, and YAML documentation without AST parsing.</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial internal architecture guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

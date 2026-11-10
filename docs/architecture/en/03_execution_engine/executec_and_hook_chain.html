@@ -1,0 +1,967 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>`ExecuteC` &amp; `Command.execute()` Lifecycle Engine (`command.go:905–1314`, `command_win.go`) — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    
+    
+    
+    <meta name="description" content="Once a Cobra CLI is constructed, execution enters through one of four public methods on *Command—Execute(), ExecuteC(), ExecuteContext(ctx), or…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra Architecture">
+    <meta property="og:title" content="ExecuteC &amp; Command.execute() Lifecycle Engine (command.go:905–1314, command_win.go) — Cobra Architecture">
+    <meta property="og:description" content="Once a Cobra CLI is constructed, execution enters through one of four public methods on *Command—Execute(), ExecuteC(), ExecuteContext(ctx), or…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ExecuteC &amp; Command.execute() Lifecycle Engine (command.go:905–1314, command_win.go) — Cobra Architecture">
+    <meta name="twitter:description" content="Once a Cobra CLI is constructed, execution enters through one of four public methods on *Command—Execute(), ExecuteC(), ExecuteContext(ctx), or…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra Architecture">
+                    
+                    Cobra Architecture
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Architecture Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Package &amp; Composite Tree</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command Tree &amp; FlagSet Topology</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Parser &amp; Command Dispatch</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find, Traverse &amp; stripFlags Parser</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Lifecycle Execution Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="executec_and_hook_chain.html" >ExecuteC, execute() &amp; Hook Chain</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Flag Groups &amp; PositionalArgs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation Flag Groups &amp; Validators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete Protocol &amp; Shell Scripts</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Reference Doc Synthesis</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >AST-Free cobra/doc Generators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra User Guide<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">`ExecuteC` &amp; `Command.execute()` Lifecycle Engine (`command.go:905–1314`, `command_win.go`)</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="executec_and_hook_chain.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/03_execution_engine/executec_and_hook_chain.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1><code>ExecuteC</code> &amp; <code>Command.execute()</code> Lifecycle Engine (<code>command.go:905–1314</code>, <code>command_win.go</code>)</h1>
+<p>Once a Cobra CLI is constructed, execution enters through one of four public methods on <code>*Command</code>—<code>Execute()</code>, <code>ExecuteC()</code>, <code>ExecuteContext(ctx)</code>, or <code>ExecuteContextC(ctx)</code> (<code>command.go:1062–1084</code>). All four funnel into a two-phase engine:</p>
+<ol>
+<li><strong><code>ExecuteC()</code> (<code>command.go:1084–1170</code>)</strong>: Tree-level orchestration—normalizing <code>context.Context</code>, re-anchoring execution to <code>c.Root()</code>, running the Windows <code>mousetrap</code> check, lazily injecting built-in commands (<code>help</code>, <code>__complete</code>, <code>completion</code>), verifying command group invariants, dispatching <code>Traverse</code> or <code>Find</code>, and formatting top-level errors or <code>flag.ErrHelp</code>.</li>
+<li><strong><code>c.execute(a []string)</code> (<code>command.go:905–1045</code>)</strong>: Node-level lifecycle execution—registering late <code>--help</code> and <code>--version</code> flags, running <code>ParseFlags(a)</code>, firing <code>OnInitialize</code> / <code>OnFinalize</code> callbacks, validating positional arguments via <code>ValidateArgs</code>, and running the <strong>6-stage hook and flag-validation pipeline</strong>.</li>
+</ol>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_execution_engine/executec_and_hook_chain/executec_dispatch_pipeline.png" alt="executec_and_hook_chain_1" />
+  <figcaption class="drawlib-caption">Figure 1: Two-Phase Execution Pipeline — ExecuteC() Tree Orchestration and cmd.execute() Node Lifecycle (command.go:905–1170)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"Cobra v1.10.2 Execution Engine: ExecuteC() -&gt; cmd.execute(flags)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: ExecuteC() Tree Orchestrator</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"ExecuteC() Orchestrator"</span><span class="p">,</span>
+    <span class="s2">"command.go:1084"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">84</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">95</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. Context &amp; Root Re-Anchor (L1085–1097)</span><span class="se">\n</span><span class="s2">ctx = Background() | c.Root().ExecuteC() | win mousetrap"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. Lazy Built-Ins &amp; Group Check (L1100–1117)</span><span class="se">\n</span><span class="s2">InitDefaultHelpCmd | __complete | completion | Groups"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">52.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. Command Resolution (L1120–1135)</span><span class="se">\n</span><span class="s2">Traverse(args) or Find(args) -&gt; (cmd, flags, err)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. Call Metadata &amp; Context Handoff (L1137–1148)</span><span class="se">\n</span><span class="s2">commandCalledAs.called = true | cmd.ctx = c.ctx"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">14.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5. Error, ErrHelp &amp; Usage Gate (L1149–1169)</span><span class="se">\n</span><span class="s2">errors.Is(ErrHelp) -&gt; HelpFunc() (returns nil)</span><span class="se">\n</span><span class="s2">!SilenceErrors -&gt; PrintErrln | !SilenceUsage -&gt; Usage"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">74.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">63.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">58.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">47.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">31.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="mf">24.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: cmd.execute(flags) Lifecycle</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"cmd.execute(a) Lifecycle"</span><span class="p">,</span>
+    <span class="s2">"command.go:905"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">95</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. Late Flags &amp; ParseFlags(a) (L910–922)</span><span class="se">\n</span><span class="s2">Deprecated | InitHelp/VersionFlag | FlagErrorFunc"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. Early Short-Circuits (L926–957)</span><span class="se">\n</span><span class="s2">--help -&gt; ErrHelp | --version -&gt; Template | !Runnable"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">52.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. Global Callbacks &amp; Args (L959–970)</span><span class="se">\n</span><span class="s2">preRun (OnInitialize) | defer postRun | ValidateArgs"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. PreRun Hooks &amp; Flag Checks (L972–1012)</span><span class="se">\n</span><span class="s2">PersistentPreRunE -&gt; PreRunE -&gt; Validate*Flags()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">14.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5. Workload &amp; PostRun Chain (L1014–1044)</span><span class="se">\n</span><span class="s2">RunE/Run -&gt; PostRunE -&gt; PersistentPostRunE</span><span class="se">\n</span><span class="s2">-&gt; deferred postRun (OnFinalize)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">79.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">74.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">63.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">58.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">47.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">31.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">24.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Cross-panel invocation arrow</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">90</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">96</span><span class="p">,</span> <span class="mf">36.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Phase 1: <code>ExecuteC()</code> Tree-Level Orchestration (<code>command.go:1062–1170</code>)</h2>
+<h3>1.1 The Four Public Entrypoints (<code>command.go:1062–1084</code>)</h3>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ctx</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Execute</span><span class="p">()</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Execute</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ExecuteC</span><span class="p">()</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContextC</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ctx</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ExecuteC</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre>
+<p>All four methods converge on <code>ExecuteC() (cmd *Command, err error)</code> (<code>command.go:1084</code>), which executes 10 sequential steps:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Step</th>
+<th style="text-align:left">Source Lines</th>
+<th style="text-align:left">Operation Performed</th>
+<th style="text-align:left">Architectural Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. Default <code>ctx</code></strong></td>
+<td style="text-align:left"><code>command.go:1085–1087</code></td>
+<td style="text-align:left"><code>if c.ctx == nil { c.ctx = context.Background() }</code></td>
+<td style="text-align:left">Guarantees <code>cmd.Context()</code> is never <code>nil</code> inside <code>ValidArgsFunction</code> or <code>*Run*</code> hooks after <code>Execute()</code> starts.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. Root Re-Anchoring</strong></td>
+<td style="text-align:left"><code>command.go:1090–1092</code></td>
+<td style="text-align:left"><code>if c.HasParent() { return c.Root().ExecuteC() }</code></td>
+<td style="text-align:left">Even if the caller invokes <code>subCmd.Execute()</code>, Cobra climbs to <code>Root()</code> so <code>os.Args[1:]</code> is always parsed from the top of the tree.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Windows <code>preExecHookFn</code></strong></td>
+<td style="text-align:left"><code>command.go:1095–1097</code><br><code>command_win.go:28–41</code></td>
+<td style="text-align:left"><code>if preExecHookFn != nil { preExecHookFn(c) }</code></td>
+<td style="text-align:left">On Windows (<code>//go:build windows</code>), calls <code>mousetrap.StartedByExplorer()</code>. If launched from <code>explorer.exe</code> and <code>MousetrapHelpText != &quot;&quot;</code>, prints warning, sleeps <code>MousetrapDisplayDuration</code> (<code>5s</code>) or waits for <code>fmt.Scanln()</code>, and calls <code>os.Exit(1)</code>. (<code>nil</code> on <code>!windows</code> in <code>command_notwin.go:20</code>.)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. <code>InitDefaultHelpCmd()</code></strong></td>
+<td style="text-align:left"><code>command.go:1100</code><br><code>command.go:1263–1314</code></td>
+<td style="text-align:left">Lazily creates and attaches <code>c.helpCommand</code> (<code>help [command]</code>) if <code>c.HasSubCommands()</code> is <code>true</code></td>
+<td style="text-align:left">Deferred until execution so application code can override <code>SetHelpCommand</code> or <code>SetHelpCommandGroupID</code> after <code>AddCommand</code>. Calls <code>RemoveCommand</code> + <code>AddCommand</code> (<code>L1312–1313</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. CLI <code>args</code> Selection (<code>#155</code>)</strong></td>
+<td style="text-align:left"><code>command.go:1102–1107</code></td>
+<td style="text-align:left"><code>args := c.args</code><br><code>if c.args == nil &amp;&amp; filepath.Base(os.Args[0]) != &quot;cobra.test&quot; { args = os.Args[1:] }</code></td>
+<td style="text-align:left">Uses explicit <code>SetArgs(a)</code> slice when provided; otherwise reads <code>os.Args[1:]</code> while ignoring <code>-test.v</code> flags passed to Cobra's own <code>cobra.test</code> binary during <code>go test -v</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. <code>__complete</code> Injection</strong></td>
+<td style="text-align:left"><code>command.go:1110</code><br><code>completions.go:195</code></td>
+<td style="text-align:left"><code>c.initCompleteCmd(args)</code></td>
+<td style="text-align:left">Lazily injects hidden <code>__complete</code> and <code>__completeNoDesc</code> subcommands only when <code>args[0]</code> invokes completion.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>7. <code>completion</code> Injection</strong></td>
+<td style="text-align:left"><code>command.go:1113</code><br><code>shell_completions.go:29</code></td>
+<td style="text-align:left"><code>c.InitDefaultCompletionCmd(args...)</code></td>
+<td style="text-align:left">Lazily adds <code>completion [bash|zsh|fish|powershell]</code> unless <code>CompletionOptions.DisableDefaultCmd</code> is set or there are no subcommands.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>8. <code>checkCommandGroups()</code></strong></td>
+<td style="text-align:left"><code>command.go:1117</code><br><code>command.go:1205–1214</code></td>
+<td style="text-align:left">Recursively verifies <code>sub.GroupID == &quot;&quot; || c.ContainsGroup(sub.GroupID)</code></td>
+<td style="text-align:left"><strong>Panics immediately</strong> (<code>panic(fmt.Sprintf(&quot;group id '%s' is not defined for subcommand '%s'&quot;, ...))</code>) if any subcommand references an unregistered <code>GroupID</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>9. <code>Traverse</code> vs. <code>Find</code></strong></td>
+<td style="text-align:left"><code>command.go:1120–1135</code></td>
+<td style="text-align:left">Dispatches <code>c.Traverse(args)</code> or <code>c.Find(args)</code>; on error, prints <code>c.ErrPrefix()</code> + <code>&quot;Run '%v --help' for usage.\n&quot;</code> unless <code>c.SilenceErrors</code></td>
+<td style="text-align:left">Resolves target <code>cmd</code> and remaining <code>flags</code> slice (see <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html">Chapter 2</a>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>10. <code>cmd.execute(flags)</code> &amp; Error Gate</strong></td>
+<td style="text-align:left"><code>command.go:1137–1169</code></td>
+<td style="text-align:left">Sets <code>cmd.commandCalledAs.called = true</code>, propagates <code>cmd.ctx = c.ctx</code>, runs <code>cmd.execute(flags)</code>, and formats <code>ErrHelp</code> / errors / usage</td>
+<td style="text-align:left">Centralizes <code>flag.ErrHelp</code> interception, <code>SilenceErrors</code>, and <code>SilenceUsage</code> inheritance.</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 Post-Execution Error, <code>ErrHelp</code>, and Usage Handling (<code>command.go:1148–1169</code>)</h3>
+<p>When <code>err = cmd.execute(flags)</code> returns a non-nil error (<code>command.go:1149</code>), <code>ExecuteC()</code> applies three distinct policies in strict order:</p>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">execute</span><span class="p">(</span><span class="nx">flags</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="c1">// Always show help if requested, even if SilenceErrors is in</span>
+<span class="w">		</span><span class="c1">// effect</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ErrHelp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HelpFunc</span><span class="p">()(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="c1">// If root command has SilenceErrors flagged,</span>
+<span class="w">		</span><span class="c1">// all subcommands should respect it</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SilenceErrors</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">SilenceErrors</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">c</span><span class="p">.</span><span class="nx">PrintErrln</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ErrPrefix</span><span class="p">(),</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="c1">// If root command has SilenceUsage flagged,</span>
+<span class="w">		</span><span class="c1">// all subcommands should respect it</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SilenceUsage</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">SilenceUsage</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">c</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">UsageString</span><span class="p">())</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+</code></pre>
+<ol>
+<li><strong><code>flag.ErrHelp</code> Always Renders Help and Clears <code>err</code> (<code>L1152–1155</code>)</strong>: Whether triggered by <code>--help</code> / <code>-h</code> (<code>L935</code>) or by invoking a non-runnable parent command (<code>!c.Runnable()</code> at <code>L956</code>), <code>ExecuteC</code> calls <code>cmd.HelpFunc()(cmd, args)</code> (which writes to <code>cmd.OutOrStdout()</code>, see issue <code>#1002</code> at <code>L495</code>) and <strong>returns <code>cmd, nil</code></strong>, even when <code>SilenceErrors: true</code>.</li>
+<li><strong>Root-Inherited <code>SilenceErrors</code> (<code>L1159–1161</code>)</strong>: Error output (<code>c.PrintErrln(cmd.ErrPrefix(), err.Error())</code>) is suppressed if <strong>either</strong> the resolved <code>cmd.SilenceErrors</code> <strong>or</strong> the root <code>c.SilenceErrors</code> is <code>true</code>. Note that <code>cmd.ErrPrefix()</code> (<code>L643–652</code>) climbs the parent chain looking for a custom <code>SetErrPrefix</code> string before defaulting to <code>&quot;Error:&quot;</code>.</li>
+<li><strong>Root-Inherited <code>SilenceUsage</code> (<code>L1165–1167</code>)</strong>: Usage output (<code>c.Println(cmd.UsageString())</code>) is suppressed if <strong>either</strong> <code>cmd.SilenceUsage</code> <strong>or</strong> <code>c.SilenceUsage</code> is <code>true</code>.</li>
+</ol>
+<hr />
+<h2>2. Phase 2: <code>Command.execute(a []string)</code> &amp; the 6-Stage Hook Pipeline (<code>command.go:905–1045</code>)</h2>
+<p>Inside <code>c.execute(a []string)</code> (<code>command.go:905</code>), Cobra transitions from tree resolution to single-command execution. The exact ordering of operations inside <code>c.execute</code> is one of the most important architectural contracts in Cobra:</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_execution_engine/executec_and_hook_chain/hook_chain_traversal.png" alt="executec_and_hook_chain_2" />
+  <figcaption class="drawlib-caption">Figure 2: The 6-Stage Hook & Validation Order and EnableTraverseRunHooks Propagation (command.go:968–1042)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">108</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">103.5</span><span class="p">),</span>
+    <span class="s2">"6-Stage Hook Pipeline &amp; EnableTraverseRunHooks Propagation"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: 6-Stage Hook &amp; Validation Sequence</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"c.execute() Hook Sequence"</span><span class="p">,</span>
+    <span class="s2">"command.go:959"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">86</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">91</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Pre-Hook: preRun() + ValidateArgs(argWoFlags) (L959–970)</span><span class="se">\n</span><span class="s2">Runs OnInitialize() callbacks, then PositionalArgs check"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">68.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 1: PersistentPreRunE / PersistentPreRun (L972–998)</span><span class="se">\n</span><span class="s2">Invokes ancestor hook(s) with (c, argWoFlags)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">55.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 2: c.PreRunE / c.PreRun (L999–1005)</span><span class="se">\n</span><span class="s2">Can dynamically set/populate flags before Stage 3!"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">41.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 3: ValidateRequiredFlags &amp; ValidateFlagGroups</span><span class="se">\n</span><span class="s2">(L1007–1012) Checked AFTER PreRunE flag mutation!"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">28.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stage 4: c.RunE / c.Run (L1014–1020)</span><span class="se">\n</span><span class="s2">Executes main command action with (c, argWoFlags)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">14.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Stages 5 &amp; 6: PostRunE -&gt; PersistentPostRunE (L1021–1042)</span><span class="se">\n</span><span class="s2">Followed by deferred c.postRun() (OnFinalize callbacks)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">72.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">63.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">46.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">36.75</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mf">23.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">49</span><span class="p">,</span> <span class="mf">19.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: EnableTraverseRunHooks Comparison</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Persistent Hook Traversal"</span><span class="p">,</span>
+    <span class="s2">"L972 &amp; L1028"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">98</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">91</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">75.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">18.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Default: EnableTraverseRunHooks = false</span><span class="se">\n</span><span class="s2">• Walks bottom-up: c -&gt; Parent() -&gt; Root()</span><span class="se">\n</span><span class="s2">• Runs ONLY the 1st non-nil hook found</span><span class="se">\n</span><span class="s2">• Immediately executes break (L990 / L1034)</span><span class="se">\n</span><span class="s2">• Child Persistent*Run shadows ancestors"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">48.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Opt-In: EnableTraverseRunHooks = true</span><span class="se">\n</span><span class="s2">PersistentPreRunE (Top-Down Root -&gt; Leaf)</span><span class="se">\n</span><span class="s2">• Prepends: parents = append([]*Command</span><span class="si">{p}</span><span class="s2">, ...)</span><span class="se">\n</span><span class="s2">• Runs Root -&gt; Parent -&gt; Target c (L978–998)</span><span class="se">\n</span><span class="s2">• Aborts immediately on first error"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">138</span><span class="p">,</span> <span class="mf">19.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Opt-In: EnableTraverseRunHooks = true</span><span class="se">\n</span><span class="s2">PersistentPostRunE (Bottom-Up Leaf -&gt; Root)</span><span class="se">\n</span><span class="s2">• Loops: for p := c; p != nil; p = p.Parent()</span><span class="se">\n</span><span class="s2">• Runs Target c -&gt; Parent -&gt; Root (L1028–1042)</span><span class="se">\n</span><span class="s2">• Forms symmetric onion bracket around RunE"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>2.1 Late Flag Registration, <code>ParseFlags</code>, and Early Exits (<code>command.go:906–957</code>)</h3>
+<p>Before touching any hooks or validators, <code>c.execute(a []string)</code> performs six setup and short-circuit checks:</p>
+<ol>
+<li><strong>Deprecation Notice (<code>L910–912</code>)</strong>:<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">Deprecated</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Command %q is deprecated, %s\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Name</span><span class="p">(),</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Deprecated</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+Note that <code>c.Printf</code> writes to <code>c.OutOrStderr()</code> (<code>command.go:1435–1447</code>), which defaults to <code>os.Stderr</code> unless <code>SetOut</code> was called.</li>
+<li><strong>Just-in-Time <code>--help</code> and <code>--version</code> Flag Injection (<code>L916–917</code>, <code>L1219–1258</code>)</strong>:
+<ul>
+<li><code>c.InitDefaultHelpFlag()</code> calls <code>c.mergePersistentFlags()</code> and, if <code>c.Flags().Lookup(&quot;help&quot;) == nil</code>, registers <code>--help</code> / <code>-h</code> (<code>BoolP</code>) with annotation <code>FlagSetByCobraAnnotation: []string{&quot;true&quot;}</code>.</li>
+<li><code>c.InitDefaultVersionFlag()</code> checks <code>if c.Version == &quot;&quot; { return }</code>. If <code>c.Version</code> is non-empty and <code>c.Flags().Lookup(&quot;version&quot;) == nil</code>, it registers <code>--version</code>—adding the <code>-v</code> shorthand <strong>only if <code>c.Flags().ShorthandLookup(&quot;v&quot;) == nil</code></strong> (<code>L1251–1255</code>) so user-defined <code>-v</code> (e.g., <code>--verbose</code>) is never overwritten.</li>
+</ul>
+</li>
+<li><strong>Final Flag Parsing &amp; <code>FlagErrorFunc</code> (<code>L919–922</code>)</strong>:<pre><code class="language-go"><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">FlagErrorFunc</span><span class="p">()(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<code>c.ParseFlags(a)</code> (<code>command.go:1868–1889</code>) returns <code>nil</code> immediately if <code>c.DisableFlagParsing</code> is <code>true</code>. Otherwise it merges persistent flags, copies <code>c.FParseErrWhitelist</code> into <code>c.Flags().ParseErrorsAllowlist</code>, and runs <code>c.Flags().Parse(a)</code>. If <code>pflag</code> emits deprecation warnings into <code>c.flagErrorBuf</code> without returning an error, <code>ParseFlags</code> prints them (<code>L1884–1886</code>). On error, <code>c.FlagErrorFunc()</code> (<code>L547–558</code>) climbs the parent chain to invoke any custom flag-error transformer.</li>
+<li><strong><code>--help</code> Short-Circuit (<code>L926–936</code>)</strong>: Reads <code>helpVal, err := c.Flags().GetBool(helpFlagName)</code>. If <code>helpVal</code> is <code>true</code>, returns <code>flag.ErrHelp</code> immediately (handled in <code>ExecuteC</code> at <code>L1152</code>).</li>
+<li><strong><code>--version</code> Short-Circuit (<code>L939–953</code>)</strong>: If <code>c.Version != &quot;&quot;</code> and <code>c.Flags().GetBool(&quot;version&quot;)</code> is <code>true</code>, resolves <code>fn := c.getVersionTemplateFunc()</code> (<code>L631–640</code>, using <code>defaultVersionFunc</code> unless <code>SetVersionTemplate</code> was called) and writes <code>&quot;%s version %s\n&quot;</code> to <code>c.OutOrStdout()</code>, returning before any <code>OnInitialize</code> or <code>*Run*</code> hooks execute.</li>
+<li><strong>Non-Runnable Command Short-Circuit (<code>L955–957</code>)</strong>:<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">c</span><span class="p">.</span><span class="nx">Runnable</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ErrHelp</span>
+<span class="p">}</span>
+</code></pre>
+A command is runnable (<code>L1595–1598</code>) iff <code>c.Run != nil || c.RunE != nil</code>. Invoking a pure grouping command returns <code>flag.ErrHelp</code>, causing <code>ExecuteC</code> to print its help text and return <code>nil</code>.</li>
+</ol>
+<h3>2.2 Global <code>OnInitialize</code> / <code>OnFinalize</code> and Early <code>ValidateArgs</code> (<code>command.go:959–970</code>)</h3>
+<p>Once <code>c.execute</code> confirms the command is runnable and neither <code>--help</code> nor <code>--version</code> was requested, it runs:</p>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">preRun</span><span class="p">()</span>
+
+<span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">postRun</span><span class="p">()</span>
+
+<span class="w">	</span><span class="nx">argWoFlags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">Args</span><span class="p">()</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">DisableFlagParsing</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">argWoFlags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">a</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateArgs</span><span class="p">(</span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Two Subtle Ordering Guarantees (<code>command.go:959–970</code>)</strong>:</p>
+<ol>
+<li><strong><code>OnFinalize</code> Runs via <code>defer</code> (<code>L961</code>)</strong>: <code>c.preRun()</code> (<code>L1047–1051</code>) executes every <code>func()</code> registered via <code>cobra.OnInitialize(...)</code> (<code>cobra.go:99–101</code>). Immediately afterward, <code>defer c.postRun()</code> (<code>L961</code>, <code>L1053–1057</code>) schedules every <code>func()</code> registered via <code>cobra.OnFinalize(...)</code> (<code>cobra.go:104–107</code>). Because it is deferred at <code>L961</code>, <code>OnFinalize</code> callbacks are guaranteed to run even if <code>ValidateArgs</code>, <code>PersistentPreRunE</code>, <code>PreRunE</code>, <code>ValidateRequiredFlags</code>, <code>ValidateFlagGroups</code>, or <code>RunE</code> returns an error.</li>
+<li><strong><code>ValidateArgs</code> Runs BEFORE <code>PersistentPreRunE</code> and <code>PreRunE</code> (<code>L968</code>)</strong>: Positional argument validation (<code>c.ValidateArgs(argWoFlags)</code> at <code>L1172–1177</code>, which calls <code>ArbitraryArgs</code> if <code>c.Args == nil</code>, or <code>c.Args(c, args)</code>) executes <strong>before</strong> Stage 1 (<code>PersistentPreRunE</code>) and Stage 2 (<code>PreRunE</code>). In contrast, required-flag and flag-group validations (<code>ValidateRequiredFlags</code> and <code>ValidateFlagGroups</code>) execute <strong>after</strong> Stage 2 (<code>PreRunE</code>) at <code>L1007–1012</code>!</li>
+</ol>
+</blockquote>
+<hr />
+<h2>3. Detailed Walkthrough of the 6-Stage Hook Pipeline (<code>command.go:972–1042</code>)</h2>
+<h3>3.1 Stage 1: <code>PersistentPreRunE</code> / <code>PersistentPreRun</code> (<code>command.go:972–998</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="nx">parents</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Parent</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// When EnableTraverseRunHooks is set:</span>
+<span class="w">			</span><span class="c1">// - Execute all persistent pre-runs from the root parent till this command.</span>
+<span class="w">			</span><span class="c1">// - Execute all persistent post-runs from this command till the root parent.</span>
+<span class="w">			</span><span class="nx">parents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">{</span><span class="nx">p</span><span class="p">},</span><span class="w"> </span><span class="nx">parents</span><span class="p">...)</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// Otherwise, execute only the first found persistent hook.</span>
+<span class="w">			</span><span class="nx">parents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">parents</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">parents</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPreRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>Notice two critical details in Stage 1:</p>
+<ul>
+<li><strong>Receiver vs. <code>cmd</code> Argument</strong>: Even when <code>p</code> is an ancestor command (e.g., <code>rootCmd</code>), <code>p.PersistentPreRunE(c, argWoFlags)</code> is passed <strong><code>c</code> (the target leaf <code>*Command</code>)</strong>, not <code>p</code>.</li>
+<li><strong><code>EnableTraverseRunHooks</code> (<code>cobra.go:66</code>)</strong>:
+<ul>
+<li>When <code>false</code> (default): <code>parents</code> is ordered bottom-up <code>[c, parent, ..., root]</code>. The loop executes the <strong>first</strong> non-nil <code>PersistentPreRunE</code> or <code>PersistentPreRun</code> it encounters and immediately <code>break</code>s (<code>L990</code>, <code>L995</code>). Thus, defining <code>PersistentPreRun</code> on a child command shadows its parent's <code>PersistentPreRun</code> unless <code>EnableTraverseRunHooks = true</code>.</li>
+<li>When <code>true</code>: <code>parents</code> is constructed by prepending (<code>append([]*Command{p}, parents...)</code>), yielding top-down order <code>[root, ..., parent, c]</code>, and all defined hooks execute sequentially from root to leaf.</li>
+</ul>
+</li>
+</ul>
+<h3>3.2 Stage 2: <code>PreRunE</code> / <code>PreRun</code> (<code>command.go:999–1005</code>)</h3>
+<p>Next, Cobra executes the target command's local pre-run hook:</p>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">PreRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>At every hook stage (<code>PersistentPreRun*</code>, <code>PreRun*</code>, <code>Run*</code>, <code>PostRun*</code>, <code>PersistentPostRun*</code>), the <code>*E</code> error-returning variant takes strict <code>if / else if</code> precedence over the non-error variant.</p>
+<h3>3.3 Stage 3: Why <code>ValidateRequiredFlags</code> and <code>ValidateFlagGroups</code> Run After <code>PreRunE</code> (<code>command.go:1007–1012</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateRequiredFlags</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ValidateFlagGroups</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<p>Why does Cobra wait until <strong>after</strong> <code>PersistentPreRunE</code> and <code>PreRunE</code> to validate required flags (<code>command.go:1180–1201</code>) and relational flag groups (<code>flag_groups.go:200</code>)?</p>
+<ul>
+<li>In real-world Cobra + Viper applications, developers bind configuration files, environment variables, or dynamic defaults inside <code>PersistentPreRunE</code> or <code>PreRunE</code> by calling <code>cmd.Flags().Set(name, val)</code>.</li>
+<li>Calling <code>Flags().Set(...)</code> marks <code>pflag.Changed = true</code> on that flag.</li>
+<li>Because <code>ValidateRequiredFlags()</code> checks <code>if (requiredAnnotation[0] == &quot;true&quot;) &amp;&amp; !pflag.Changed</code> (<code>command.go:1192</code>) on <code>BashCompOneRequiredFlag</code>, running Stage 3 at <code>L1007–1012</code> allows <code>PreRun</code> hooks to satisfy required flags and flag groups dynamically before <code>RunE</code> starts!</li>
+</ul>
+<h3>3.4 Stages 4, 5, and 6: <code>RunE</code>, <code>PostRunE</code>, and <code>PersistentPostRunE</code> (<code>command.go:1014–1042</code>)</h3>
+<pre><code class="language-go"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">RunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">RunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">Run</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">PostRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="p">;</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Parent</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRunE</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRunE</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRun</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">p</span><span class="p">.</span><span class="nx">PersistentPostRun</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">argWoFlags</span><span class="p">)</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">break</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Hook Stage</th>
+<th style="text-align:left">Source Lines</th>
+<th style="text-align:left">Traversal Direction (<code>EnableTraverseRunHooks = false</code>)</th>
+<th style="text-align:left">Traversal Direction (<code>EnableTraverseRunHooks = true</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>OnInitialize</code> (<code>c.preRun</code>)</strong></td>
+<td style="text-align:left"><code>L959</code>, <code>L1047–1051</code></td>
+<td style="text-align:left">Global <code>initializers</code> slice (<code>0 .. len-1</code>)</td>
+<td style="text-align:left">Global <code>initializers</code> slice (<code>0 .. len-1</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>ValidateArgs</code></strong></td>
+<td style="text-align:left"><code>L968</code>, <code>L1172–1177</code></td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>1. <code>PersistentPreRun[E]</code></strong></td>
+<td style="text-align:left"><code>L972–998</code></td>
+<td style="text-align:left">Nearest ancestor with hook (<code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code>, <code>break</code> on first)</td>
+<td style="text-align:left"><strong>Top-Down</strong>: <code>Root</code> -&gt; <code>Parent</code> -&gt; <code>c</code> (all non-nil hooks)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. <code>PreRun[E]</code></strong></td>
+<td style="text-align:left"><code>L999–1005</code></td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. <code>ValidateRequiredFlags</code> &amp; <code>ValidateFlagGroups</code></strong></td>
+<td style="text-align:left"><code>L1007–1012</code></td>
+<td style="text-align:left">Target command <code>c</code>'s merged <code>Flags()</code></td>
+<td style="text-align:left">Target command <code>c</code>'s merged <code>Flags()</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. <code>Run[E]</code></strong></td>
+<td style="text-align:left"><code>L1014–1020</code></td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. <code>PostRun[E]</code></strong></td>
+<td style="text-align:left"><code>L1021–1027</code></td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+<td style="text-align:left">Target command <code>c</code> only</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. <code>PersistentPostRun[E]</code></strong></td>
+<td style="text-align:left"><code>L1028–1042</code></td>
+<td style="text-align:left">Nearest ancestor with hook (<code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code>, <code>break</code> on first)</td>
+<td style="text-align:left"><strong>Bottom-Up</strong>: <code>c</code> -&gt; <code>Parent</code> -&gt; <code>Root</code> (all non-nil hooks)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>OnFinalize</code> (<code>defer c.postRun</code>)</strong></td>
+<td style="text-align:left"><code>L961</code>, <code>L1053–1057</code></td>
+<td style="text-align:left">Global <code>finalizers</code> slice (<code>0 .. len-1</code>, always runs via <code>defer</code>)</td>
+<td style="text-align:left">Global <code>finalizers</code> slice (<code>0 .. len-1</code>, always runs via <code>defer</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Cross-References</h2>
+<ul>
+<li><strong>Previous Chapter</strong>: <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html">Chapter 2 — Find, Traverse &amp; stripFlags Parser</a></li>
+<li><strong>Next Chapter</strong>: <a href="../04_flag_groups_and_args/relational_flag_engine.html">Chapter 4 — Annotation Flag Groups &amp; PositionalArgs Validators</a></li>
+<li><strong>Related Chapters</strong>:
+<ul>
+<li><a href="../01_package_and_tree/command_tree_topology.html">Chapter 1 — Command Tree &amp; FlagSet Topology</a></li>
+<li><a href="../05_completion_v2_engine/complete_protocol_and_shells.html">Chapter 5 — <code>__complete</code> Protocol &amp; Shell Script Generators</a></li>
+<li><a href="../index.html">Architecture Overview</a></li>
+</ul>
+</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial internal architecture guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

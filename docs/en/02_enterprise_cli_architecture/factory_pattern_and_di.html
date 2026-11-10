@@ -1,0 +1,766 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Pattern, Options Structs &amp; Dependency Injection — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/en/02_enterprise_cli_architecture/factory_pattern_and_di.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/ja/02_enterprise_cli_architecture/factory_pattern_and_di.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/en/02_enterprise_cli_architecture/factory_pattern_and_di.html">
+    
+    
+    
+    <meta name="description" content="Many introductory Cobra tutorials—and the legacy cobra-cli scaffolding tool—declare commands as package-level global variables (var rootCmd =…">
+    <link rel="canonical" href="https://cobra.drawlib.com/en/02_enterprise_cli_architecture/factory_pattern_and_di.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Factory Pattern, Options Structs &amp; Dependency Injection — Cobra User Guide">
+    <meta property="og:description" content="Many introductory Cobra tutorials—and the legacy cobra-cli scaffolding tool—declare commands as package-level global variables (var rootCmd =…">
+    <meta property="og:url" content="https://cobra.drawlib.com/en/02_enterprise_cli_architecture/factory_pattern_and_di.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Factory Pattern, Options Structs &amp; Dependency Injection — Cobra User Guide">
+    <meta name="twitter:description" content="Many introductory Cobra tutorials—and the legacy cobra-cli scaffolding tool—declare commands as package-level global variables (var rootCmd =…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">UNOFFICIAL GUIDE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Community User Guide for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Factory Pattern, Options Structs &amp; Dependency Injection</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="factory_pattern_and_di.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/02_enterprise_cli_architecture/factory_pattern_and_di.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Factory Pattern, Options Structs &amp; Dependency Injection</h1>
+<p>Many introductory Cobra tutorials—and the legacy <code>cobra-cli</code> scaffolding tool—declare commands as package-level global variables (<code>var rootCmd = &amp;cobra.Command{...}</code>) wired together inside <code>func init()</code>. While convenient for a 100-line script, <strong>package-level command singletons break state isolation, cause data races in <code>t.Parallel()</code> unit tests, and make dependency injection impossible</strong>. This page presents the production architecture used by <code>kubectl</code>, GitHub CLI (<code>gh</code>), Helm, and Docker: <strong>constructor factories (<code>NewCmd*</code>)</strong>, <strong>3-stage <code>*Options</code> structs (<code>Complete -&gt; Validate -&gt; Run</code>)</strong>, and <strong>dependency injection via closures and <code>context.Context</code></strong>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_enterprise_cli_architecture/factory_pattern_and_di/ug_factory_antipattern_vs_di.png" alt="factory_pattern_and_di_1" />
+  <figcaption class="drawlib-caption">Legacy Global Singleton Anti-Pattern vs. Modern Constructor Factory & DI Pattern</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">76</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">left_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Anti-Pattern: Global init()"</span><span class="p">,</span>
+    <span class="s2">"Shared Mutable State"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">warning_circle</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">left_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">86.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">68.0</span><span class="p">)</span>
+<span class="n">l_xy</span><span class="p">,</span> <span class="n">l_w</span><span class="p">,</span> <span class="n">l_h</span> <span class="o">=</span> <span class="n">left_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">86.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">bad_list</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bad_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Package-Level var rootCmd"</span><span class="p">,</span>
+    <span class="s2">"Single shared *cobra.Command across all tests"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"X1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">prohibit</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bad_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Sticky pflag.Flag.Changed State"</span><span class="p">,</span>
+    <span class="s2">"Flags parsed in TestA stay Changed=true in TestB"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"X2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">bug</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bad_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Hardcoded Globals in RunE"</span><span class="p">,</span>
+    <span class="s2">"Direct os.Exit(1) &amp; global HTTP/DB clients"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"X3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">lock_key</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bad_list</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">l_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">l_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">l_h</span><span class="p">)</span>
+
+<span class="n">right_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Modern Pattern: Factory + DI"</span><span class="p">,</span>
+    <span class="s2">"Hermetic &amp; Parallel"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">right_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">94.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">86.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">68.0</span><span class="p">)</span>
+<span class="n">r_xy</span><span class="p">,</span> <span class="n">r_w</span><span class="p">,</span> <span class="n">r_h</span> <span class="o">=</span> <span class="n">right_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">94.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">86.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">good_list</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">good_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"NewRootCmd(f Factory) Constructor"</span><span class="p">,</span>
+    <span class="s2">"Allocates a fresh Command &amp; FlagSet per call"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"OK1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">cube</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">good_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Per-Command *Options Struct"</span><span class="p">,</span>
+    <span class="s2">"Complete() -&gt; Validate() -&gt; Run() separation"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"OK2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">good_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"100% t.Parallel() Test Safety"</span><span class="p">,</span>
+    <span class="s2">"Injected IOStreams &amp; mock clients per test case"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"OK3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">shield_check</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">good_list</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">r_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">r_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">r_h</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Why Package-Level <code>var rootCmd</code> + <code>init()</code> Fails at Scale</h2>
+<p>Consider what happens when a CLI defines package-level global variables and binds flags inside <code>func init()</code>:</p>
+<pre><code class="language-go"><span class="c1">// ANTI-PATTERN: Do NOT use package-level Command or flag variables in production CLIs!</span>
+<span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="nx">replicas</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">	</span><span class="nx">dryRun</span><span class="w">   </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">deployCmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w"> </span><span class="s">"deploy"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="c1">// Mutates/reads package-level globals!</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">runDeploy</span><span class="p">(</span><span class="nx">replicas</span><span class="p">,</span><span class="w"> </span><span class="nx">dryRun</span><span class="p">)</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">deployCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">IntVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">replicas</span><span class="p">,</span><span class="w"> </span><span class="s">"replicas"</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s">"Number of replicas"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">deployCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">dryRun</span><span class="p">,</span><span class="w"> </span><span class="s">"dry-run"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"Simulate deployment"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">deployCmd</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<p>When you write unit tests for this package, three severe bugs surface immediately:</p>
+<ol>
+<li><strong>Sticky Flag Mutation Across Tests (<code>pflag.Flag.Changed</code>)</strong>:
+<ul>
+<li>In Test 1, you run <code>rootCmd.SetArgs([]string{&quot;deploy&quot;, &quot;--dry-run&quot;, &quot;--replicas=5&quot;})</code> and call <code>rootCmd.Execute()</code>. That sets the global <code>dryRun = true</code>, <code>replicas = 5</code>, and marks both <code>pflag.Flag</code> structs as <code>Changed = true</code>.</li>
+<li>In Test 2, you run <code>rootCmd.SetArgs([]string{&quot;deploy&quot;})</code> expecting the defaults (<code>dryRun == false</code>, <code>replicas == 1</code>). Instead, <code>pflag</code> <strong>does not reset flags omitted from <code>os.Args</code></strong>—so Test 2 silently inherits <code>dryRun == true</code> and <code>replicas == 5</code> from Test 1!</li>
+</ul>
+</li>
+<li><strong>Data Races Under <code>t.Parallel()</code></strong>:
+<ul>
+<li>Because <code>Command.args</code>, <code>Command.flags</code>, <code>Command.outWriter</code>, and your bound flag variables live in shared package memory, running two subtests with <code>t.Parallel()</code> triggers immediate Go race detector (<code>go test -race</code>) failures.</li>
+</ul>
+</li>
+<li><strong>Uncontrollable Import Side Effects</strong>:
+<ul>
+<li>Importing the <code>cmd</code> package anywhere automatically executes all <code>init()</code> functions, making it impossible to construct a subset of commands or inject mock API clients before command registration.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>2. The 3-Stage <code>*Options</code> Pattern (<code>Complete</code>, <code>Validate</code>, <code>Run</code>)</h2>
+<p>To decouple Cobra's CLI parsing mechanics from your domain logic, give every command its own <strong><code>&lt;Command&gt;Options</code> struct</strong> and a <strong><code>New&lt;Command&gt;Cmd</code> constructor</strong>.</p>
+<p>Pioneered by <code>kubectl</code> (<code>k8s.io/cli-runtime</code>), the <code>*Options</code> struct implements three distinct methods that execute sequentially inside <code>RunE</code>:</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_enterprise_cli_architecture/factory_pattern_and_di/ug_factory_options_lifecycle.png" alt="factory_pattern_and_di_2" />
+  <figcaption class="drawlib-caption">The 3-Stage Per-Command Options Lifecycle: NewOptions -> Complete -> Validate -> Run</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">ChevronProcess</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">outer</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Per-Command *Options Lifecycle"</span><span class="p">,</span>
+    <span class="s2">"kubectl Standard"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_clockwise</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outer</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">176.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">66.0</span><span class="p">)</span>
+
+<span class="n">proc</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">62.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. NewDeployOptions"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Defaults &amp; IOStreams"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"2. o.Complete(cmd, args)"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Resolve Args &amp; Deps"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3. o.Validate()"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Check Domain Rules"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. o.Run(cmd.Context())"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Execute Business Logic"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">16.0</span><span class="p">)</span>
+
+<span class="n">details</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"horizontal"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">details</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Complete(cmd, args)"</span><span class="p">,</span>
+    <span class="s2">"Extract positional args,</span><span class="se">\n</span><span class="s2">env vars &amp; client handles"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"S1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">puzzle_piece</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">details</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Validate()"</span><span class="p">,</span>
+    <span class="s2">"Pure in-memory checks on</span><span class="se">\n</span><span class="s2">populated Options fields"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"S2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">check_square</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">details</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Run(ctx)"</span><span class="p">,</span>
+    <span class="s2">"Zero *cobra.Command refs;</span><span class="se">\n</span><span class="s2">easily unit-tested directly"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"S3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">rocket_launch</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">details</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>Complete Production Implementation (<code>cmd/deploy.go</code>)</h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cmd</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"context"</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"io"</span>
+<span class="w">	</span><span class="s">"time"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// Deployer abstracts the backend deployment API for dependency injection.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Deployer</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Deploy</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">service</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">replicas</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">timeout</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="p">}</span>
+
+<span class="c1">// IOStreams bundles standard input, output, and error streams.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">IOStreams</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">In</span><span class="w">     </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span>
+<span class="w">	</span><span class="nx">Out</span><span class="w">    </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="w">	</span><span class="nx">ErrOut</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="p">}</span>
+
+<span class="c1">// DeployOptions holds all configuration and dependencies for "cloudctl deploy".</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">DeployOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">IOStreams</span>
+
+<span class="w">	</span><span class="c1">// Bound directly to pflag</span>
+<span class="w">	</span><span class="nx">Replicas</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">	</span><span class="nx">Timeout</span><span class="w">  </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span>
+<span class="w">	</span><span class="nx">DryRun</span><span class="w">   </span><span class="kt">bool</span>
+
+<span class="w">	</span><span class="c1">// Populated during Complete()</span>
+<span class="w">	</span><span class="nx">ServiceName</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Client</span><span class="w">      </span><span class="nx">Deployer</span>
+<span class="p">}</span>
+
+<span class="c1">// NewDeployOptions returns a DeployOptions struct initialized with safe defaults.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewDeployOptions</span><span class="p">(</span><span class="nx">streams</span><span class="w"> </span><span class="nx">IOStreams</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">DeployOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">DeployOptions</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">IOStreams</span><span class="p">:</span><span class="w"> </span><span class="nx">streams</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Replicas</span><span class="p">:</span><span class="w">  </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Timeout</span><span class="p">:</span><span class="w">   </span><span class="mi">30</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// NewDeployCmd constructs the "deploy" command and binds flags to a fresh DeployOptions.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewDeployCmd</span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="nx">Factory</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">o</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">NewDeployOptions</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">IOStreams</span><span class="p">())</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"deploy &lt;service-name&gt;"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Roll out a service to the target cluster"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w">  </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ExactArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Complete</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Validate</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Run</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Context</span><span class="p">())</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">IntVarP</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">,</span><span class="w"> </span><span class="s">"replicas"</span><span class="p">,</span><span class="w"> </span><span class="s">"r"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">,</span><span class="w"> </span><span class="s">"Desired replica count (1..100)"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">DurationVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">o</span><span class="p">.</span><span class="nx">Timeout</span><span class="p">,</span><span class="w"> </span><span class="s">"timeout"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Timeout</span><span class="p">,</span><span class="w"> </span><span class="s">"Rollout deadline"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">o</span><span class="p">.</span><span class="nx">DryRun</span><span class="p">,</span><span class="w"> </span><span class="s">"dry-run"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"Validate without mutating cluster state"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+
+<span class="c1">// Complete resolves positional arguments, dynamic defaults, and injected clients.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="o">*</span><span class="nx">DeployOptions</span><span class="p">)</span><span class="w"> </span><span class="nx">Complete</span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="nx">Factory</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">o</span><span class="p">.</span><span class="nx">ServiceName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="w">	</span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">f</span><span class="p">.</span><span class="nx">DeployerClient</span><span class="p">()</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"initializing deployer client: %w"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="nx">o</span><span class="p">.</span><span class="nx">Client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">client</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// Validate enforces domain invariants before any network I/O occurs.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="o">*</span><span class="nx">DeployOptions</span><span class="p">)</span><span class="w"> </span><span class="nx">Validate</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"--replicas must be between 1 and 100 (got %d)"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Timeout</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"--timeout must be positive (got %s)"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Timeout</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// Run executes the core command behavior without touching *cobra.Command.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="o">*</span><span class="nx">DeployOptions</span><span class="p">)</span><span class="w"> </span><span class="nx">Run</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">DryRun</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">o</span><span class="p">.</span><span class="nx">Out</span><span class="p">,</span><span class="w"> </span><span class="s">"[DRY-RUN] Would deploy %s (%d replicas)\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">ServiceName</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Client</span><span class="p">.</span><span class="nx">Deploy</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">ServiceName</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Timeout</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">o</span><span class="p">.</span><span class="nx">Out</span><span class="p">,</span><span class="w"> </span><span class="s">"Deployed %s (%d replicas) successfully\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">ServiceName</span><span class="p">,</span><span class="w"> </span><span class="nx">o</span><span class="p">.</span><span class="nx">Replicas</span><span class="p">)</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<h3>Why <code>Complete() -&gt; Validate() -&gt; Run()</code> Scales So Well</h3>
+<ul>
+<li><strong><code>Complete()</code></strong>: Bridges CLI concerns (<code>cmd</code>, <code>args</code>, <code>Factory</code>) into strongly-typed fields on <code>DeployOptions</code>.</li>
+<li><strong><code>Validate()</code></strong>: Pure, deterministic validation of <code>DeployOptions</code> fields—can be tested directly in Go without even constructing a <code>*cobra.Command</code>.</li>
+<li><strong><code>Run(ctx)</code></strong>: Has <strong>zero dependency on <code>*cobra.Command</code> or <code>pflag</code></strong>. It reads from <code>DeployOptions</code>, writes to <code>o.Out</code>, and calls <code>o.Client.Deploy(ctx, ...)</code>.</li>
+</ul>
+<hr />
+<h2>3. Two Idiomatic Dependency Injection Mechanisms</h2>
+<p>When passing shared infrastructure (loggers, API clients, credential stores, <code>IOStreams</code>) down a command tree, choose between <strong>Closure Constructor Injection</strong> and <strong><code>context.Context</code> Propagation</strong>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Mechanism</th>
+<th style="text-align:left">How It Works</th>
+<th style="text-align:left">Best Used For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. Constructor / Factory Injection (Recommended)</strong></td>
+<td style="text-align:left">Pass a <code>Factory</code> interface or <code>Dependencies</code> struct into <code>NewRootCmd(f)</code> and forward <code>f</code> to child <code>New*Cmd(f)</code> constructors.</td>
+<td style="text-align:left">Static or lazy-initialized dependencies (<code>IOStreams</code>, HTTP/gRPC client builders, config loaders). Compile-time type-safe!</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. <code>context.Context</code> Injection (<code>ExecuteContext</code>)</strong></td>
+<td style="text-align:left">Attach request-scoped values to <code>ctx</code> in <code>main.go</code> (<code>rootCmd.ExecuteContext(ctx)</code>) or inside <code>PersistentPreRunE</code> (<code>cmd.SetContext(ctx)</code>), and read via <code>cmd.Context()</code>.</td>
+<td style="text-align:left">Cancellation signals (<code>SIGINT</code>/<code>SIGTERM</code>), OpenTelemetry trace spans, and dynamic auth tokens resolved inside <code>PersistentPreRunE</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Defining a Clean <code>Factory</code> Interface</h3>
+<p>Following GitHub CLI (<code>gh</code>) and <code>kubectl</code>, define a narrow <code>Factory</code> interface in an internal package so lazy initialization (such as opening a database or reading <code>~/.kube/config</code>) only happens when a leaf command's <code>Complete()</code> method actually requests it:</p>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">Factory</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">IOStreams</span><span class="p">()</span><span class="w"> </span><span class="nx">IOStreams</span>
+<span class="w">	</span><span class="nx">DeployerClient</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">Deployer</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<p>Because <code>f.DeployerClient()</code> is called inside <code>o.Complete()</code> (which runs during <code>RunE</code>) rather than inside <code>NewDeployCmd(f)</code> (which runs at startup), running <code>cloudctl --help</code> or <code>cloudctl version</code> never wastes time initializing network clients or failing on missing credentials!</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong><a href="package_layout_and_testing.html">Multi-Package Layout &amp; Hermetic Testing</a></strong> to see how to organize dozens of subcommands across domain packages and write sub-millisecond in-memory <code>go test</code> suites using <code>ExecuteC()</code>.</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

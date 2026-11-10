@@ -1,0 +1,2016 @@
+{
+  "project_name": "cobra",
+  "workflow_id": "pni501",
+  "workflow_run_id": "wf-5b36d0e3",
+  "evaluated_at": "2026-11-10T09:51:09.146110+00:00",
+  "language": "go",
+  "target_root": ".",
+  "facts_file": ".pni/cache/pni501/facts.json",
+  "key_files_inspected": [],
+  "overall_score": 94,
+  "grade": "S",
+  "category_scores": {
+    "architecture": 94,
+    "code_quality": 90,
+    "typing": 93,
+    "testing": 96,
+    "dependencies": 93,
+    "security": 98,
+    "documentation": 95
+  },
+  "category_rationales": {
+    "architecture": "Strictly acyclic two-package topology (`github.com/spf13/cobra` root package + `github.com/spf13/cobra/doc` subpackage) across 19 Go source files (4,888 LOC) with 100.0% import hygiene, zero circular dependencies, and clean isolation of documentation rendering dependencies (`go-md2man/v2`, `yaml/v3`) from the core runtime.",
+    "code_quality": "Clean idiomatic Go across 269 functions with 0 excessive-parameter signatures and 0 `go vet` warnings; minor complexity hotspots in `Command.getCompletions` (cognitive=96), `Command.execute` (cognitive=66), `defaultUsageFunc` (cognitive=47), and `Command.enforceFlagGroupsForCompletion` (cognitive=37), plus 13 mutable package-level feature toggles in `cobra.go`/`completions.go`.",
+    "typing": "94.1% static type safety coverage across 17 exported types and 269 functions with zero `unsafe.Pointer` usage and zero unscoped `//nolint` directives; remaining `interface{}` parameters are limited to `fmt`-compatible variadic print helpers and `text/template` functions.",
+    "testing": "100.0% module test alignment (17 `*_test.go` suites, 280 test functions) with 424/424 unit and subtests passing 100% offline (`--network=none`) and 86.8% measured statement coverage (`1,631 / 1,880` statements), including linker deadcode elimination verification (`TestDeadcodeElimination`).",
+    "dependencies": "Minimal 4-package direct dependency footprint (`spf13/pflag v1.0.9`, `cpuguy83/go-md2man/v2 v2.0.6`, `inconshreveable/mousetrap v1.1.0`, `go.yaml.in/yaml/v3 v3.0.4`) locked with cryptographic checksums in `go.sum` and 0 unpinned dependencies; `go.mod` retains a conservative `go 1.15` directive for legacy compatibility.",
+    "security": "Exemplary supply-chain and SAST posture: 0 CVEs across all Go module dependencies (`app_vuln_counts.total = 0`), 0 hardcoded or committed secrets, 0 container IaC misconfigurations, and 0 CWE command/SQL/path execution sinks.",
+    "documentation": "98.4% exported GoDoc coverage (173/176 exported symbols documented, 0 empty docstrings, 0 signature mismatches) paired with built-in multi-format CLI reference generators (`cobra/doc`) and comprehensive README/portal documentation."
+  },
+  "metrics_snapshot": {
+    "language": "go",
+    "runtime_types": [
+      "library"
+    ],
+    "build_system": "go_mod",
+    "has_manifest": true,
+    "has_lockfile": true,
+    "has_license": true,
+    "has_security_policy": false,
+    "has_dependency_automation": false,
+    "dependencies_count": 4,
+    "unpinned_dependencies_count": 0,
+    "source_files_count": 19,
+    "test_files_count": 17,
+    "readme_line_count": 110,
+    "ci_supply_chain_issues_count": 0,
+    "committed_secret_files_count": 0,
+    "container_hygiene_issues_count": 0,
+    "legacy_language_findings_count": 0,
+    "total_files": 19,
+    "total_loc": 4888,
+    "total_classes": 17,
+    "total_functions": 269,
+    "import_hygiene_coverage_pct": 100.0,
+    "type_safety_coverage_pct": 94.1,
+    "docstring_coverage_pct": 98.4,
+    "module_test_coverage_pct": 100.0,
+    "unsorted_imports_count": 0,
+    "wildcard_imports_count": 0,
+    "type_safety_issues_count": 0,
+    "omitted_init_return_count": 0,
+    "weak_type_usages_count": 16,
+    "annotated_doc_functions_count": 173,
+    "empty_docstrings_count": 0,
+    "doc_signature_mismatches_count": 0,
+    "complex_functions_count": 24,
+    "excessive_parameters_count": 0,
+    "global_state_usages_count": 13,
+    "bug_risk_idioms_count": 16,
+    "circular_dependencies_count": 0,
+    "type_checking_cycles_count": 0,
+    "unused_dependencies_count": 0,
+    "undeclared_dependencies_count": 0,
+    "test_functions_count": 280,
+    "assertion_free_tests_count": 2,
+    "has_conftest_assertion_hook": false,
+    "framework_issues_count": 0,
+    "modernization_hints_count": 2,
+    "language_version_mismatches_count": 0,
+    "missing_io_timeouts_count": 0,
+    "scattered_env_access_count": 6,
+    "unstructured_logging_count": 1,
+    "hardcoded_secrets_count": 0,
+    "ast_dangerous_sinks_count": 0,
+    "api_endpoints_count": 0,
+    "runtime_status": "passed",
+    "harness_build_status": "passed",
+    "tests_status": "passed",
+    "tests_total": 424,
+    "tests_passed": 424,
+    "tests_failed": 0,
+    "measured_line_coverage_pct": 86.8,
+    "smoke_check_status": "passed",
+    "security_scan_status": "passed",
+    "app_vuln_critical": 0,
+    "app_vuln_high": 0,
+    "app_vuln_total": 0,
+    "core_app_vuln_total": 0,
+    "core_app_vuln_high_or_crit": 0,
+    "dev_app_vuln_total": 0,
+    "app_vuln_unpinned_range_matches": 0,
+    "os_vuln_high_or_crit": 0,
+    "harness_os_vuln_total": 8858,
+    "misconfig_count": 0,
+    "secret_leak_count": 0
+  },
+  "runtime_facts": {
+    "status": "passed",
+    "container_engine": "docker",
+    "engine_available": true,
+    "skip_reason": "",
+    "language": "go",
+    "selected_dockerfile_template": "go/go.dockerfile",
+    "harness_dockerfile_path": ".pni/dockerfiles/Dockerfile",
+    "build_args": {
+      "GO_VERSION": "1.22"
+    },
+    "artifacts_dir": ".pni/cache/pni501/runtime",
+    "project_dockerfile_build": null,
+    "harness_build": {
+      "attempted": true,
+      "status": "passed",
+      "dockerfile_used": ".pni/dockerfiles/Dockerfile",
+      "duration_sec": 13.83,
+      "exit_code": 0,
+      "error_tail": []
+    },
+    "test_execution": {
+      "attempted": true,
+      "status": "passed",
+      "command": "sh -c go vet ./... >/out/go_vet.txt 2>&1; vet_rc=$?; if [ \"$vet_rc\" -ne 0 ]; then cat /out/go_vet.txt >&2; exit \"$vet_rc\"; fi; go test -v -coverprofile=/out/coverage.out ./... >/out/go_test.txt 2>&1; rc=$?; cat /out/go_test.txt; exit $rc",
+      "duration_sec": 7.03,
+      "exit_code": 0,
+      "total_tests": 424,
+      "passed_tests": 424,
+      "failed_tests": 0,
+      "error_tests": 0,
+      "skipped_tests": 0,
+      "failures": [],
+      "log_tail": []
+    },
+    "coverage": {
+      "measured": true,
+      "tool": "go-cover",
+      "line_coverage_pct": 86.8,
+      "branch_coverage_pct": null,
+      "covered_lines": 1631,
+      "total_statements": 1880,
+      "lowest_covered_modules": [
+        {
+          "file_path": "github.com/spf13/cobra/zsh_completions.go",
+          "line_coverage_pct": 52.6,
+          "branch_coverage_pct": null,
+          "covered_lines": 10,
+          "total_statements": 19,
+          "missing_lines_preview": [
+            25,
+            36,
+            55,
+            66,
+            70,
+            72,
+            75
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/bash_completionsV2.go",
+          "line_coverage_pct": 57.1,
+          "branch_coverage_pct": null,
+          "covered_lines": 8,
+          "total_statements": 14,
+          "missing_lines_preview": [
+            33,
+            470,
+            472,
+            475
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/cobra.go",
+          "line_coverage_pct": 59.4,
+          "branch_coverage_pct": null,
+          "covered_lines": 38,
+          "total_statements": 64,
+          "missing_lines_preview": [
+            99,
+            105,
+            114,
+            119,
+            121,
+            123,
+            127,
+            130,
+            132,
+            134
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/powershell_completions.go",
+          "line_coverage_pct": 60.0,
+          "branch_coverage_pct": null,
+          "covered_lines": 12,
+          "total_statements": 20,
+          "missing_lines_preview": [
+            320,
+            322,
+            325,
+            331,
+            342,
+            348
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/doc/yaml_docs.go",
+          "line_coverage_pct": 78.5,
+          "branch_coverage_pct": null,
+          "covered_lines": 51,
+          "total_statements": 65,
+          "missing_lines_preview": [
+            54,
+            61,
+            62,
+            65,
+            73,
+            78,
+            81,
+            89,
+            138,
+            143
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/doc/util.go",
+          "line_coverage_pct": 84.6,
+          "branch_coverage_pct": null,
+          "covered_lines": 11,
+          "total_statements": 13,
+          "missing_lines_preview": [
+            42,
+            51
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/command.go",
+          "line_coverage_pct": 85.2,
+          "branch_coverage_pct": null,
+          "covered_lines": 647,
+          "total_statements": 759,
+          "missing_lines_preview": [
+            313,
+            344,
+            368,
+            433,
+            436,
+            455,
+            497,
+            563,
+            564,
+            567
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/doc/md_docs.go",
+          "line_coverage_pct": 86.8,
+          "branch_coverage_pct": null,
+          "covered_lines": 66,
+          "total_statements": 76,
+          "missing_lines_preview": [
+            80,
+            92,
+            126,
+            134,
+            135,
+            138,
+            146,
+            151,
+            154
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/doc/man_docs.go",
+          "line_coverage_pct": 87.5,
+          "branch_coverage_pct": null,
+          "covered_lines": 98,
+          "total_statements": 112,
+          "missing_lines_preview": [
+            50,
+            53,
+            54,
+            57,
+            73,
+            106,
+            109,
+            127,
+            129,
+            132
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/doc/rest_docs.go",
+          "line_coverage_pct": 90.4,
+          "branch_coverage_pct": null,
+          "covered_lines": 85,
+          "total_statements": 94,
+          "missing_lines_preview": [
+            94,
+            106,
+            146,
+            147,
+            150,
+            158,
+            163,
+            166
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/shell_completions.go",
+          "line_coverage_pct": 90.9,
+          "branch_coverage_pct": null,
+          "covered_lines": 10,
+          "total_statements": 11,
+          "missing_lines_preview": [
+            90
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/completions.go",
+          "line_coverage_pct": 92.5,
+          "branch_coverage_pct": null,
+          "covered_lines": 272,
+          "total_statements": 294,
+          "missing_lines_preview": [
+            52,
+            178,
+            202,
+            217,
+            224,
+            342,
+            385,
+            475,
+            828,
+            892
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/bash_completions.go",
+          "line_coverage_pct": 93.3,
+          "branch_coverage_pct": null,
+          "covered_lines": 140,
+          "total_statements": 150,
+          "missing_lines_preview": [
+            478,
+            487,
+            561,
+            581,
+            585,
+            701,
+            703,
+            706
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/flag_groups.go",
+          "line_coverage_pct": 95.3,
+          "branch_coverage_pct": null,
+          "covered_lines": 121,
+          "total_statements": 127,
+          "missing_lines_preview": [
+            37,
+            40,
+            53,
+            56,
+            69,
+            73
+          ]
+        },
+        {
+          "file_path": "github.com/spf13/cobra/args.go",
+          "line_coverage_pct": 100.0,
+          "branch_coverage_pct": null,
+          "covered_lines": 39,
+          "total_statements": 39,
+          "missing_lines_preview": []
+        }
+      ]
+    },
+    "smoke_check": {
+      "attempted": true,
+      "archetype": "library",
+      "status": "passed",
+      "command": "sh -c go build ./... && printf '{\"detail\":\"Go module packages compiled cleanly (go build ./...)\"}' >/out/smoke.json",
+      "duration_sec": 0.81,
+      "exit_code": 0,
+      "http_status": null,
+      "probed_endpoint": null,
+      "failure_kind": "none",
+      "detail": "Go module packages compiled cleanly (go build ./...)",
+      "log_tail": []
+    }
+  },
+  "security_facts": {
+    "status": "passed",
+    "scanner": "trivy",
+    "container_engine": "docker",
+    "engine_available": true,
+    "skip_reason": "",
+    "trivy_image": "ghcr.io/aquasecurity/trivy:0.69.3",
+    "scanned_filesystem": true,
+    "scanned_resolved_image": true,
+    "resolved_image_source": ".pni/dockerfiles/Dockerfile",
+    "artifacts_dir": ".pni/cache/pni501/security",
+    "vuln_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "app_vuln_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "core_app_vuln_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "dev_app_vuln_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "os_vuln_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "harness_os_vuln_counts": {
+      "critical": 27,
+      "high": 1250,
+      "medium": 5686,
+      "low": 1881,
+      "total": 8858
+    },
+    "vulnerabilities": [],
+    "app_vulnerabilities": [],
+    "os_vulnerabilities": [],
+    "misconfigurations": [],
+    "secrets": [],
+    "opt_out_counts": {}
+  },
+  "pentest_facts": null,
+  "module_inventory": [
+    {
+      "file": "active_help.go",
+      "loc": 24,
+      "public_types": [],
+      "public_callables": [
+        "AppendActiveHelp",
+        "GetActiveHelpConfig"
+      ]
+    },
+    {
+      "file": "args.go",
+      "loc": 83,
+      "public_types": [
+        "PositionalArgs"
+      ],
+      "public_callables": [
+        "ArbitraryArgs",
+        "ExactArgs",
+        "ExactValidArgs",
+        "MatchAll",
+        "MaximumNArgs",
+        "MinimumNArgs",
+        "NoArgs",
+        "OnlyValidArgs",
+        "RangeArgs"
+      ]
+    },
+    {
+      "file": "bash_completions.go",
+      "loc": 603,
+      "public_types": [],
+      "public_callables": [
+        "Command.GenBashCompletion",
+        "Command.GenBashCompletionFile"
+      ]
+    },
+    {
+      "file": "bash_completionsV2.go",
+      "loc": 401,
+      "public_types": [],
+      "public_callables": [
+        "Command.GenBashCompletionFileV2",
+        "Command.GenBashCompletionV2"
+      ]
+    },
+    {
+      "file": "cobra.go",
+      "loc": 159,
+      "public_types": [],
+      "public_callables": [
+        "AddTemplateFunc",
+        "AddTemplateFuncs",
+        "CheckErr",
+        "Eq",
+        "Gt",
+        "OnFinalize",
+        "OnInitialize",
+        "WriteStringAndCheck"
+      ]
+    },
+    {
+      "file": "command.go",
+      "loc": 1417,
+      "public_types": [
+        "Command",
+        "FParseErrWhitelist",
+        "Group"
+      ],
+      "public_callables": [
+        "Command.AddCommand",
+        "Command.AddGroup",
+        "Command.AllChildCommandsHaveGroup",
+        "Command.ArgsLenAtDash",
+        "Command.CalledAs",
+        "Command.CommandPath",
+        "Command.CommandPathPadding",
+        "Command.Commands",
+        "Command.ContainsGroup",
+        "Command.Context",
+        "Command.DebugFlags",
+        "Command.DisplayName",
+        "Command.ErrOrStderr",
+        "Command.ErrPrefix",
+        "Command.Execute",
+        "Command.ExecuteC",
+        "Command.ExecuteContext",
+        "Command.ExecuteContextC",
+        "Command.Find",
+        "Command.Flag",
+        "Command.FlagErrorFunc",
+        "Command.Flags",
+        "Command.GlobalNormalizationFunc",
+        "Command.Groups",
+        "Command.HasAlias",
+        "Command.HasAvailableFlags",
+        "Command.HasAvailableInheritedFlags",
+        "Command.HasAvailableLocalFlags",
+        "Command.HasAvailablePersistentFlags",
+        "Command.HasAvailableSubCommands",
+        "Command.HasExample",
+        "Command.HasFlags",
+        "Command.HasHelpSubCommands",
+        "Command.HasInheritedFlags",
+        "Command.HasLocalFlags",
+        "Command.HasParent",
+        "Command.HasPersistentFlags",
+        "Command.HasSubCommands",
+        "Command.Help",
+        "Command.HelpFunc",
+        "Command.HelpTemplate",
+        "Command.InOrStdin",
+        "Command.InheritedFlags",
+        "Command.InitDefaultHelpCmd",
+        "Command.InitDefaultHelpFlag",
+        "Command.InitDefaultVersionFlag",
+        "Command.IsAdditionalHelpTopicCommand",
+        "Command.IsAvailableCommand",
+        "Command.LocalFlags",
+        "Command.LocalNonPersistentFlags",
+        "Command.Name",
+        "Command.NameAndAliases",
+        "Command.NamePadding",
+        "Command.NonInheritedFlags",
+        "Command.OutOrStderr",
+        "Command.OutOrStdout",
+        "Command.Parent",
+        "Command.ParseFlags",
+        "Command.PersistentFlags",
+        "Command.Print",
+        "Command.PrintErr",
+        "Command.PrintErrf",
+        "Command.PrintErrln",
+        "Command.Printf",
+        "Command.Println",
+        "Command.RemoveCommand",
+        "Command.ResetCommands",
+        "Command.ResetFlags",
+        "Command.Root",
+        "Command.Runnable",
+        "Command.SetArgs",
+        "Command.SetCompletionCommandGroupID",
+        "Command.SetContext",
+        "Command.SetErr",
+        "Command.SetErrPrefix",
+        "Command.SetFlagErrorFunc",
+        "Command.SetGlobalNormalizationFunc",
+        "Command.SetHelpCommand",
+        "Command.SetHelpCommandGroupID",
+        "Command.SetHelpFunc",
+        "Command.SetHelpTemplate",
+        "Command.SetIn",
+        "Command.SetOut",
+        "Command.SetOutput",
+        "Command.SetUsageFunc",
+        "Command.SetUsageTemplate",
+        "Command.SetVersionTemplate",
+        "Command.SuggestionsFor",
+        "Command.Traverse",
+        "Command.Usage",
+        "Command.UsageFunc",
+        "Command.UsagePadding",
+        "Command.UsageString",
+        "Command.UsageTemplate",
+        "Command.UseLine",
+        "Command.ValidateArgs",
+        "Command.ValidateRequiredFlags",
+        "Command.VersionTemplate",
+        "Command.VisitParents"
+      ]
+    },
+    {
+      "file": "command_notwin.go",
+      "loc": 2,
+      "public_types": [],
+      "public_callables": []
+    },
+    {
+      "file": "command_win.go",
+      "loc": 20,
+      "public_types": [],
+      "public_callables": []
+    },
+    {
+      "file": "completions.go",
+      "loc": 600,
+      "public_types": [
+        "Completion",
+        "CompletionFunc",
+        "CompletionOptions",
+        "ShellCompDirective",
+        "SliceValue"
+      ],
+      "public_callables": [
+        "Command.GetFlagCompletionFunc",
+        "Command.InitDefaultCompletionCmd",
+        "Command.RegisterFlagCompletionFunc",
+        "CompDebug",
+        "CompDebugln",
+        "CompError",
+        "CompErrorln",
+        "CompletionOptions.SetDefaultShellCompDirective",
+        "CompletionWithDesc",
+        "FixedCompletions",
+        "NoFileCompletions"
+      ]
+    },
+    {
+      "file": "doc/man_docs.go",
+      "loc": 196,
+      "public_types": [
+        "GenManHeader",
+        "GenManTreeOptions"
+      ],
+      "public_callables": [
+        "GenMan",
+        "GenManTree",
+        "GenManTreeFromOpts"
+      ]
+    },
+    {
+      "file": "doc/md_docs.go",
+      "loc": 116,
+      "public_types": [],
+      "public_callables": [
+        "GenMarkdown",
+        "GenMarkdownCustom",
+        "GenMarkdownTree",
+        "GenMarkdownTreeCustom"
+      ]
+    },
+    {
+      "file": "doc/rest_docs.go",
+      "loc": 140,
+      "public_types": [],
+      "public_callables": [
+        "GenReST",
+        "GenReSTCustom",
+        "GenReSTTree",
+        "GenReSTTreeCustom"
+      ]
+    },
+    {
+      "file": "doc/util.go",
+      "loc": 27,
+      "public_types": [],
+      "public_callables": []
+    },
+    {
+      "file": "doc/yaml_docs.go",
+      "loc": 129,
+      "public_types": [],
+      "public_callables": [
+        "GenYaml",
+        "GenYamlCustom",
+        "GenYamlTree",
+        "GenYamlTreeCustom"
+      ]
+    },
+    {
+      "file": "fish_completions.go",
+      "loc": 224,
+      "public_types": [],
+      "public_callables": [
+        "Command.GenFishCompletion",
+        "Command.GenFishCompletionFile"
+      ]
+    },
+    {
+      "file": "flag_groups.go",
+      "loc": 211,
+      "public_types": [],
+      "public_callables": [
+        "Command.MarkFlagsMutuallyExclusive",
+        "Command.MarkFlagsOneRequired",
+        "Command.MarkFlagsRequiredTogether",
+        "Command.ValidateFlagGroups"
+      ]
+    },
+    {
+      "file": "powershell_completions.go",
+      "loc": 268,
+      "public_types": [],
+      "public_callables": [
+        "Command.GenPowerShellCompletion",
+        "Command.GenPowerShellCompletionFile",
+        "Command.GenPowerShellCompletionFileWithDesc",
+        "Command.GenPowerShellCompletionWithDesc"
+      ]
+    },
+    {
+      "file": "shell_completions.go",
+      "loc": 37,
+      "public_types": [],
+      "public_callables": [
+        "Command.MarkFlagCustom",
+        "Command.MarkFlagDirname",
+        "Command.MarkFlagFilename",
+        "Command.MarkFlagRequired",
+        "Command.MarkPersistentFlagDirname",
+        "Command.MarkPersistentFlagFilename",
+        "Command.MarkPersistentFlagRequired",
+        "MarkFlagCustom",
+        "MarkFlagDirname",
+        "MarkFlagFilename",
+        "MarkFlagRequired"
+      ]
+    },
+    {
+      "file": "zsh_completions.go",
+      "loc": 231,
+      "public_types": [],
+      "public_callables": [
+        "Command.GenZshCompletion",
+        "Command.GenZshCompletionFile",
+        "Command.GenZshCompletionFileNoDesc",
+        "Command.GenZshCompletionNoDesc",
+        "Command.MarkZshCompPositionalArgumentFile",
+        "Command.MarkZshCompPositionalArgumentWords"
+      ]
+    }
+  ],
+  "dangerous_sinks": [],
+  "api_endpoints": [],
+  "language_version_mismatches": [],
+  "architecture_overview": {
+    "pattern": "Composite Command Tree & Layered Extension Subsystems (Core Tree & Execution Engine -> Validation & Flag Constraints -> Shell Completion V2 & Generators -> AST-Free Doc Subpackage)",
+    "entry_points": [
+      "command.go:Command.Execute",
+      "command.go:Command.ExecuteContext",
+      "command.go:Command.ExecuteC",
+      "completions.go:Command.InitDefaultCompletionCmd",
+      "doc/md_docs.go:GenMarkdownTree",
+      "doc/man_docs.go:GenManTree",
+      "doc/rest_docs.go:GenReSTTree",
+      "doc/yaml_docs.go:GenYamlTree"
+    ],
+    "modules": [
+      {
+        "path": "command.go",
+        "role": "Core Command struct, flag set management, argument stripping, Find/Traverse tree resolution, and ExecuteC hook lifecycle.",
+        "key_symbols": [
+          "Command",
+          "Command.Execute",
+          "Command.ExecuteC",
+          "Command.Find",
+          "Command.Traverse",
+          "stripFlags"
+        ],
+        "depends_on": [
+          "cobra.go",
+          "args.go",
+          "flag_groups.go",
+          "completions.go"
+        ],
+        "health_note": "Central coordinator (1,417 LOC); Command.execute (cognitive=66) and defaultUsageFunc (cognitive=47) are primary complexity hotspots."
+      },
+      {
+        "path": "cobra.go",
+        "role": "Package-level initializers/finalizers, template function registry, Levenshtein string distance (ld), and CheckErr helper.",
+        "key_symbols": [
+          "OnInitialize",
+          "OnFinalize",
+          "AddTemplateFunc",
+          "CheckErr",
+          "Gt",
+          "Eq"
+        ],
+        "depends_on": [],
+        "health_note": ""
+      },
+      {
+        "path": "args.go",
+        "role": "Built-in PositionalArgs validators and combinators.",
+        "key_symbols": [
+          "PositionalArgs",
+          "NoArgs",
+          "ExactArgs",
+          "MinimumNArgs",
+          "MaximumNArgs",
+          "RangeArgs",
+          "MatchAll",
+          "OnlyValidArgs"
+        ],
+        "depends_on": [
+          "command.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "flag_groups.go",
+        "role": "Relational flag constraints (RequiredTogether, OneRequired, MutuallyExclusive) validation and completion integration.",
+        "key_symbols": [
+          "Command.MarkFlagsRequiredTogether",
+          "Command.MarkFlagsOneRequired",
+          "Command.MarkFlagsMutuallyExclusive",
+          "Command.ValidateFlagGroups"
+        ],
+        "depends_on": [
+          "command.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "completions.go",
+        "role": "Shell Completion V2 engine, ShellCompDirective bitmask, flag completion map, and __complete protocol.",
+        "key_symbols": [
+          "ShellCompDirective",
+          "CompletionOptions",
+          "Command.getCompletions",
+          "Command.InitDefaultCompletionCmd"
+        ],
+        "depends_on": [
+          "command.go",
+          "active_help.go",
+          "shell_completions.go"
+        ],
+        "health_note": "Command.getCompletions (cognitive=96) handles dynamic completion dispatch."
+      },
+      {
+        "path": "active_help.go",
+        "role": "Inline shell ActiveHelp hint formatting and environment configuration.",
+        "key_symbols": [
+          "AppendActiveHelp",
+          "GetActiveHelpConfig"
+        ],
+        "depends_on": [
+          "command.go",
+          "completions.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "bash_completionsV2.go",
+        "role": "Bash V2 completion script generator delegated by completion bash command.",
+        "key_symbols": [
+          "Command.GenBashCompletionV2",
+          "Command.GenBashCompletionFileV2"
+        ],
+        "depends_on": [
+          "command.go",
+          "completions.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "zsh_completions.go",
+        "role": "Zsh completion script generator.",
+        "key_symbols": [
+          "Command.GenZshCompletion",
+          "Command.GenZshCompletionNoDesc"
+        ],
+        "depends_on": [
+          "command.go",
+          "completions.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "fish_completions.go",
+        "role": "Fish completion script generator.",
+        "key_symbols": [
+          "Command.GenFishCompletion",
+          "Command.GenFishCompletionFile"
+        ],
+        "depends_on": [
+          "command.go",
+          "completions.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "powershell_completions.go",
+        "role": "PowerShell completion script generator.",
+        "key_symbols": [
+          "Command.GenPowerShellCompletionWithDesc",
+          "Command.GenPowerShellCompletion"
+        ],
+        "depends_on": [
+          "command.go",
+          "completions.go"
+        ],
+        "health_note": ""
+      },
+      {
+        "path": "doc",
+        "role": "CLI documentation generator subpackage (Markdown, Man, ReST, YAML) isolated from core runtime dependencies.",
+        "key_symbols": [
+          "GenMarkdownTree",
+          "GenManTree",
+          "GenReSTTree",
+          "GenYamlTree"
+        ],
+        "depends_on": [
+          "command.go"
+        ],
+        "health_note": ""
+      }
+    ],
+    "dependency_notes": "Package boundaries are strictly acyclic: the root `cobra` package depends only on `spf13/pflag` (and `mousetrap` on Windows), while `cpuguy83/go-md2man/v2` and `go.yaml.in/yaml/v3` are cleanly isolated inside the `cobra/doc` subpackage so CLI binaries that do not import `cobra/doc` never link documentation rendering dependencies."
+  },
+  "architecture_record": {
+    "workflow_id": "pni501",
+    "workflow_run_id": "wf-5b36d0e3",
+    "recorded_at": "2026-11-10T09:24:13.267605+00:00",
+    "target_root": ".",
+    "system_profile": {
+      "system_purpose": "spf13/cobra (v1.10.2) is the standard Go library and framework for building POSIX-compliant, subcommand-driven command-line interfaces (CLIs) with hierarchical flag inheritance, relational flag groups, dynamic V2 shell completions (Bash, Zsh, Fish, PowerShell), ActiveHelp hints, and multi-format CLI documentation generation (Man, Markdown, ReST, YAML).",
+      "domain_context": "Cloud-native & developer CLI infrastructure library powering Kubernetes (kubectl), GitHub CLI (gh), Hugo, Docker CLI, Helm, Etcd, and CockroachDB.",
+      "runtime_types": [
+        "library"
+      ],
+      "tech_stack": [
+        "Go (module github.com/spf13/cobra, go 1.15+ compatible through Go 1.24)",
+        "github.com/spf13/pflag v1.0.9 (POSIX/GNU-style flag parsing)",
+        "github.com/cpuguy83/go-md2man/v2 v2.0.6 (roff man-page generation)",
+        "go.yaml.in/yaml/v3 v3.0.4 (YAML reference serialization)",
+        "github.com/inconshreveable/mousetrap v1.1.0 (Windows GUI Explorer launch detection)"
+      ],
+      "external_integrations": [
+        "POSIX / GNU CLI argument & flag streams (os.Args, io.Reader, io.Writer)",
+        "Interactive shells (Bash V1/V2, Zsh, Fish, PowerShell) via hidden __complete / __completeNoDesc subcommand protocol",
+        "Static documentation pipelines (Markdown, Man roff, ReStructuredText, YAML) via github.com/spf13/cobra/doc"
+      ]
+    },
+    "structure_map": {
+      "architecture_pattern": "Composite Command Tree & Layered Extension Subsystems (Core Tree & Execution Engine -> Validation & Flag Constraints -> Shell Completion V2 & Generators -> AST-Free Doc Subpackage)",
+      "layers": [
+        {
+          "name": "Layer 1: Core Command Tree, Lifecycle & Helpers",
+          "responsibility": "Defines the composite Command tree node, flag set inheritance (pflag), subcommand lookup (Find/Traverse/stripFlags), ExecuteC hook orchestration, template rendering, and OS-specific pre-exec hooks.",
+          "paths": [
+            "command.go",
+            "cobra.go",
+            "command_notwin.go",
+            "command_win.go"
+          ],
+          "allowed_dependencies": [
+            "github.com/spf13/pflag",
+            "github.com/inconshreveable/mousetrap"
+          ]
+        },
+        {
+          "name": "Layer 2: Argument Validators & Relational Flag Groups",
+          "responsibility": "Provides composable positional argument validators (NoArgs, ExactArgs, RangeArgs, MatchAll, OnlyValidArgs) and relational flag group enforcement (RequiredTogether, OneRequired, MutuallyExclusive).",
+          "paths": [
+            "args.go",
+            "flag_groups.go"
+          ],
+          "allowed_dependencies": [
+            "command.go",
+            "cobra.go",
+            "github.com/spf13/pflag"
+          ]
+        },
+        {
+          "name": "Layer 3: Shell Completion V2 Engine & Shell Script Generators",
+          "responsibility": "Implements the hidden __complete / __completeNoDesc subcommand protocol, ShellCompDirective bitmasks, ActiveHelp hints, and shell-specific completion script generators for Bash (V1/V2), Zsh, Fish, and PowerShell.",
+          "paths": [
+            "completions.go",
+            "active_help.go",
+            "shell_completions.go",
+            "bash_completions.go",
+            "bash_completionsV2.go",
+            "zsh_completions.go",
+            "fish_completions.go",
+            "powershell_completions.go"
+          ],
+          "allowed_dependencies": [
+            "command.go",
+            "cobra.go",
+            "args.go",
+            "flag_groups.go",
+            "github.com/spf13/pflag"
+          ]
+        },
+        {
+          "name": "Layer 4: Documentation Generation Subpackage (cobra/doc)",
+          "responsibility": "Walks a configured Command tree to emit static CLI reference documentation in Markdown, roff Man pages, ReStructuredText, and YAML formats without touching core runtime execution.",
+          "paths": [
+            "doc/md_docs.go",
+            "doc/man_docs.go",
+            "doc/rest_docs.go",
+            "doc/yaml_docs.go",
+            "doc/util.go"
+          ],
+          "allowed_dependencies": [
+            "command.go",
+            "cobra.go",
+            "github.com/cpuguy83/go-md2man/v2",
+            "go.yaml.in/yaml/v3"
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "path": "command.go",
+          "role": "Core Command struct, flag set management, argument stripping, Find/Traverse tree resolution, and ExecuteC hook lifecycle.",
+          "key_symbols": [
+            "Command",
+            "Command.Execute",
+            "Command.ExecuteC",
+            "Command.Find",
+            "Command.Traverse",
+            "stripFlags"
+          ],
+          "depends_on": [
+            "cobra.go",
+            "args.go",
+            "flag_groups.go",
+            "completions.go"
+          ],
+          "health_note": "Central coordinator (1,417 LOC); Command.execute (cognitive=66) and defaultUsageFunc (cognitive=47) are primary complexity hotspots."
+        },
+        {
+          "path": "cobra.go",
+          "role": "Package-level initializers/finalizers, template function registry, Levenshtein string distance (ld), and CheckErr helper.",
+          "key_symbols": [
+            "OnInitialize",
+            "OnFinalize",
+            "AddTemplateFunc",
+            "CheckErr",
+            "Gt",
+            "Eq"
+          ],
+          "depends_on": [],
+          "health_note": ""
+        },
+        {
+          "path": "args.go",
+          "role": "Built-in PositionalArgs validators and combinators.",
+          "key_symbols": [
+            "PositionalArgs",
+            "NoArgs",
+            "ExactArgs",
+            "MinimumNArgs",
+            "MaximumNArgs",
+            "RangeArgs",
+            "MatchAll",
+            "OnlyValidArgs"
+          ],
+          "depends_on": [
+            "command.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "flag_groups.go",
+          "role": "Relational flag constraints (RequiredTogether, OneRequired, MutuallyExclusive) validation and completion integration.",
+          "key_symbols": [
+            "Command.MarkFlagsRequiredTogether",
+            "Command.MarkFlagsOneRequired",
+            "Command.MarkFlagsMutuallyExclusive",
+            "Command.ValidateFlagGroups"
+          ],
+          "depends_on": [
+            "command.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "completions.go",
+          "role": "Shell Completion V2 engine, ShellCompDirective bitmask, flag completion map, and __complete protocol.",
+          "key_symbols": [
+            "ShellCompDirective",
+            "CompletionOptions",
+            "Command.getCompletions",
+            "Command.InitDefaultCompletionCmd"
+          ],
+          "depends_on": [
+            "command.go",
+            "active_help.go",
+            "shell_completions.go"
+          ],
+          "health_note": "Command.getCompletions (cognitive=96) handles dynamic completion dispatch."
+        },
+        {
+          "path": "active_help.go",
+          "role": "Inline shell ActiveHelp hint formatting and environment configuration.",
+          "key_symbols": [
+            "AppendActiveHelp",
+            "GetActiveHelpConfig"
+          ],
+          "depends_on": [
+            "command.go",
+            "completions.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "bash_completionsV2.go",
+          "role": "Bash V2 completion script generator delegated by completion bash command.",
+          "key_symbols": [
+            "Command.GenBashCompletionV2",
+            "Command.GenBashCompletionFileV2"
+          ],
+          "depends_on": [
+            "command.go",
+            "completions.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "zsh_completions.go",
+          "role": "Zsh completion script generator.",
+          "key_symbols": [
+            "Command.GenZshCompletion",
+            "Command.GenZshCompletionNoDesc"
+          ],
+          "depends_on": [
+            "command.go",
+            "completions.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "fish_completions.go",
+          "role": "Fish completion script generator.",
+          "key_symbols": [
+            "Command.GenFishCompletion",
+            "Command.GenFishCompletionFile"
+          ],
+          "depends_on": [
+            "command.go",
+            "completions.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "powershell_completions.go",
+          "role": "PowerShell completion script generator.",
+          "key_symbols": [
+            "Command.GenPowerShellCompletionWithDesc",
+            "Command.GenPowerShellCompletion"
+          ],
+          "depends_on": [
+            "command.go",
+            "completions.go"
+          ],
+          "health_note": ""
+        },
+        {
+          "path": "doc",
+          "role": "CLI documentation generator subpackage (Markdown, Man, ReST, YAML) isolated from core runtime dependencies.",
+          "key_symbols": [
+            "GenMarkdownTree",
+            "GenManTree",
+            "GenReSTTree",
+            "GenYamlTree"
+          ],
+          "depends_on": [
+            "command.go"
+          ],
+          "health_note": ""
+        }
+      ],
+      "boundary_assessment": "Package boundaries are strictly acyclic: the root `cobra` package depends only on `spf13/pflag` (and `mousetrap` on Windows), while `cpuguy83/go-md2man/v2` and `go.yaml.in/yaml/v3` are cleanly isolated inside the `cobra/doc` subpackage so CLI binaries that do not import `cobra/doc` never link documentation rendering dependencies."
+    },
+    "execution_flow_map": {
+      "entry_points": [
+        "command.go:Command.Execute",
+        "command.go:Command.ExecuteContext",
+        "command.go:Command.ExecuteC",
+        "completions.go:Command.InitDefaultCompletionCmd",
+        "doc/md_docs.go:GenMarkdownTree",
+        "doc/man_docs.go:GenManTree",
+        "doc/rest_docs.go:GenReSTTree",
+        "doc/yaml_docs.go:GenYamlTree"
+      ],
+      "execution_flows": [
+        {
+          "name": "CLI Command Resolution & Hook Execution Pipeline",
+          "trigger": "Application main() invokes rootCmd.Execute() or rootCmd.ExecuteContext(ctx)",
+          "steps": [
+            "Command.ExecuteContext binds ctx to rootCmd and delegates to Command.ExecuteC()",
+            "Command.ExecuteC() initializes default help/version/completion commands (initCompleteCmd, InitDefaultCompletionCmd, InitDefaultHelpCmd) and resolves os.Args[1:] via Command.Find() or Command.Traverse()",
+            "Command.Find() strips flags via stripFlags() at each level of the tree to locate the target leaf Command and remaining positional/flag tokens",
+            "Command.execute() merges inherited persistent flags (mergePersistentFlags), parses pflag sets (ParseFlags), and runs OnInitialize callbacks",
+            "Command.ValidateRequiredFlags() and Command.ValidateFlagGroups() verify required flags and relational groups (RequiredTogether, OneRequired, MutuallyExclusive), followed by PositionalArgs validation (ValidateArgs)",
+            "Lifecycle hooks run in strict order: ancestor PersistentPreRunE/PersistentPreRun -> local PreRunE/PreRun -> RunE/Run -> local PostRunE/PostRun -> ancestor PersistentPostRunE/PersistentPostRun -> OnFinalize callbacks"
+          ],
+          "involved_files": [
+            "command.go:Command.ExecuteContext",
+            "command.go:Command.ExecuteC",
+            "command.go:Command.Find",
+            "command.go:stripFlags",
+            "command.go:Command.execute",
+            "flag_groups.go:Command.ValidateFlagGroups",
+            "args.go:PositionalArgs",
+            "cobra.go:OnInitialize"
+          ]
+        },
+        {
+          "name": "Dynamic Shell Completion V2 Protocol (__complete / __completeNoDesc)",
+          "trigger": "Interactive shell TAB press invokes `<binary> __complete [args...]` generated by Bash/Zsh/Fish/PowerShell completion script",
+          "steps": [
+            "Command.initCompleteCmd registers the hidden __complete and __completeNoDesc subcommands on the root Command",
+            "When invoked, __complete calls Command.getCompletions(args) to parse partial flags/arguments without executing RunE hooks",
+            "checkIfFlagCompletion detects if the cursor is completing a flag name or flag value, looking up registered CompletionFunc in flagCompletionFunctions (protected by flagCompletionMutex) or flag annotations",
+            "For positional arguments, getCompletions merges persistent flags, enforces flag groups for completion (enforceFlagGroupsForCompletion), and invokes ValidArgsFunction or static ValidArgs",
+            "AppendActiveHelp appends _activeHelp_ prefixed hints if configured, and __complete prints candidate lines to stdout followed by `:<ShellCompDirective>` bitmask (e.g., :4 for ShellCompDirectiveNoFileComp) and diagnostics to stderr"
+          ],
+          "involved_files": [
+            "completions.go:Command.initCompleteCmd",
+            "completions.go:Command.getCompletions",
+            "completions.go:checkIfFlagCompletion",
+            "flag_groups.go:Command.enforceFlagGroupsForCompletion",
+            "active_help.go:AppendActiveHelp",
+            "bash_completionsV2.go:Command.GenBashCompletionV2",
+            "zsh_completions.go:Command.GenZshCompletion"
+          ]
+        },
+        {
+          "name": "Static Multi-Format Documentation Tree Synthesis",
+          "trigger": "Build tool calls doc.GenMarkdownTree, doc.GenManTree, doc.GenReSTTree, or doc.GenYamlTree on root Command",
+          "steps": [
+            "Tree walker recursively visits visible child commands (skipping Hidden or unavailable commands) and calls InitDefaultHelpCmd / InitDefaultHelpFlag",
+            "Per-command formatter extracts Use, Short, Long, Example, local non-inherited flags, and inherited persistent flags",
+            "Cross-reference links to parent and child commands are sorted and rendered via text/buffer writers (and go-md2man/v2 for roff man pages or yaml/v3 for YAML)"
+          ],
+          "involved_files": [
+            "doc/md_docs.go:GenMarkdownTreeCustom",
+            "doc/man_docs.go:GenManTreeFromOpts",
+            "doc/rest_docs.go:GenReSTTreeCustom",
+            "doc/yaml_docs.go:GenYamlTreeCustom",
+            "doc/util.go"
+          ]
+        }
+      ],
+      "state_and_storage": [
+        "In-memory tree of Command structs holding parent/children pointers, pflag.FlagSet instances (flags, pflags, lflags, inheritedFlags), and annotations map[string]string",
+        "Thread-safe global flag completion registry (flagCompletionFunctions map[*pflag.Flag]CompletionFunc guarded by sync.RWMutex flagCompletionMutex in completions.go)",
+        "Package-level lifecycle slices (initializers, finalizers) and template function registry (templateFuncs) in cobra.go"
+      ],
+      "error_and_concurrency_model": "RunE/PreRunE/PostRunE hooks and PositionalArgs/FlagGroup validators propagate standard Go `error` values up through ExecuteC() (with optional SilenceErrors and SilenceUsage flags on Command). Context cancellation propagates via Command.Context() set by ExecuteContext(ctx). Flag completion registration is synchronized via sync.RWMutex (flagCompletionMutex)."
+    }
+  },
+  "audit_dimensions": [
+    {
+      "action_id": "act-04",
+      "audit_id": "go_ast_audit",
+      "title": "Interpret Go AST Facts & Evaluate Quality/Typing/Error-Handling/Security",
+      "score": 90,
+      "grade": "S",
+      "rules_evaluated": [
+        "common/architecture",
+        "common/maintainability",
+        "common/security",
+        "common/security_vulnerability",
+        "go/code_quality",
+        "go/typing"
+      ],
+      "pass_count": 4,
+      "warn_count": 2,
+      "fail_count": 0,
+      "summary": "Deterministic Go AST analysis across 19 production files (4,888 LOC, 17 types, 269 functions) confirms 100.0% import hygiene, 98.4% GoDoc coverage (173/176 exported symbols), 94.1% type safety coverage, zero circular dependencies, zero hardcoded secrets, and zero CWE command/SQL/path sinks. Minor maintainability and quality focal points include high cognitive complexity in core dispatchers (Command.getCompletions cognitive=96, Command.execute cognitive=66, defaultUsageFunc cognitive=47, Command.enforceFlagGroupsForCompletion cognitive=37), 13 package-level mutable variables in cobra.go and completions.go, and configuration-time panic(...) assertions in Command.AddCommand and MarkFlags* helpers."
+    },
+    {
+      "action_id": "act-02",
+      "audit_id": "repo_structure_audit",
+      "title": "Evaluate Go Module Build, Supply Chain & Dependencies",
+      "score": 92,
+      "grade": "S",
+      "rules_evaluated": [
+        "common/supply_chain",
+        "go/dependencies",
+        "common/documentation",
+        "common/git_workflow",
+        "common/security"
+      ],
+      "pass_count": 4,
+      "warn_count": 1,
+      "fail_count": 0,
+      "summary": "spf13/cobra v1.10.2 exhibits a lean, well-pinned Go module structure (go.mod + go.sum) with only 4 direct dependencies (spf13/pflag v1.0.9, cpuguy83/go-md2man/v2 v2.0.6, inconshreveable/mousetrap v1.1.0, go.yaml.in/yaml/v3 v3.0.4), zero unpinned requirements, zero committed secrets, and comprehensive README/LICENSE documentation. The go.mod directive remains at 'go 1.15' for broad backward compatibility across legacy Go consumers, and this standalone source snapshot omits upstream .github/workflows and SECURITY.md."
+    },
+    {
+      "action_id": "act-08",
+      "audit_id": "library_hygiene_audit",
+      "title": "Evaluate Public API Boundaries, Import Purity, SemVer & Diátaxis Docs",
+      "score": 93,
+      "grade": "S",
+      "rules_evaluated": [
+        "common/library_guidelines",
+        "common/documentation",
+        "common/maintainability"
+      ],
+      "pass_count": 3,
+      "warn_count": 0,
+      "fail_count": 0,
+      "summary": "Cobra v1.10.2 demonstrates strong reusable library hygiene: explicit exported vs package-private API boundaries across `cobra` and `cobra/doc`, zero network/file I/O side effects at package import time, MVS-compatible SemVer dependency declarations in `go.mod`, and 98.4% GoDoc coverage. Minor library hygiene notes include convenience helper `cobra.CheckErr` (which intentionally calls `os.Exit(1)` for CLI main() ergonomics) and `fmt.Println` inside `doc/yaml_docs.go:139` when `GenYamlCustom` encounters an error."
+    },
+    {
+      "action_id": "act-09",
+      "audit_id": "go_test_audit",
+      "title": "Evaluate Go Test Suite Completeness & Structure",
+      "score": 96,
+      "grade": "S",
+      "rules_evaluated": [
+        "go/testing"
+      ],
+      "pass_count": 1,
+      "warn_count": 0,
+      "fail_count": 0,
+      "summary": "Cobra v1.10.2 maintains a comprehensive, deterministic Go test suite across 17 `*_test.go` files containing 280 test functions and 100.0% module test alignment across both `cobra` and `cobra/doc`. Only 2 of 280 test functions were flagged as assertion-free by static AST inspection: `TestCalledAs` (`command_test.go:2477`, which delegates assertions to `tc.test` via `t.Run(name, tc.test)`) and `TestCompletionFuncCompatibility` (`completions_test.go:2896`, which performs a compile-time type-assignability check `var _ CompletionFunc = userComp` and does not assert the return value of `RegisterFlagCompletionFunc`)."
+    },
+    {
+      "action_id": "act-11",
+      "audit_id": "container_runtime_audit",
+      "title": "Evaluate Buildability, Offline Test Results, Measured Coverage & Startup Health",
+      "score": 96,
+      "grade": "S",
+      "rules_evaluated": [
+        "common/runtime_verification",
+        "common/production_readiness"
+      ],
+      "pass_count": 2,
+      "warn_count": 0,
+      "fail_count": 0,
+      "summary": "Hermetic containerized runtime verification (`--network=none`, `.pni/dockerfiles/Dockerfile`, `golang:1.22-bookworm`, non-root `USER pni`) passed all 4 RV gates: clean container image build (`13.83s`), 100% offline `go vet ./...` and `go test -v -coverprofile=/out/coverage.out ./...` pass (`424/424` tests passed, `0` failed, `0` skipped in `7.03s`), `86.8%` measured statement coverage (`1,631 / 1,880` statements across `cobra` and `cobra/doc`), and clean `go build ./...` library compilation smoke probe (`0` exit code). Only thin wrapper methods in `zsh_completions.go` (`52.6%`), `bash_completionsV2.go` (`57.1%`), `cobra.go` (`59.4%`), and `powershell_completions.go` (`60.0%`) fall below 80% per-file statement coverage."
+    },
+    {
+      "action_id": "act-13",
+      "audit_id": "security_vulnerability_audit",
+      "title": "Evaluate Supply-Chain CVEs, Container Misconfigs, Secrets, Dangerous Sinks & API Boundaries",
+      "score": 98,
+      "grade": "S",
+      "rules_evaluated": [
+        "common/security_vulnerability",
+        "common/supply_chain"
+      ],
+      "pass_count": 2,
+      "warn_count": 0,
+      "fail_count": 0,
+      "summary": "Trivy v0.69.3 SCA, secret, and IaC scanning combined with deterministic Go AST SAST analysis confirms an exemplary security posture for `spf13/cobra` v1.10.2: zero CVEs across all 4 direct and transitive Go module dependencies (`app_vuln_counts.total = 0`), zero IaC/Dockerfile misconfigurations (`misconfigurations = 0`), zero hardcoded or committed secrets (`secrets = 0`), and zero CWE command/SQL/path execution sinks (`dangerous_sinks = 0`). OS-layer advisories (`harness_os_vuln_counts.total = 8,858` in `golang:1.22-bookworm`) are strictly confined to the ephemeral test harness container image and never ship in downstream Go binaries."
+    }
+  ],
+  "rule_compliance": [
+    {
+      "rule_id": "common/maintainability",
+      "status": "warn",
+      "source_action": "go_ast_audit",
+      "evidence": "complex_functions=24 (Command.getCompletions cognitive=96 in completions.go:316, Command.execute cognitive=66 in command.go:905, defaultUsageFunc cognitive=47 in command.go:1974, Command.enforceFlagGroupsForCompletion cognitive=37 in flag_groups.go:225); excessive_parameters=0, circular_dependencies=0, unused_dependencies=0",
+      "summary": "Zero excessive-parameter functions (0 >5 params), but 4 core orchestration methods exceed cognitive complexity 30 due to flag/completion state machines."
+    },
+    {
+      "rule_id": "go/code_quality",
+      "status": "warn",
+      "source_action": "go_ast_audit",
+      "evidence": "docstring_coverage_pct=98.4% (missing 3: PositionalArgs in args.go:22, Command.ValidateArgs in command.go:1172, CompletionOptions.SetDefaultShellCompDirective in completions.go:123), global_state_usages=13, bug_risk_idioms=16",
+      "summary": "Near-complete GoDoc coverage (98.4%) and 100% import formatting; minor warnings for 13 mutable package-level feature toggles/registries and fail-fast panic() calls during tree construction."
+    },
+    {
+      "rule_id": "go/dependencies",
+      "status": "warn",
+      "source_action": "repo_structure_audit",
+      "evidence": "language_version_constraint='1.15', dependencies=['github.com/cpuguy83/go-md2man/v2 v2.0.6', 'github.com/inconshreveable/mousetrap v1.1.0', 'github.com/spf13/pflag v1.0.9', 'go.yaml.in/yaml/v3 v3.0.4']",
+      "summary": "Direct dependency footprint is minimal (4 packages) and go.sum is clean, though go.mod declares 'go 1.15' rather than Go 1.22+ to preserve compatibility with older toolchains."
+    },
+    {
+      "rule_id": "common/architecture",
+      "status": "pass",
+      "source_action": "go_ast_audit",
+      "evidence": "internal_import_graph={'cobra': [], 'doc': []}, circular_dependencies=[], boundary_violations=[], 100.0% import_hygiene_coverage_pct",
+      "summary": "Strictly acyclic two-tier package hierarchy: root package github.com/spf13/cobra has zero internal dependencies, and github.com/spf13/cobra/doc depends unidirectionally on the root package."
+    },
+    {
+      "rule_id": "common/documentation",
+      "status": "pass",
+      "source_action": "repo_structure_audit",
+      "evidence": "has_readme=true, readme_line_count=110, 6 structured sections covering portals, quickstart, layout, testing, and licensing; docstring_coverage_pct=98.4%, doc_signature_mismatches=0, empty_docstrings=0, README.md covers tutorials/quickstart, reference, architecture, and audit portals",
+      "summary": "README.md provides clear overview, quickstart code, repository layout, test/build reproduction commands, and dual-license attribution."
+    },
+    {
+      "rule_id": "common/git_workflow",
+      "status": "pass",
+      "source_action": "repo_structure_audit",
+      "evidence": "has_gitignore=true, clean working tree and linear commit history",
+      "summary": "Repository maintains a comprehensive .gitignore and clean trunk commit hygiene."
+    },
+    {
+      "rule_id": "common/library_guidelines",
+      "status": "pass",
+      "source_action": "library_hygiene_audit",
+      "evidence": "17 exported types and 159 exported callables cleanly separated from package-private helpers; go.mod uses standard MVS minimum version bounds; doc dependencies isolated in cobra/doc subpackage",
+      "summary": "Public API boundaries are explicit and stable, import-time side effects are limited to in-memory map initialization, and core execution methods (`ExecuteC`, `RunE`) return typed `error` values instead of terminating the host process."
+    },
+    {
+      "rule_id": "common/production_readiness",
+      "status": "pass",
+      "source_action": "container_runtime_audit",
+      "evidence": "missing_io_timeouts=0, 424/424 deterministic tests pass offline, explicit Context propagation via Command.ExecuteContext(ctx)",
+      "summary": "Zero unguarded network I/O calls, clean `context.Context` propagation through `ExecuteContext`, and deterministic error propagation."
+    },
+    {
+      "rule_id": "common/runtime_verification",
+      "status": "pass",
+      "source_action": "container_runtime_audit",
+      "evidence": "harness_build=passed (13.83s), test_execution=passed (424/424 passed, 0 failed in 7.03s with --network=none), coverage=86.8% (1,631/1,880 statements), smoke_check=passed (go build ./...)",
+      "summary": "All four runtime verification gates (RV-01 clean build, RV-02 offline unit tests, RV-03 >=80% measured statement coverage at 86.8%, RV-04 library compile smoke check) passed deterministically."
+    },
+    {
+      "rule_id": "common/security",
+      "status": "pass",
+      "source_action": "repo_structure_audit",
+      "evidence": "committed_secret_files=[], zero .env or private key artifacts in repository; hardcoded_secrets=[], dangerous_sinks=[], api_endpoints=[]",
+      "summary": "No hardcoded or committed credential files exist in the repository."
+    },
+    {
+      "rule_id": "common/security_vulnerability",
+      "status": "pass",
+      "source_action": "go_ast_audit",
+      "evidence": "dangerous_sinks=[], hardcoded_secrets=[], zero CWE-78/89/22/502 sinks in AST; app_vuln_counts={'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'total': 0}, misconfigurations=[], secrets=[], dangerous_sinks=[], api_endpoints=[]",
+      "summary": "Static AST SAST scan confirms zero exploitable CWE sinks across all 19 Go source files."
+    },
+    {
+      "rule_id": "common/supply_chain",
+      "status": "pass",
+      "source_action": "repo_structure_audit",
+      "evidence": "lockfiles_found=['go.sum'], unpinned_dependencies=[], committed_secret_files=[], has_license=true; go.sum cryptographic lockfile verified, 0 unpinned dependencies, 0 CVEs in github.com/spf13/pflag v1.0.9, github.com/cpuguy83/go-md2man/v2 v2.0.6, github.com/inconshreveable/mousetrap v1.1.0, and go.yaml.in/yaml/v3 v3.0.4",
+      "summary": "Cryptographic module checksums are committed in go.sum with all 4 direct dependencies pinned to semantic release tags."
+    },
+    {
+      "rule_id": "go/testing",
+      "status": "pass",
+      "source_action": "go_test_audit",
+      "evidence": "test_files_count=17, test_functions_count=280, module_test_coverage_pct=100.0%, assertion_free_tests=2 (278/280 contain direct t.Error*/t.Fatal* assertions)",
+      "summary": "All production files and packages have co-located table-driven `*_test.go` suites using in-memory `bytes.Buffer` streams (`executeCommand` helpers) with zero external network or filesystem flakiness."
+    },
+    {
+      "rule_id": "go/typing",
+      "status": "pass",
+      "source_action": "go_ast_audit",
+      "evidence": "type_safety_coverage_pct=94.1%, type_safety_issues=[], unscoped_type_ignores=[], weak_type_usages=16 (primarily variadic Print/Printf and text/template helpers)",
+      "summary": "Strong static typing (94.1%) with zero unsafe.Pointer usage and zero unscoped nolint directives; remaining interface{} parameters are confined to fmt-style variadic printers and template helpers."
+    }
+  ],
+  "module_hotspots": [
+    {
+      "file_path": "completions.go",
+      "loc": 600,
+      "risk_score": 0.41,
+      "finding_counts": {
+        "medium": 1
+      },
+      "top_rules": [
+        "common/maintainability"
+      ]
+    },
+    {
+      "file_path": "cobra.go",
+      "loc": 159,
+      "risk_score": 0.32,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "go/code_quality"
+      ]
+    },
+    {
+      "file_path": "command.go",
+      "loc": 1417,
+      "risk_score": 0.27,
+      "finding_counts": {
+        "medium": 1
+      },
+      "top_rules": [
+        "common/maintainability"
+      ]
+    },
+    {
+      "file_path": "zsh_completions.go",
+      "loc": 231,
+      "risk_score": 0.18,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "common/runtime_verification"
+      ]
+    },
+    {
+      "file_path": "doc/yaml_docs.go",
+      "loc": 129,
+      "risk_score": 0.18,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "common/library_guidelines"
+      ]
+    },
+    {
+      "file_path": "command_win.go",
+      "loc": 20,
+      "risk_score": 0.14,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "command_notwin.go",
+      "loc": 2,
+      "risk_score": 0.14,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "bash_completions.go",
+      "loc": 603,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "bash_completionsV2.go",
+      "loc": 401,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "powershell_completions.go",
+      "loc": 268,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "fish_completions.go",
+      "loc": 224,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "flag_groups.go",
+      "loc": 211,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "doc/rest_docs.go",
+      "loc": 140,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "doc/md_docs.go",
+      "loc": 116,
+      "risk_score": 0.12,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "doc/man_docs.go",
+      "loc": 196,
+      "risk_score": 0.06,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "args.go",
+      "loc": 83,
+      "risk_score": 0.06,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "go/code_quality"
+      ]
+    },
+    {
+      "file_path": "shell_completions.go",
+      "loc": 37,
+      "risk_score": 0.06,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "doc/util.go",
+      "loc": 27,
+      "risk_score": 0.06,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "active_help.go",
+      "loc": 24,
+      "risk_score": 0.06,
+      "finding_counts": {},
+      "top_rules": []
+    },
+    {
+      "file_path": "completions_test.go",
+      "loc": 0,
+      "risk_score": 0.06,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "go/testing"
+      ]
+    },
+    {
+      "file_path": "go.mod",
+      "loc": 0,
+      "risk_score": 0.06,
+      "finding_counts": {
+        "low": 1
+      },
+      "top_rules": [
+        "go/dependencies"
+      ]
+    }
+  ],
+  "strengths": [
+    "Minimal 4-package direct dependency footprint (pflag, go-md2man/v2, mousetrap, yaml/v3) verified by cryptographic hashes in go.sum.",
+    "Clean two-package layout: root package (github.com/spf13/cobra, 14 source files) and documentation subpackage (github.com/spf13/cobra/doc, 5 source files) paired with 17 co-located *_test.go files.",
+    "Dual-license clarity preserving upstream Apache-2.0 (LICENSE-COBRA) alongside documentation Apache-2.0 (LICENSE) and comprehensive README.md.",
+    "98.4% GoDoc coverage across exported types and methods (173 documented out of 176) with zero signature mismatches and 100.0% import hygiene.",
+    "Zero circular dependencies and clean unidirectional layering between root package `cobra` and subpackage `cobra/doc`.",
+    "Zero dangerous CWE sinks, zero `unsafe.Pointer` usages, and zero unscoped linter ignores across 4,888 LOC.",
+    "Zero excessive-parameter functions across all 269 functions; complex configurations are encapsulated in struct fields (`Command`, `CompletionOptions`, `GenManTreeOptions`).",
+    "Subpackage isolation (`github.com/spf13/cobra/doc`) prevents `go-md2man/v2` and `yaml/v3` from being linked into downstream CLI binaries that only use the core `cobra` package.",
+    "Core execution (`Execute`, `ExecuteC`, `ExecuteContext`) and validation (`ValidateRequiredFlags`, `ValidateFlagGroups`, `ValidateArgs`) return explicit `error` values and write to configurable `io.Writer` streams (`SetOut`, `SetErr`).",
+    "100.0% module test alignment (17 `*_test.go` files covering every subsystem: `command_test.go`, `completions_test.go`, `args_test.go`, `flag_groups_test.go`, `active_help_test.go`, Bash V1/V2, Zsh, Fish, PowerShell, and `doc/*_test.go`).",
+    "280 unit and example test functions exercising table-driven subtests, in-memory `bytes.Buffer` stdout/stderr capture, and error branch assertions.",
+    "Zero live network or external daemon dependencies, enabling fast, hermetic offline test execution.",
+    "424/424 unit, subtest, and deadcode-elimination linker tests pass 100% offline (`--network=none`) alongside `go vet ./...` with zero warnings.",
+    "86.8% overall measured statement coverage (`1,631 / 1,880` statements), with `args.go` at 100.0%, `flag_groups.go` at 95.3%, `bash_completions.go` at 93.3%, and `completions.go` at 92.5%.",
+    "Clean library smoke compilation (`go build ./...`) and linker deadcode elimination verification (`TestDeadcodeElimination` verifying `MethodByName` is unreachable).",
+    "Zero CVEs (0 Critical, 0 High, 0 Medium, 0 Low) across all Go module dependencies in `go.mod` / `go.sum` (`pflag v1.0.9`, `go-md2man/v2 v2.0.6`, `mousetrap v1.1.0`, `yaml/v3 v3.0.4`).",
+    "Zero hardcoded secrets, zero committed credential files, and zero container IaC misconfigurations in `.pni/dockerfiles/Dockerfile`.",
+    "Zero dangerous CWE sinks in production Go code; shell completion generators emit static script templates and quote command/flag names safely without executing shell commands."
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "category": "code_quality",
+      "rule_id": "common/maintainability",
+      "file_path": "command.go",
+      "line": 905,
+      "symbol": "Command.execute",
+      "evidence": "length=141 lines, branches=36, cognitive=66",
+      "description": "Command.execute has a cognitive complexity of 66 across 141 lines as it coordinates flag parsing, help/version short-circuiting, flag-group validation, and the 5-stage PreRun/Run/PostRun hook chain.",
+      "recommendation": "Extract hook-chain execution (PersistentPreRunE..PersistentPostRunE) and pre-execution flag validation into dedicated private methods on Command."
+    },
+    {
+      "severity": "medium",
+      "category": "code_quality",
+      "rule_id": "common/maintainability",
+      "file_path": "completions.go",
+      "line": 316,
+      "symbol": "Command.getCompletions",
+      "evidence": "length=267 lines, branches=36, cognitive=96",
+      "description": "Command.getCompletions has a cognitive complexity of 96 across 267 lines, interleaving flag parsing, argument stripping, ValidArgsFunction invocation, and ActiveHelp synthesis.",
+      "recommendation": "Decompose Command.getCompletions into focused helper methods for flag completion resolution, positional argument completion, and directive post-processing."
+    },
+    {
+      "severity": "low",
+      "category": "code_quality",
+      "rule_id": "common/library_guidelines",
+      "file_path": "doc/yaml_docs.go",
+      "line": 139,
+      "symbol": "GenYamlCustom",
+      "evidence": "fmt.Println(err) before returning err in doc/yaml_docs.go:139",
+      "description": "GenYamlCustom writes `fmt.Println(err)` directly to standard output before returning the `yaml.Marshal` error, bypassing caller-controlled error handling.",
+      "recommendation": "Remove the redundant `fmt.Println(err)` call in `GenYamlCustom` and simply return `err` to the caller."
+    },
+    {
+      "severity": "low",
+      "category": "code_quality",
+      "rule_id": "go/code_quality",
+      "file_path": "cobra.go",
+      "line": 55,
+      "symbol": "EnablePrefixMatching",
+      "evidence": "13 mutable package-level variables in cobra.go and completions.go (EnablePrefixMatching, EnableCommandSorting, EnableCaseInsensitive, EnableTraverseRunHooks, templateFuncs, initializers, finalizers)",
+      "description": "Package-level mutable globals control parser behavior across the entire process, which can cause state bleed across parallel tests if mutated concurrently.",
+      "recommendation": "Prefer per-Command or per-root-tree configuration fields on Command struct over mutating package-level globals."
+    },
+    {
+      "severity": "low",
+      "category": "dependencies",
+      "rule_id": "go/dependencies",
+      "file_path": "go.mod",
+      "line": 3,
+      "symbol": "go 1.15",
+      "evidence": "go 1.15 directive in go.mod",
+      "description": "go.mod specifies 'go 1.15' as the minimum language version directive rather than a modern supported Go 1.22+ toolchain.",
+      "recommendation": "Advance the go directive in go.mod to 'go 1.22' or 'go 1.23' in a future minor release once legacy toolchain support windows close."
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "rule_id": "go/code_quality",
+      "file_path": "args.go",
+      "line": 22,
+      "symbol": "PositionalArgs",
+      "evidence": "missing_docstrings: PositionalArgs (args.go:22), Command.ValidateArgs (command.go:1172), CompletionOptions.SetDefaultShellCompDirective (completions.go:123)",
+      "description": "Three exported symbols lack leading GoDoc comments (out of 176 exported symbols, 98.4% coverage).",
+      "recommendation": "Add standard GoDoc comments to PositionalArgs, Command.ValidateArgs, and CompletionOptions.SetDefaultShellCompDirective to reach 100% GoDoc coverage."
+    },
+    {
+      "severity": "low",
+      "category": "testing",
+      "rule_id": "common/runtime_verification",
+      "file_path": "zsh_completions.go",
+      "line": 25,
+      "symbol": "Command.GenZshCompletionFile",
+      "evidence": "zsh_completions.go coverage=52.6% (10/19 statements, missing lines 25, 36, 55, 66, 70, 72, 75); bash_completionsV2.go coverage=57.1% (8/14 statements, missing lines 33, 470, 472, 475)",
+      "description": "File-writing completion wrapper methods (`GenZshCompletionFile`, `GenZshCompletionFileNoDesc`, `GenBashCompletionFileV2`, `GenPowerShellCompletionFile`) are not exercised by unit tests using `t.TempDir()`.",
+      "recommendation": "Add unit tests using `t.TempDir()` to exercise `GenZshCompletionFile`, `GenBashCompletionFileV2`, and `GenPowerShellCompletionFile`."
+    },
+    {
+      "severity": "low",
+      "category": "testing",
+      "rule_id": "go/testing",
+      "file_path": "completions_test.go",
+      "line": 2896,
+      "symbol": "TestCompletionFuncCompatibility",
+      "evidence": "_ = cmd.RegisterFlagCompletionFunc(\"foo\", userComp) in completions_test.go:2910 and 2925",
+      "description": "TestCompletionFuncCompatibility verifies compile-time type compatibility of CompletionFunc signatures but discards the error returned by cmd.RegisterFlagCompletionFunc(\"foo\", userComp).",
+      "recommendation": "Assert `if err := cmd.RegisterFlagCompletionFunc(\"foo\", userComp); err != nil { t.Fatal(err) }` after defining flag `--foo` on `cmd` so runtime registration is also verified."
+    }
+  ],
+  "consolidated_findings": [
+    {
+      "severity": "medium",
+      "file_path": "command.go",
+      "line": 905,
+      "symbol": "Command.execute",
+      "rule_ids": [
+        "common/maintainability"
+      ],
+      "categories": [
+        "code_quality"
+      ],
+      "primary_description": "Command.execute has a cognitive complexity of 66 across 141 lines as it coordinates flag parsing, help/version short-circuiting, flag-group validation, and the 5-stage PreRun/Run/PostRun hook chain.",
+      "combined_evidence": "length=141 lines, branches=36, cognitive=66",
+      "merged_recommendation": "Extract hook-chain execution (PersistentPreRunE..PersistentPostRunE) and pre-execution flag validation into dedicated private methods on Command."
+    },
+    {
+      "severity": "medium",
+      "file_path": "completions.go",
+      "line": 316,
+      "symbol": "Command.getCompletions",
+      "rule_ids": [
+        "common/maintainability"
+      ],
+      "categories": [
+        "code_quality"
+      ],
+      "primary_description": "Command.getCompletions has a cognitive complexity of 96 across 267 lines, interleaving flag parsing, argument stripping, ValidArgsFunction invocation, and ActiveHelp synthesis.",
+      "combined_evidence": "length=267 lines, branches=36, cognitive=96",
+      "merged_recommendation": "Decompose Command.getCompletions into focused helper methods for flag completion resolution, positional argument completion, and directive post-processing."
+    },
+    {
+      "severity": "low",
+      "file_path": "args.go",
+      "line": 22,
+      "symbol": "PositionalArgs",
+      "rule_ids": [
+        "go/code_quality"
+      ],
+      "categories": [
+        "documentation"
+      ],
+      "primary_description": "Three exported symbols lack leading GoDoc comments (out of 176 exported symbols, 98.4% coverage).",
+      "combined_evidence": "missing_docstrings: PositionalArgs (args.go:22), Command.ValidateArgs (command.go:1172), CompletionOptions.SetDefaultShellCompDirective (completions.go:123)",
+      "merged_recommendation": "Add standard GoDoc comments to PositionalArgs, Command.ValidateArgs, and CompletionOptions.SetDefaultShellCompDirective to reach 100% GoDoc coverage."
+    },
+    {
+      "severity": "low",
+      "file_path": "cobra.go",
+      "line": 55,
+      "symbol": "EnablePrefixMatching",
+      "rule_ids": [
+        "go/code_quality"
+      ],
+      "categories": [
+        "code_quality"
+      ],
+      "primary_description": "Package-level mutable globals control parser behavior across the entire process, which can cause state bleed across parallel tests if mutated concurrently.",
+      "combined_evidence": "13 mutable package-level variables in cobra.go and completions.go (EnablePrefixMatching, EnableCommandSorting, EnableCaseInsensitive, EnableTraverseRunHooks, templateFuncs, initializers, finalizers)",
+      "merged_recommendation": "Prefer per-Command or per-root-tree configuration fields on Command struct over mutating package-level globals."
+    },
+    {
+      "severity": "low",
+      "file_path": "completions_test.go",
+      "line": 2896,
+      "symbol": "TestCompletionFuncCompatibility",
+      "rule_ids": [
+        "go/testing"
+      ],
+      "categories": [
+        "testing"
+      ],
+      "primary_description": "TestCompletionFuncCompatibility verifies compile-time type compatibility of CompletionFunc signatures but discards the error returned by cmd.RegisterFlagCompletionFunc(\"foo\", userComp).",
+      "combined_evidence": "_ = cmd.RegisterFlagCompletionFunc(\"foo\", userComp) in completions_test.go:2910 and 2925",
+      "merged_recommendation": "Assert `if err := cmd.RegisterFlagCompletionFunc(\"foo\", userComp); err != nil { t.Fatal(err) }` after defining flag `--foo` on `cmd` so runtime registration is also verified."
+    },
+    {
+      "severity": "low",
+      "file_path": "doc/yaml_docs.go",
+      "line": 139,
+      "symbol": "GenYamlCustom",
+      "rule_ids": [
+        "common/library_guidelines"
+      ],
+      "categories": [
+        "code_quality"
+      ],
+      "primary_description": "GenYamlCustom writes `fmt.Println(err)` directly to standard output before returning the `yaml.Marshal` error, bypassing caller-controlled error handling.",
+      "combined_evidence": "fmt.Println(err) before returning err in doc/yaml_docs.go:139",
+      "merged_recommendation": "Remove the redundant `fmt.Println(err)` call in `GenYamlCustom` and simply return `err` to the caller."
+    },
+    {
+      "severity": "low",
+      "file_path": "go.mod",
+      "line": 3,
+      "symbol": "go 1.15",
+      "rule_ids": [
+        "go/dependencies"
+      ],
+      "categories": [
+        "dependencies"
+      ],
+      "primary_description": "go.mod specifies 'go 1.15' as the minimum language version directive rather than a modern supported Go 1.22+ toolchain.",
+      "combined_evidence": "go 1.15 directive in go.mod",
+      "merged_recommendation": "Advance the go directive in go.mod to 'go 1.22' or 'go 1.23' in a future minor release once legacy toolchain support windows close."
+    },
+    {
+      "severity": "low",
+      "file_path": "zsh_completions.go",
+      "line": 25,
+      "symbol": "Command.GenZshCompletionFile",
+      "rule_ids": [
+        "common/runtime_verification"
+      ],
+      "categories": [
+        "testing"
+      ],
+      "primary_description": "File-writing completion wrapper methods (`GenZshCompletionFile`, `GenZshCompletionFileNoDesc`, `GenBashCompletionFileV2`, `GenPowerShellCompletionFile`) are not exercised by unit tests using `t.TempDir()`.",
+      "combined_evidence": "zsh_completions.go coverage=52.6% (10/19 statements, missing lines 25, 36, 55, 66, 70, 72, 75); bash_completionsV2.go coverage=57.1% (8/14 statements, missing lines 33, 470, 472, 475)",
+      "merged_recommendation": "Add unit tests using `t.TempDir()` to exercise `GenZshCompletionFile`, `GenBashCompletionFileV2`, and `GenPowerShellCompletionFile`."
+    }
+  ],
+  "action_plan": [
+    {
+      "priority": "P1",
+      "title": "Decompose Command.getCompletions and Command.execute Hotspots",
+      "category": "code_quality",
+      "target_files": [
+        "completions.go",
+        "command.go",
+        "flag_groups.go"
+      ],
+      "related_rules": [
+        "common/maintainability",
+        "go/code_quality"
+      ],
+      "action": "Refactor Command.getCompletions (cognitive=96) and Command.execute (cognitive=66) into smaller single-responsibility helpers covering flag completion dispatch, argument validation, and hook-chain traversal.",
+      "expected_impact": "Reduces maximum method cognitive complexity below 30 and improves readability of the core CLI execution and completion engines."
+    },
+    {
+      "priority": "P2",
+      "title": "Remove Direct fmt.Println(err) Side Effect in doc/yaml_docs.go",
+      "category": "code_quality",
+      "target_files": [
+        "doc/yaml_docs.go"
+      ],
+      "related_rules": [
+        "common/library_guidelines"
+      ],
+      "action": "Delete `fmt.Println(err)` at line 139 of `doc/yaml_docs.go` so `GenYamlCustom` returns errors silently without writing to stdout.",
+      "expected_impact": "Eliminates unexpected stdout noise when callers handle `GenYamlCustom` errors programmatically."
+    },
+    {
+      "priority": "P2",
+      "title": "Modernize go.mod Toolchain Directive to Go 1.22+",
+      "category": "dependencies",
+      "target_files": [
+        "go.mod"
+      ],
+      "related_rules": [
+        "go/dependencies"
+      ],
+      "action": "Update the 'go 1.15' directive in go.mod to 'go 1.22' (or 'go 1.23') and run 'go mod tidy' to adopt modern module graph pruning.",
+      "expected_impact": "Enables Go 1.17+ lazy module loading, modern standard library generics/slices helpers, and explicit toolchain version tracking."
+    },
+    {
+      "priority": "P2",
+      "title": "Add GoDoc Comments to Remaining 3 Exported Symbols",
+      "category": "documentation",
+      "target_files": [
+        "args.go",
+        "command.go",
+        "completions.go"
+      ],
+      "related_rules": [
+        "go/code_quality",
+        "common/documentation"
+      ],
+      "action": "Add GoDoc comments to PositionalArgs (args.go:22), Command.ValidateArgs (command.go:1172), and CompletionOptions.SetDefaultShellCompDirective (completions.go:123).",
+      "expected_impact": "Raises exported GoDoc coverage from 98.4% to 100.0%."
+    },
+    {
+      "priority": "P2",
+      "title": "Add Explicit Runtime Assertion in TestCompletionFuncCompatibility",
+      "category": "testing",
+      "target_files": [
+        "completions_test.go"
+      ],
+      "related_rules": [
+        "go/testing"
+      ],
+      "action": "Define `--foo` flag in `TestCompletionFuncCompatibility` and check the error returned by `cmd.RegisterFlagCompletionFunc(\"foo\", userComp)` via `t.Fatalf`.",
+      "expected_impact": "Combines compile-time signature verification with runtime flag completion registration assertion."
+    },
+    {
+      "priority": "P2",
+      "title": "Add t.TempDir() Unit Tests for Completion File Wrapper Methods",
+      "category": "testing",
+      "target_files": [
+        "zsh_completions_test.go",
+        "bash_completionsV2_test.go",
+        "powershell_completions_test.go"
+      ],
+      "related_rules": [
+        "common/runtime_verification",
+        "go/testing"
+      ],
+      "action": "Add table-driven tests using `t.TempDir()` for `GenZshCompletionFile`, `GenZshCompletionFileNoDesc`, `GenBashCompletionFileV2`, and `GenPowerShellCompletionFile`.",
+      "expected_impact": "Lifts per-file statement coverage in `zsh_completions.go`, `bash_completionsV2.go`, and `powershell_completions.go` above 85%."
+    }
+  ],
+  "opt_outs": [
+    {
+      "id": "DS-0026",
+      "scope": [
+        ".pni/dockerfiles/**"
+      ],
+      "reason": "Hermetic batch test container exits upon go test completion; daemon HEALTHCHECK is not applicable.",
+      "matched_count": 0
+    }
+  ],
+  "report_hints": [
+    "Render 7-axis RadarChart (Security 98, Testing 96, Documentation 95, Architecture 94, Typing 93, Dependencies 93, Code Quality 90) paired with Grade S (94/100) KpiCards.",
+    "Visualize the 4-layer Composite Command Tree & Extension architecture (`command.go`/`cobra.go` -> `args.go`/`flag_groups.go` -> `completions.go` + 4 shell generators -> `doc/` subpackage) and the `ExecuteC()` vs `__complete` execution flows.",
+    "Highlight 86.8% measured statement coverage (1,631/1,880 statements, 424/424 offline tests passing) alongside cognitive complexity hotspots (`Command.getCompletions` 96, `Command.execute` 66) and 0 module CVEs."
+  ],
+  "summary": "spf13/cobra v1.10.2 achieves an overall PNI501 engineering health score of 94/100 (Grade S) with 11/14 rules passed (3 WARN, 0 FAIL) across 19 Go production files (4,888 LOC, 17 types, 269 functions) and 17 test files (280 test functions). Hermetic --network=none container verification confirms 424/424 passing tests (0 failures) and 86.8% measured statement coverage (1,631/1,880 statements), while Go AST and Trivy scans verify 98.4% GoDoc coverage, 94.1% type safety coverage, zero circular dependencies, zero dangerous CWE sinks, zero hardcoded secrets, and zero CVEs across all Go module dependencies."
+}

@@ -1,0 +1,1570 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command Execution, Resolution &amp; I/O Streams — Cobra API Reference (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('drawlib-theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    
+    <link rel="icon" href="../_assets/favicon.png">
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/02_lifecycle_and_execution.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html">
+    
+    
+    
+    <meta name="description" content="This chapter documents the execution entrypoints, command-tree resolution algorithms (Find vs. Traverse), global lifecycle callbacks (OnInitialize…">
+    <link rel="canonical" href="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra API Reference">
+    <meta property="og:title" content="Command Execution, Resolution &amp; I/O Streams — Cobra API Reference">
+    <meta property="og:description" content="This chapter documents the execution entrypoints, command-tree resolution algorithms (Find vs. Traverse), global lifecycle callbacks (OnInitialize…">
+    <meta property="og:url" content="https://cobra.drawlib.com/api/en/02_lifecycle_and_execution.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Command Execution, Resolution &amp; I/O Streams — Cobra API Reference">
+    <meta name="twitter:description" content="This chapter documents the execution entrypoints, command-tree resolution algorithms (Find vs. Traverse), global lifecycle callbacks (OnInitialize…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    
+    
+    
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">API REFERENCE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial API &amp; CLI Reference for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">API Reference</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar" id="catalog-sidebar">
+            <div class="sidebar-header has-subbar">
+                <a href="index.html" class="site-title">
+                    Cobra API Reference
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme" title="Toggle light/dark mode">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation menu">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-subbar">
+                
+                
+                <a href="index.html" class="sidebar-version-badge">
+                    <span class="sidebar-version-dot"></span>
+                    <span>API Reference · v1.10.2</span>
+                </a>
+                
+                
+                
+                <a href="https://github.com/spf13/cobra" target="_blank" rel="noopener noreferrer" class="sidebar-github-link" aria-label="Repository" title="View Upstream Cobra Repository">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </a>
+                
+            </div>
+            
+
+            <div class="sidebar-menu">
+                <div class="catalog-sidebar-toolbar">
+                    <div class="catalog-filter-box">
+                        <svg class="catalog-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input id="catalog-filter-input" type="search" class="catalog-filter-input" placeholder="Filter items..." autocomplete="off" spellcheck="false" aria-label="Filter items...">
+                        <kbd class="catalog-filter-kbd">/</kbd>
+                    </div>
+                    <div class="catalog-toolbar-meta">
+                        <span class="catalog-toolbar-label">Categories &amp; Items</span>
+                        <button type="button" id="catalog-expand-toggle" class="catalog-expand-btn" data-expand-label="Expand All" data-collapse-label="Collapse All">Collapse All</button>
+                    </div>
+                </div>
+
+                <nav class="catalog-sidebar-nav" id="catalog-sidebar-nav" aria-label="Catalog Navigation">
+                    
+                    
+                    
+                    <details class="catalog-nav-group" data-cat="Cobra API Reference Overview" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="00_overview.html" class="catalog-nav-cat-link is-prose-cat">Cobra API Reference Overview</a>
+                            
+                            <span class="catalog-nav-count">8</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="package github.com/spf13/cobra">
+                                <a href="00_overview.html#github-com-spf13-cobra" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">package</span>
+                                    
+                                    <span class="catalog-nav-sym-text">github.com/spf13/cobra</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="var Package-Level Configuration Variables (cobra.go)">
+                                <a href="00_overview.html#var-package-level-configuration-variables-cobra-go" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">var Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const Exported Annotation &amp; Completion Constants">
+                                <a href="00_overview.html#exported-annotation-completion-constants" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Exported Annotation &amp; Completion Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnInitialize()">
+                                <a href="00_overview.html#cobra-oninitialize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnInitialize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnFinalize()">
+                                <a href="00_overview.html#cobra-onfinalize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnFinalize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs">
+                                <a href="00_overview.html#cobra-addtemplatefunc-cobra-addtemplatefuncs" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.CheckErr &amp; cobra.WriteStringAndCheck">
+                                <a href="00_overview.html#cobra-checkerr-cobra-writestringandcheck" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.CheckErr &amp; cobra.WriteStringAndCheck</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.Gt &amp; cobra.Eq">
+                                <a href="00_overview.html#cobra-gt-cobra-eq" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Gt &amp; cobra.Eq</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="Command Struct, Tree Topology &amp; Command Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="01_command_struct.html" class="catalog-nav-cat-link is-prose-cat">Command Struct, Tree Topology &amp; Command Groups</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Command">
+                                <a href="01_command_struct.html#cobra-command" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Command</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Group &amp; type cobra.FParseErrWhitelist">
+                                <a href="01_command_struct.html#cobra-group-type-cobra-fparseerrwhitelist" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Group &amp; type cobra.FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree Construction &amp; Navigation Methods">
+                                <a href="01_command_struct.html#tree-construction-navigation-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree Construction &amp; Navigation Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree &amp; Availability Predicate Methods">
+                                <a href="01_command_struct.html#tree-availability-predicate-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree &amp; Availability Predicate Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Naming, Path, Alias &amp; Padding Methods">
+                                <a href="01_command_struct.html#naming-path-alias-padding-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Naming, Path, Alias &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Group Management Methods">
+                                <a href="01_command_struct.html#command-group-management-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Group Management Methods</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group is-current-page" data-cat="Command Execution, Resolution &amp; I/O Streams" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="02_lifecycle_and_execution.html" class="catalog-nav-cat-link is-prose-cat">Command Execution, Resolution &amp; I/O Streams</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Execution Entrypoints &amp; context.Context">
+                                <a href="#execution-entrypoints-context-context" class="catalog-nav-sublink is-prose-sublink" data-target="execution-entrypoints-context-context">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Execution Entrypoints &amp; context.Context</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Resolution &amp; Dash Boundary()">
+                                <a href="#command-resolution-dash-boundary" class="catalog-nav-sublink is-prose-sublink" data-target="command-resolution-dash-boundary">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Resolution &amp; Dash Boundary()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Global Lifecycle Callbacks &amp; Hook Traversal">
+                                <a href="#global-lifecycle-callbacks-hook-traversal" class="catalog-nav-sublink is-prose-sublink" data-target="global-lifecycle-callbacks-hook-traversal">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Global Lifecycle Callbacks &amp; Hook Traversal</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Input/Output Streams, Arg Injection &amp; Error Prefixes">
+                                <a href="#input-output-streams-arg-injection-error-prefixes" class="catalog-nav-sublink is-prose-sublink" data-target="input-output-streams-arg-injection-error-prefixes">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Input/Output Streams, Arg Injection &amp; Error Prefixes</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="03_flags_and_flag_groups.html" class="catalog-nav-cat-link">pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method pflag.FlagSet Accessor &amp; Parsing Methods">
+                                <a href="03_flags_and_flag_groups.html#pflag-flagset-accessor-parsing-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">pflag.FlagSet Accessor &amp; Parsing Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method FlagSet Availability Predicates">
+                                <a href="03_flags_and_flag_groups.html#flagset-availability-predicates" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">FlagSet Availability Predicates</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Relational Flag Group API()">
+                                <a href="03_flags_and_flag_groups.html#relational-flag-group-api" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Relational Flag Group API()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Single-Flag Requirement &amp; Shell Completion Annotations()">
+                                <a href="03_flags_and_flag_groups.html#single-flag-requirement-shell-completion-annotations" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Single-Flag Requirement &amp; Shell Completion Annotations()</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="PositionalArgs Type &amp; Built-in Validator Combinators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="04_positional_args.html" class="catalog-nav-cat-link is-prose-cat">PositionalArgs Type &amp; Built-in Validator Combinators</a>
+                            
+                            <span class="catalog-nav-count">3</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type cobra.PositionalArgs &amp; method (*Command).ValidateArgs">
+                                <a href="04_positional_args.html#cobra-positionalargs-method" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.PositionalArgs &amp; method (*Command).ValidateArgs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Complete Positional Argument Validators Reference()">
+                                <a href="04_positional_args.html#complete-positional-argument-validators-reference" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Complete Positional Argument Validators Reference()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Detailed Behavior &amp; Edge Cases">
+                                <a href="04_positional_args.html#detailed-behavior-edge-cases" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Detailed Behavior &amp; Edge Cases</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="05. Dynamic Completions, Directives &amp; ActiveHelp" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="05_completions_and_directives.html" class="catalog-nav-cat-link">05. Dynamic Completions, Directives &amp; ActiveHelp</a>
+                            
+                            <span class="catalog-nav-count">9</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type Completion &amp; CompletionFunc">
+                                <a href="05_completions_and_directives.html#completion-completionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Completion &amp; CompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompletionWithDesc, NoFileCompletions &amp; FixedCompletions">
+                                <a href="05_completions_and_directives.html#completionwithdesc-nofilecompletions-fixedcompletions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionWithDesc, NoFileCompletions &amp; FixedCompletions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="type ShellCompDirective &amp; Bitmask Constants">
+                                <a href="05_completions_and_directives.html#shellcompdirective-bitmask-constants" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompDirective &amp; Bitmask Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct CompletionOptions">
+                                <a href="05_completions_and_directives.html#completionoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionOptions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc">
+                                <a href="05_completions_and_directives.html#command-registerflagcompletionfunc-getflagcompletionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd">
+                                <a href="05_completions_and_directives.html#shellcomprequestcmd-shellcompnodescrequestcmd" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompDebug, CompDebugln, CompError &amp; CompErrorln">
+                                <a href="05_completions_and_directives.html#compdebug-compdebugln-comperror-comperrorln" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompDebug, CompDebugln, CompError &amp; CompErrorln</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func AppendActiveHelp &amp; GetActiveHelpConfig">
+                                <a href="05_completions_and_directives.html#appendactivehelp-getactivehelpconfig" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">AppendActiveHelp &amp; GetActiveHelpConfig</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="05_completions_and_directives.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="06. Shell Completion Script Generators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="06_shell_script_generators.html" class="catalog-nav-cat-link">06. Shell Completion Script Generators</a>
+                            
+                            <span class="catalog-nav-count">7</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID">
+                                <a href="06_shell_script_generators.html#command-initdefaultcompletioncmd-setcompletioncommandgroupid" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Bash Completion Generators()">
+                                <a href="06_shell_script_generators.html#bash-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Bash Completion Generators()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Zsh Completion Generators">
+                                <a href="06_shell_script_generators.html#zsh-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Zsh Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Fish Completion Generators">
+                                <a href="06_shell_script_generators.html#fish-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Fish Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method PowerShell Completion Generators">
+                                <a href="06_shell_script_generators.html#powershell-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">PowerShell Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Declarative Flag Completion Helpers()">
+                                <a href="06_shell_script_generators.html#declarative-flag-completion-helpers" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Declarative Flag Completion Helpers()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="06_shell_script_generators.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="07. Help, Usage, Templates &amp; Global Configuration" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="07_help_usage_and_templates.html" class="catalog-nav-cat-link">07. Help, Usage, Templates &amp; Global Configuration</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Help Methods()">
+                                <a href="07_help_usage_and_templates.html#help-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Help Methods()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Usage, Version &amp; Padding Methods">
+                                <a href="07_help_usage_and_templates.html#usage-version-padding-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Usage, Version &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Template Functions()">
+                                <a href="07_help_usage_and_templates.html#template-functions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Template Functions()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Suggestions, Flag Error Handling &amp; FParseErrWhitelist">
+                                <a href="07_help_usage_and_templates.html#suggestions-flag-error-handling-fparseerrwhitelist" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Suggestions, Flag Error Handling &amp; FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Package-Level Configuration Variables (cobra.go)">
+                                <a href="07_help_usage_and_templates.html#package-level-configuration-variables" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="07_help_usage_and_templates.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="08. Auto-Generated Documentation (cobra/doc)" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="08_doc_generation.html" class="catalog-nav-cat-link">08. Auto-Generated Documentation (cobra/doc)</a>
+                            
+                            <span class="catalog-nav-count">15</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="Format Comparison Matrix">
+                                <a href="08_doc_generation.html#format-comparison-matrix" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Format Comparison Matrix</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdown()">
+                                <a href="08_doc_generation.html#genmarkdown" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdown()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownCustom()">
+                                <a href="08_doc_generation.html#genmarkdowncustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTree()">
+                                <a href="08_doc_generation.html#genmarkdowntree" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTree()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTreeCustom()">
+                                <a href="08_doc_generation.html#genmarkdowntreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManHeader (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmanheader" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManHeader (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManTreeOptions (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmantreeoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTreeOptions (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMan()">
+                                <a href="08_doc_generation.html#genman" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMan()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenManTree &amp; func GenManTreeFromOpts()">
+                                <a href="08_doc_generation.html#genmantree-func-genmantreefromopts" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTree &amp; func GenManTreeFromOpts()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReST &amp; func GenReSTCustom()">
+                                <a href="08_doc_generation.html#genrest-func-genrestcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReST &amp; func GenReSTCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReSTTree &amp; func GenReSTTreeCustom()">
+                                <a href="08_doc_generation.html#genresttree-func-genresttreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReSTTree &amp; func GenReSTTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYaml &amp; func GenYamlCustom()">
+                                <a href="08_doc_generation.html#genyaml-func-genyamlcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYaml &amp; func GenYamlCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYamlTree &amp; func GenYamlTreeCustom()">
+                                <a href="08_doc_generation.html#genyamltree-func-genyamltreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYamlTree &amp; func GenYamlTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Command.DisableAutoGenTag (command.go)">
+                                <a href="08_doc_generation.html#command-disableautogentag" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.DisableAutoGenTag (command.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="08_doc_generation.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    
+                    <div id="catalog-nav-empty" class="catalog-nav-empty" hidden>No matching items found.</div>
+                </nav>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <div class="content-wrapper">
+            <div class="top-bar">
+                <div class="breadcrumbs">
+                    <a href="index.html" class="crumb">API Reference</a>
+                    <span class="crumb-separator">/</span>
+                    <span class="crumb active">Command Execution, Resolution &amp; I/O Streams</span>
+                </div>
+                
+                <div class="top-bar-right">
+                    
+                    
+                    <div class="lang-switcher" aria-label="Language switcher">
+                        <details class="lang-dropdown">
+                            <summary class="lang-dropdown-btn" aria-haspopup="listbox">
+                                <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                <span class="lang-current-label">English</span>
+                                <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </summary>
+                            <div class="lang-dropdown-menu" role="listbox">
+                                
+                                
+                                <span class="lang-option active" role="option" aria-selected="true">
+                                    <span>English</span>
+                                    <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </span>
+                                
+                                
+                                
+                                <a href="../ja/02_lifecycle_and_execution.html" class="lang-option" role="option" hreflang="">
+                                    <span>日本語</span>
+                                </a>
+                                
+                                
+                            </div>
+                        </details>
+                    </div>
+                    
+                </div>
+                
+            </div>
+
+            <main class="main-content catalog-main-content">
+                <h1 class="catalog-page-title">Command Execution, Resolution &amp; I/O Streams</h1>
+<p>This chapter documents the execution entrypoints, command-tree resolution algorithms (<code>Find</code> vs. <code>Traverse</code>), global lifecycle callbacks (<code>OnInitialize</code>, <code>OnFinalize</code>, <code>EnableTraverseRunHooks</code>), and injectable I/O stream methods (<code>SetArgs</code>, <code>SetOut</code>, <code>SetErr</code>, <code>SetIn</code>, <code>Print*</code>, <code>ErrPrefix</code>) defined in <code>command.go</code> and <code>cobra.go</code>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/02_lifecycle_and_execution/api_execution_pipeline_hero.png" alt="02_lifecycle_and_execution_1" />
+  <figcaption class="drawlib-caption">Cobra Execution Lifecycle — Entrypoints, Tree Resolution, 5-Stage Hook Chain & I/O Streams</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">Colors</span>
+
+<span class="n">col_specs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span>
+        <span class="mf">4.0</span><span class="p">,</span>
+        <span class="s2">"1. Entry &amp; Resolution"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">play_circle</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"Execute[Context][C]()"</span><span class="p">,</span> <span class="s2">"Root dispatch &amp; context.Context"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">rocket_launch</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Find(args) vs Traverse(args)"</span><span class="p">,</span> <span class="s2">"Flag-stripping vs parent parse"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"ArgsLenAtDash()"</span><span class="p">,</span> <span class="s2">"Index of </span><span class="se">\"</span><span class="s2">--</span><span class="se">\"</span><span class="s2"> flag terminator"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_split</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="mf">65.5</span><span class="p">,</span>
+        <span class="s2">"2. Validation &amp; Hooks"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_clockwise</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"OnInitialize &amp; ValidateArgs"</span><span class="p">,</span> <span class="s2">"preRun() callbacks &amp; args check"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">list_checks</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"PersistentPreRun -&gt; PreRun"</span><span class="p">,</span> <span class="s2">"Ancestor &amp; local pre-hooks"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">arrow_bend_down_right</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Run -&gt; PostRun -&gt; OnFinalize"</span><span class="p">,</span> <span class="s2">"Workload &amp; deferred postRun()"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="mf">127.0</span><span class="p">,</span>
+        <span class="s2">"3. I/O &amp; Error Prefix"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"SetArgs, SetIn, SetOut, SetErr"</span><span class="p">,</span> <span class="s2">"Injectable CLI test streams"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"OutOrStdout / ErrOrStderr"</span><span class="p">,</span> <span class="s2">"Parent-inherited stream lookup"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_left_right</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Print* / PrintErr* / ErrPrefix"</span><span class="p">,</span> <span class="s2">"Formatted output &amp; error prefix"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">warning_circle</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+
+<span class="k">for</span> <span class="n">x0</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">body_style</span><span class="p">,</span> <span class="n">hdr_style</span><span class="p">,</span> <span class="n">hdr_text_style</span><span class="p">,</span> <span class="n">hdr_icon</span><span class="p">,</span> <span class="n">hdr_icon_style</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">col_specs</span><span class="p">:</span>
+    <span class="n">panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+        <span class="n">title</span><span class="p">,</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">body_style</span><span class="p">,</span>
+        <span class="n">header_style</span><span class="o">=</span><span class="n">hdr_style</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">hdr_text_style</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">hdr_icon</span><span class="p">,</span>
+        <span class="n">icon_style</span><span class="o">=</span><span class="n">hdr_icon_style</span><span class="p">,</span>
+        <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+        <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="n">x0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">57.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">)</span>
+    <span class="n">inner_xy</span><span class="p">,</span> <span class="n">inner_w</span><span class="p">,</span> <span class="n">inner_h</span> <span class="o">=</span> <span class="n">panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span>
+        <span class="n">width</span><span class="o">=</span><span class="mf">57.0</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">),</span>
+        <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">cards</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+        <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+        <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+        <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+        <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="o">=</span><span class="mf">2.6</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">mod_name</span><span class="p">,</span> <span class="n">mod_desc</span><span class="p">,</span> <span class="n">mod_icon</span><span class="p">,</span> <span class="n">is_focal</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_focal</span><span class="p">:</span>
+            <span class="n">cards</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+                <span class="n">mod_name</span><span class="p">,</span>
+                <span class="n">mod_desc</span><span class="p">,</span>
+                <span class="n">icon</span><span class="o">=</span><span class="n">mod_icon</span><span class="p">,</span>
+                <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+                <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cards</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mod_name</span><span class="p">,</span> <span class="n">mod_desc</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">mod_icon</span><span class="p">)</span>
+    <span class="n">cards</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">inner_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">inner_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">inner_h</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="execution-entrypoints-context-context" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Execution Entrypoints &amp; context.Context</span></code><a class="header-anchor" href="#execution-entrypoints-context-context" aria-label="Permalink to Execution Entrypoints &amp; context.Context">#</a></h2>
+<p>Cobra provides four execution methods on <code>*Command</code> plus <code>Context()</code> and <code>SetContext()</code> (<code>command.go:L262-L277</code>, <code>L1059-L1170</code>). Calling <code>Execute*</code> on any subcommand automatically delegates upward to <code>c.Root().ExecuteC()</code>.</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Execute</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteC</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ExecuteContextC</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Context</span><span class="p">()</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Signature</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Execute</code></td>
+<td style="text-align:left"><code>func (c *Command) Execute() error</code></td>
+<td style="text-align:left">Primary CLI entrypoint. Calls <code>_, err := c.ExecuteC()</code> and returns <code>err</code>. Uses <code>os.Args[1:]</code> unless overridden via <code>SetArgs()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ExecuteC</code></td>
+<td style="text-align:left"><code>func (c *Command) ExecuteC() (cmd *Command, err error)</code></td>
+<td style="text-align:left">Full execution engine returning both the resolved leaf <code>*Command</code> that was executed and any <code>error</code>. Ensures <code>c.ctx</code> is initialized (<code>context.Background()</code> if <code>nil</code>), injects default <code>help</code>, <code>__complete</code>, and <code>completion</code> commands, validates command groups (<code>checkCommandGroups()</code>), resolves the target subcommand via <code>Traverse()</code> or <code>Find()</code>, propagates <code>ctx</code> to <code>cmd.ctx</code>, and runs <code>cmd.execute(flags)</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ExecuteContext</code></td>
+<td style="text-align:left"><code>func (c *Command) ExecuteContext(ctx context.Context) error</code></td>
+<td style="text-align:left">Sets <code>c.ctx = ctx</code> and calls <code>c.Execute()</code>. Use with <code>signal.NotifyContext</code> for graceful cancellation (<code>Ctrl+C</code> / <code>SIGTERM</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ExecuteContextC</code></td>
+<td style="text-align:left"><code>func (c *Command) ExecuteContextC(ctx context.Context) (*Command, error)</code></td>
+<td style="text-align:left">Sets <code>c.ctx = ctx</code> and calls <code>c.ExecuteC()</code>, returning the executed <code>*Command</code> and <code>error</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Context</code></td>
+<td style="text-align:left"><code>func (c *Command) Context() context.Context</code></td>
+<td style="text-align:left">Returns the <code>context.Context</code> associated with <code>c</code>. Inside <code>Run</code> / <code>RunE</code> / <code>ValidArgsFunction</code>, returns the context passed to <code>ExecuteContext[C]</code> or <code>SetContext</code> (or <code>context.Background()</code> if <code>Execute[C]</code> was called without a context). Returns <code>nil</code> before execution if <code>SetContext</code> was not called.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetContext</code></td>
+<td style="text-align:left"><code>func (c *Command) SetContext(ctx context.Context)</code></td>
+<td style="text-align:left">Pre-assigns <code>c.ctx = ctx</code> on a command before execution. Overwritten if <code>ExecuteContext</code> or <code>ExecuteContextC</code> is subsequently called.</td>
+</tr>
+</tbody>
+</table>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/02_lifecycle_and_execution/api_executec_hook_sequence.png" alt="02_lifecycle_and_execution_2" />
+  <figcaption class="drawlib-caption">ExecuteC() and cmd.execute(flags) — Exact 10-Step Resolution, Validation & Hook Pipeline</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.diagrams.architecture</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArchitectureDiagram</span><span class="p">,</span> <span class="n">Node</span><span class="p">,</span> <span class="n">NodeGroup</span><span class="p">,</span> <span class="n">PhosphorIcon</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">84</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">Colors</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">ArchitectureDiagram</span><span class="p">(</span>
+    <span class="n">node_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">node_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">edge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">line_width</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">edge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+    <span class="n">node_card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">phase1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">NodeGroup</span><span class="p">(</span>
+        <span class="s2">"Phase 1: Root.ExecuteC()"</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.8</span><span class="p">,</span> <span class="n">halign</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">"top"</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">init_cmds</span> <span class="o">=</span> <span class="n">phase1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"1. Init Built-in Cmds</span><span class="se">\n</span><span class="s2">help, __complete, completion"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">GEAR</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">28.0</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">resolve_cmd</span> <span class="o">=</span> <span class="n">phase1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"2. Resolve Subcommand</span><span class="se">\n</span><span class="s2">Find(args) or Traverse(args)"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">GIT_BRANCH</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">28.0</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">phase2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">NodeGroup</span><span class="p">(</span>
+        <span class="s2">"Phase 2: cmd.execute(flags) Validation &amp; 5-Stage Hook Chain"</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">116</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.8</span><span class="p">,</span> <span class="n">halign</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">"top"</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">64.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">parse_node</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"3. ParseFlags &amp; Help/Ver</span><span class="se">\n</span><span class="s2">InitDefaultHelp/VersionFlag"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">SLIDERS_HORIZONTAL</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">29.0</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">prerun_node</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"4. preRun &amp; ValidateArgs</span><span class="se">\n</span><span class="s2">OnInitialize() -&gt; c.Args()"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">LIST_CHECKS</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">29.0</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">hooks_pre</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"5. Pre-Hooks &amp; Flag Check</span><span class="se">\n</span><span class="s2">PersistentPreRun -&gt; PreRun</span><span class="se">\n</span><span class="s2">-&gt; ValidateRequired/Groups"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">SHIELD_CHECK</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">86.0</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">run_post</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"6. Run[E] &amp; Post-Hooks</span><span class="se">\n</span><span class="s2">Run[E] -&gt; PostRun[E]</span><span class="se">\n</span><span class="s2">-&gt; PersistentPostRun -&gt; Finalize"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">ROCKET_LAUNCH</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">86.0</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">init_cmds</span><span class="p">,</span> <span class="n">resolve_cmd</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">resolve_cmd</span><span class="p">,</span> <span class="n">parse_node</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">parse_node</span><span class="p">,</span> <span class="n">prerun_node</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prerun_node</span><span class="p">,</span> <span class="n">hooks_pre</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">hooks_pre</span><span class="p">,</span> <span class="n">run_post</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="command-resolution-dash-boundary" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Command Resolution &amp; Dash Boundary </span><span class="catalog-sig-params">(Find, Traverse, ArgsLenAtDash)</span></code><a class="header-anchor" href="#command-resolution-dash-boundary" aria-label="Permalink to Command Resolution &amp; Dash Boundary()">#</a></h2>
+<p>When <code>ExecuteC()</code> dispatches an argument slice, it resolves the target <code>*Command</code> using either <code>Find()</code> (default) or <code>Traverse()</code> (when <code>Root().TraverseChildren == true</code>).</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ArgsLenAtDash</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Signature</th>
+<th style="text-align:left">Resolution Strategy &amp; Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Find</code></td>
+<td style="text-align:left"><code>func (c *Command) Find(args []string) (*Command, []string, error)</code></td>
+<td style="text-align:left"><strong>Default resolver (<code>TraverseChildren == false</code>)</strong>: Uses <code>stripFlags(args, c)</code> to skip over flags and flag arguments without mutating parent <code>FlagSet</code> state, descending via <code>findNext()</code> until no further child subcommand matches. Returns <code>(commandFound, remainingArgs, err)</code>. If <code>commandFound.Args == nil</code>, validates <code>legacyArgs(commandFound, stripFlags(a, commandFound))</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Traverse</code></td>
+<td style="text-align:left"><code>func (c *Command) Traverse(args []string) (*Command, []string, error)</code></td>
+<td style="text-align:left"><strong>Parent-parsing resolver (<code>TraverseChildren == true</code>)</strong>: Scans <code>args</code> token-by-token on each parent command, calls <code>c.ParseFlags(flags)</code> on each parent's flags before descending into <code>cmd.Traverse(args[i+1:])</code>. Allows parent commands to receive their own local flags on the command line before a subcommand token.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ArgsLenAtDash</code></td>
+<td style="text-align:left"><code>func (c *Command) ArgsLenAtDash() int</code></td>
+<td style="text-align:left">Delegates to <code>c.Flags().ArgsLenAtDash()</code>. Returns the index in <code>c.Flags().Args()</code> (the <code>args</code> slice passed to <code>Run</code>/<code>RunE</code>) at which the <code>--</code> flag-termination token was encountered during <code>ParseFlags()</code>, or <code>-1</code> if <code>--</code> was not present on the command line.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-splitting-positional-arguments-at-with-argslenatdash">Example: Splitting Positional Arguments at <code>--</code> with <code>ArgsLenAtDash()</code><a class="header-anchor" href="#example-splitting-positional-arguments-at-with-argslenatdash" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="nx">execCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"exec &lt;pod&gt; [-- &lt;command&gt; [args...]]"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Execute a command inside a container"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Args</span><span class="p">:</span><span class="w">  </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">MinimumNArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">	</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">dashIdx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ArgsLenAtDash</span><span class="p">()</span>
+<span class="w">		</span><span class="nx">podName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="w">		</span><span class="kd">var</span><span class="w"> </span><span class="nx">remoteCmd</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">dashIdx</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">remoteCmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="nx">dashIdx</span><span class="p">:]</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Pod: %s, Remote command: %v\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">podName</span><span class="p">,</span><span class="w"> </span><span class="nx">remoteCmd</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2 id="global-lifecycle-callbacks-hook-traversal" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">Global Lifecycle Callbacks &amp; Hook Traversal</span></code><a class="header-anchor" href="#global-lifecycle-callbacks-hook-traversal" aria-label="Permalink to Global Lifecycle Callbacks &amp; Hook Traversal">#</a></h2>
+<p>Cobra provides two global callback registration functions and a global hook-traversal toggle in <code>cobra.go</code> (<code>L64-L66</code>, <code>L97-L107</code>):</p>
+<pre><code class="language-go"><span class="kd">var</span><span class="w"> </span><span class="nx">EnableTraverseRunHooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">OnInitialize</span><span class="p">(</span><span class="nx">y</span><span class="w"> </span><span class="p">...</span><span class="kd">func</span><span class="p">())</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">OnFinalize</span><span class="p">(</span><span class="nx">y</span><span class="w"> </span><span class="p">...</span><span class="kd">func</span><span class="p">())</span>
+</code></pre>
+<h3 id="order-of-execution-inside-cmd-execute-a-string-command-go-l905-l1045">Order of Execution Inside <code>cmd.execute(a []string)</code> (<code>command.go:L905-L1045</code>)<a class="header-anchor" href="#order-of-execution-inside-cmd-execute-a-string-command-go-l905-l1045" aria-label="Permalink">#</a></h3>
+<ol>
+<li><strong>Deprecation Check</strong>: If <code>len(c.Deprecated) &gt; 0</code>, prints <code>&quot;Command %q is deprecated, %s\n&quot;</code>.</li>
+<li><strong>Default Flags &amp; Parsing</strong>: Calls <code>c.InitDefaultHelpFlag()</code>, <code>c.InitDefaultVersionFlag()</code>, and <code>c.ParseFlags(a)</code>. On error, invokes <code>c.FlagErrorFunc()(c, err)</code>.</li>
+<li><strong>Help &amp; Version Short-Circuit</strong>: If <code>--help</code> is <code>true</code>, returns <code>flag.ErrHelp</code> (which triggers <code>cmd.HelpFunc()</code> in <code>ExecuteC()</code>). If <code>c.Version != &quot;&quot;</code> and <code>--version</code> is <code>true</code>, renders <code>versionTemplate</code> and returns.</li>
+<li><strong>Runnable Check</strong>: If <code>!c.Runnable()</code>, returns <code>flag.ErrHelp</code>.</li>
+<li><strong>Global Initializers &amp; Deferred Finalizers</strong>: Calls <code>c.preRun()</code> (executing all <code>cobra.OnInitialize</code> callbacks in registration order) and registers <code>defer c.postRun()</code> (which executes all <code>cobra.OnFinalize</code> callbacks when <code>execute()</code> returns).</li>
+<li><strong>Positional Argument Validation</strong>: Calls <code>c.ValidateArgs(argWoFlags)</code>.</li>
+<li><strong><code>PersistentPreRun[E]</code> Chain</strong>:
+<ul>
+<li>When <code>cobra.EnableTraverseRunHooks == false</code> (default): Walks up <code>p := c; p != nil; p = p.Parent()</code> and executes <strong>only the first</strong> non-nil <code>PersistentPreRunE</code> (or <code>PersistentPreRun</code>) encountered, then breaks.</li>
+<li>When <code>cobra.EnableTraverseRunHooks == true</code>: Collects all ancestors from <code>Root()</code> down to <code>c</code> and executes <strong>every</strong> defined <code>PersistentPreRunE</code> / <code>PersistentPreRun</code> in top-down order.</li>
+</ul>
+</li>
+<li><strong>Local <code>PreRun[E]</code></strong>: Executes <code>c.PreRunE(c, argWoFlags)</code> (or <code>c.PreRun</code>).</li>
+<li><strong>Required Flag &amp; Flag Group Validation</strong>: Executes <code>c.ValidateRequiredFlags()</code> followed by <code>c.ValidateFlagGroups()</code>. <em>(Note: Because these run <strong>after</strong> <code>PersistentPreRun[E]</code> and <code>PreRun[E]</code>, pre-run hooks can dynamically populate or mark flags before validation!)</em></li>
+<li><strong>Primary Action (<code>Run[E]</code>)</strong>: Executes <code>c.RunE(c, argWoFlags)</code> (or <code>c.Run</code>).</li>
+<li><strong>Local <code>PostRun[E]</code></strong>: Executes <code>c.PostRunE(c, argWoFlags)</code> (or <code>c.PostRun</code>).</li>
+<li><strong><code>PersistentPostRun[E]</code> Chain</strong>: Walks <code>p := c; p != nil; p = p.Parent()</code>, executing only the closest ancestor's hook by default, or all ancestor hooks bottom-up when <code>EnableTraverseRunHooks == true</code>.</li>
+</ol>
+<hr />
+<h2 id="input-output-streams-arg-injection-error-prefixes" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Input/Output Streams, Arg Injection &amp; Error Prefixes</span></code><a class="header-anchor" href="#input-output-streams-arg-injection-error-prefixes" aria-label="Permalink to Input/Output Streams, Arg Injection &amp; Error Prefixes">#</a></h2>
+<p>Every <code>*Command</code> maintains injectable <code>inReader</code> (<code>io.Reader</code>), <code>outWriter</code> (<code>io.Writer</code>), <code>errWriter</code> (<code>io.Writer</code>), <code>args</code> (<code>[]string</code>), and <code>errPrefix</code> (<code>string</code>) fields that inherit from parent commands when unset (<code>command.go:L279-L310</code>, <code>L375-L440</code>, <code>L642-L652</code>, <code>L1434-L1462</code>).</p>
+<pre><code class="language-go"><span class="c1">// Argument &amp; Stream Setters</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetArgs</span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetOut</span><span class="p">(</span><span class="nx">newOut</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetErr</span><span class="p">(</span><span class="nx">newErr</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetIn</span><span class="p">(</span><span class="nx">newIn</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetOutput</span><span class="p">(</span><span class="nx">output</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span><span class="w"> </span><span class="c1">// Deprecated: Use SetOut and/or SetErr instead</span>
+
+<span class="c1">// Stream Getters (Walk parent chain before falling back to os.Std*)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">OutOrStdout</span><span class="p">()</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">OutOrStderr</span><span class="p">()</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ErrOrStderr</span><span class="p">()</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">InOrStdin</span><span class="p">()</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span>
+
+<span class="c1">// Formatted Print Helpers</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Print</span><span class="p">(</span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Println</span><span class="p">(</span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Printf</span><span class="p">(</span><span class="nx">format</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">PrintErr</span><span class="p">(</span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">PrintErrln</span><span class="p">(</span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">PrintErrf</span><span class="p">(</span><span class="nx">format</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">...</span><span class="kd">interface</span><span class="p">{})</span>
+
+<span class="c1">// Error Message Prefix (Default: "Error:")</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetErrPrefix</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ErrPrefix</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Fallback When <code>nil</code> / Unset</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>SetArgs(a []string)</code></td>
+<td style="text-align:left"><code>os.Args[1:]</code></td>
+<td style="text-align:left">Overrides command-line arguments on the root command. Pass <code>[]string{}</code> (non-nil empty slice) in unit tests to simulate zero CLI arguments without falling back to <code>os.Args[1:]</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetOut(newOut io.Writer)</code></td>
+<td style="text-align:left"><code>Parent()</code> -&gt; <code>os.Stdout</code></td>
+<td style="text-align:left">Sets <code>c.outWriter</code> for standard output and <code>Help()</code> output.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetErr(newErr io.Writer)</code></td>
+<td style="text-align:left"><code>Parent()</code> -&gt; <code>os.Stderr</code></td>
+<td style="text-align:left">Sets <code>c.errWriter</code> for error messages and <code>PrintErr*</code> calls.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetIn(newIn io.Reader)</code></td>
+<td style="text-align:left"><code>Parent()</code> -&gt; <code>os.Stdin</code></td>
+<td style="text-align:left">Sets <code>c.inReader</code> for interactive standard input reads.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetOutput(output io.Writer)</code></td>
+<td style="text-align:left"><code>os.Stderr</code></td>
+<td style="text-align:left"><strong>Deprecated</strong>: Sets both <code>c.outWriter = output</code> and <code>c.errWriter = output</code>. Use <code>SetOut()</code> and <code>SetErr()</code> instead.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>OutOrStdout()</code></td>
+<td style="text-align:left"><code>c.parent.getOut(os.Stdout)</code></td>
+<td style="text-align:left">Returns <code>c.outWriter</code> if set on <code>c</code> or any ancestor; otherwise returns <code>os.Stdout</code>. Used by <code>HelpFunc()</code> and <code>--version</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>OutOrStderr()</code></td>
+<td style="text-align:left"><code>c.parent.getOut(os.Stderr)</code></td>
+<td style="text-align:left">Returns <code>c.outWriter</code> if set on <code>c</code> or any ancestor; otherwise returns <strong><code>os.Stderr</code></strong>. Used by <code>UsageFunc()</code> and <code>c.Print*()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ErrOrStderr()</code></td>
+<td style="text-align:left"><code>c.parent.getErr(os.Stderr)</code></td>
+<td style="text-align:left">Returns <code>c.errWriter</code> if set on <code>c</code> or any ancestor; otherwise returns <code>os.Stderr</code>. Used by <code>c.PrintErr*()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>InOrStdin()</code></td>
+<td style="text-align:left"><code>c.parent.getIn(os.Stdin)</code></td>
+<td style="text-align:left">Returns <code>c.inReader</code> if set on <code>c</code> or any ancestor; otherwise returns <code>os.Stdin</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Print</code> / <code>Println</code> / <code>Printf</code></td>
+<td style="text-align:left">Writes to <code>c.OutOrStderr()</code></td>
+<td style="text-align:left">Prints formatted output to <code>c.outWriter</code> if configured via <code>SetOut()</code>, or falls back to <code>os.Stderr</code> if <code>SetOut()</code> was never called.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>PrintErr</code> / <code>PrintErrln</code> / <code>PrintErrf</code></td>
+<td style="text-align:left">Writes to <code>c.ErrOrStderr()</code></td>
+<td style="text-align:left">Prints formatted error messages to <code>c.errWriter</code> if configured via <code>SetErr()</code>, or falls back to <code>os.Stderr</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetErrPrefix(s string)</code> / <code>ErrPrefix()</code></td>
+<td style="text-align:left"><code>Parent()</code> -&gt; <code>&quot;Error:&quot;</code></td>
+<td style="text-align:left">Configures or retrieves the prefix printed before command errors in <code>ExecuteC()</code> (<code>c.PrintErrln(cmd.ErrPrefix(), err.Error())</code>).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!IMPORTANT]
+<strong><code>cmd.Print*</code> vs. <code>fmt.Fprint(cmd.OutOrStdout(), ...)</code></strong>: Notice that <code>cmd.Print()</code>, <code>cmd.Println()</code>, and <code>cmd.Printf()</code> call <code>c.OutOrStderr()</code>, which defaults to <strong><code>os.Stderr</code></strong> when <code>SetOut()</code> has not been explicitly called! To write to <code>os.Stdout</code> by default while still respecting <code>SetOut(buf)</code> in unit tests, either call <code>rootCmd.SetOut(os.Stdout)</code> during initialization or write to <code>fmt.Fprintln(cmd.OutOrStdout(), ...)</code>.</p>
+</blockquote>
+
+
+                
+                <nav class="catalog-pager" aria-label="Catalog Page Navigation">
+                    
+                    <a href="01_command_struct.html" class="catalog-pager-card is-prev">
+                        <span class="catalog-pager-dir">&larr; Previous</span>
+                        <span class="catalog-pager-title">Command Struct, Tree Topology &amp; Command Groups</span>
+                    </a>
+                    
+                    
+                    <a href="03_flags_and_flag_groups.html" class="catalog-pager-card is-next">
+                        <span class="catalog-pager-dir">Next &rarr;</span>
+                        <span class="catalog-pager-title">pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups</span>
+                    </a>
+                    
+                </nav>
+                
+            </main>
+
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial API reference — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var toggleBtn = document.getElementById('theme-toggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    var current = document.documentElement.getAttribute('data-theme');
+                    if (!current) {
+                        current = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                    }
+                    var next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    try { localStorage.setItem('drawlib-theme', next); } catch (e) {}
+                });
+            }
+
+            var menuBtn = document.getElementById('menu-toggle');
+            var sidebar = document.getElementById('catalog-sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            function closeMenu() {
+                if (sidebar) sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-open');
+            }
+            if (menuBtn && sidebar && backdrop) {
+                menuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('is-open');
+                    backdrop.classList.toggle('is-open');
+                });
+                backdrop.addEventListener('click', closeMenu);
+            }
+
+            document.querySelectorAll('.catalog-nav-cat-link').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            if (sidebar) {
+                try {
+                    var savedScroll = sessionStorage.getItem('drawlib-catalog-sidebar-scroll');
+                    if (savedScroll !== null) {
+                        sidebar.scrollTop = parseInt(savedScroll, 10) || 0;
+                    }
+                    sidebar.addEventListener('scroll', function() {
+                        try { sessionStorage.setItem('drawlib-catalog-sidebar-scroll', String(sidebar.scrollTop)); } catch (e) {}
+                    }, { passive: true });
+                } catch (e) {}
+            }
+
+            var groups = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-group'));
+            var expandBtn = document.getElementById('catalog-expand-toggle');
+            function updateExpandBtnLabel() {
+                if (!expandBtn || groups.length === 0) return;
+                var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                var expandText = expandBtn.getAttribute('data-expand-label') || 'Expand All';
+                var collapseText = expandBtn.getAttribute('data-collapse-label') || 'Collapse All';
+                expandBtn.textContent = allOpen ? collapseText : expandText;
+            }
+            if (expandBtn) {
+                updateExpandBtnLabel();
+                expandBtn.addEventListener('click', function() {
+                    var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                    var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                    visibleGroups.forEach(function(g) { g.open = !allOpen; });
+                    updateExpandBtnLabel();
+                });
+                groups.forEach(function(g) {
+                    g.addEventListener('toggle', updateExpandBtnLabel);
+                });
+            }
+
+            var filterInput = document.getElementById('catalog-filter-input');
+            var emptyNotice = document.getElementById('catalog-nav-empty');
+            var savedOpenState = null;
+
+            if (filterInput) {
+                filterInput.addEventListener('input', function() {
+                    var q = filterInput.value.trim().toLowerCase();
+                    if (q && !savedOpenState) {
+                        savedOpenState = groups.map(function(g) { return g.open; });
+                    }
+                    var anyMatch = false;
+                    groups.forEach(function(g, idx) {
+                        var catText = (g.getAttribute('data-cat') || '').toLowerCase();
+                        var catMatches = q !== '' && catText.indexOf(q) !== -1;
+                        var items = Array.prototype.slice.call(g.querySelectorAll('.catalog-nav-subitem'));
+                        var visibleCount = 0;
+
+                        items.forEach(function(li) {
+                            var symText = (li.getAttribute('data-sym') || '').toLowerCase();
+                            var show = (q === '') || catMatches || symText.indexOf(q) !== -1;
+                            li.hidden = !show;
+                            if (show) visibleCount += 1;
+                        });
+
+                        if (q === '') {
+                            g.hidden = false;
+                            if (savedOpenState && typeof savedOpenState[idx] === 'boolean') {
+                                g.open = savedOpenState[idx];
+                            }
+                            anyMatch = true;
+                        } else if (catMatches || visibleCount > 0) {
+                            g.hidden = false;
+                            g.open = true;
+                            anyMatch = true;
+                        } else {
+                            g.hidden = true;
+                        }
+                    });
+
+                    if (q === '') {
+                        savedOpenState = null;
+                    }
+                    if (emptyNotice) {
+                        emptyNotice.hidden = anyMatch;
+                    }
+                    updateExpandBtnLabel();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === '/' && document.activeElement !== filterInput) {
+                        var tag = document.activeElement ? document.activeElement.tagName : '';
+                        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                            e.preventDefault();
+                            filterInput.focus();
+                        }
+                    } else if (e.key === 'Escape' && document.activeElement === filterInput) {
+                        filterInput.value = '';
+                        filterInput.dispatchEvent(new Event('input'));
+                        filterInput.blur();
+                    }
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                document.querySelectorAll('.lang-dropdown[open]').forEach(function(dd) {
+                    if (!dd.contains(e.target)) {
+                        dd.removeAttribute('open');
+                    }
+                });
+            });
+
+            var activeLinks = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-sublink[data-target]'));
+            if (activeLinks.length > 0 && 'IntersectionObserver' in window) {
+                var linkBySlug = {};
+                var headings = [];
+                activeLinks.forEach(function(a) {
+                    var slug = a.getAttribute('data-target');
+                    var el = slug ? document.getElementById(slug) : null;
+                    if (slug && el) {
+                        linkBySlug[slug] = a;
+                        headings.push(el);
+                    }
+                    a.addEventListener('click', closeMenu);
+                });
+
+                function setActiveSlug(slug) {
+                    activeLinks.forEach(function(a) {
+                        if (a.getAttribute('data-target') === slug) {
+                            a.classList.add('is-active');
+                        } else {
+                            a.classList.remove('is-active');
+                        }
+                    });
+                }
+
+                if (window.location.hash) {
+                    var initSlug = decodeURIComponent(window.location.hash.slice(1));
+                    if (linkBySlug[initSlug]) setActiveSlug(initSlug);
+                } else if (headings.length > 0) {
+                    setActiveSlug(headings[0].id);
+                }
+
+                var visibleIds = {};
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        visibleIds[entry.target.id] = entry.isIntersecting;
+                    });
+                    for (var i = 0; i < headings.length; i++) {
+                        if (visibleIds[headings[i].id]) {
+                            setActiveSlug(headings[i].id);
+                            break;
+                        }
+                    }
+                }, { rootMargin: '-90px 0px -65% 0px', threshold: [0, 1] });
+
+                headings.forEach(function(h) { observer.observe(h); });
+            }
+        })();
+    </script>
+</body>
+</html>

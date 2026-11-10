@@ -1,0 +1,1873 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command Struct, Tree Topology &amp; Command Groups — Cobra API Reference (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('drawlib-theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    
+    <link rel="icon" href="../_assets/favicon.png">
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/01_command_struct.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/01_command_struct.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/01_command_struct.html">
+    
+    
+    
+    <meta name="description" content="The cobra.Command struct (command.go) is the central data structure of Cobra. Every root application binary, intermediate category subcommand, leaf action…">
+    <link rel="canonical" href="https://cobra.drawlib.com/api/en/01_command_struct.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra API Reference">
+    <meta property="og:title" content="Command Struct, Tree Topology &amp; Command Groups — Cobra API Reference">
+    <meta property="og:description" content="The cobra.Command struct (command.go) is the central data structure of Cobra. Every root application binary, intermediate category subcommand, leaf action…">
+    <meta property="og:url" content="https://cobra.drawlib.com/api/en/01_command_struct.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Command Struct, Tree Topology &amp; Command Groups — Cobra API Reference">
+    <meta name="twitter:description" content="The cobra.Command struct (command.go) is the central data structure of Cobra. Every root application binary, intermediate category subcommand, leaf action…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    
+    
+    
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">API REFERENCE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial API &amp; CLI Reference for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">API Reference</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar" id="catalog-sidebar">
+            <div class="sidebar-header has-subbar">
+                <a href="index.html" class="site-title">
+                    Cobra API Reference
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme" title="Toggle light/dark mode">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation menu">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-subbar">
+                
+                
+                <a href="index.html" class="sidebar-version-badge">
+                    <span class="sidebar-version-dot"></span>
+                    <span>API Reference · v1.10.2</span>
+                </a>
+                
+                
+                
+                <a href="https://github.com/spf13/cobra" target="_blank" rel="noopener noreferrer" class="sidebar-github-link" aria-label="Repository" title="View Upstream Cobra Repository">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </a>
+                
+            </div>
+            
+
+            <div class="sidebar-menu">
+                <div class="catalog-sidebar-toolbar">
+                    <div class="catalog-filter-box">
+                        <svg class="catalog-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input id="catalog-filter-input" type="search" class="catalog-filter-input" placeholder="Filter items..." autocomplete="off" spellcheck="false" aria-label="Filter items...">
+                        <kbd class="catalog-filter-kbd">/</kbd>
+                    </div>
+                    <div class="catalog-toolbar-meta">
+                        <span class="catalog-toolbar-label">Categories &amp; Items</span>
+                        <button type="button" id="catalog-expand-toggle" class="catalog-expand-btn" data-expand-label="Expand All" data-collapse-label="Collapse All">Collapse All</button>
+                    </div>
+                </div>
+
+                <nav class="catalog-sidebar-nav" id="catalog-sidebar-nav" aria-label="Catalog Navigation">
+                    
+                    
+                    
+                    <details class="catalog-nav-group" data-cat="Cobra API Reference Overview" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="00_overview.html" class="catalog-nav-cat-link is-prose-cat">Cobra API Reference Overview</a>
+                            
+                            <span class="catalog-nav-count">8</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="package github.com/spf13/cobra">
+                                <a href="00_overview.html#github-com-spf13-cobra" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">package</span>
+                                    
+                                    <span class="catalog-nav-sym-text">github.com/spf13/cobra</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="var Package-Level Configuration Variables (cobra.go)">
+                                <a href="00_overview.html#var-package-level-configuration-variables-cobra-go" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">var Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const Exported Annotation &amp; Completion Constants">
+                                <a href="00_overview.html#exported-annotation-completion-constants" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Exported Annotation &amp; Completion Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnInitialize()">
+                                <a href="00_overview.html#cobra-oninitialize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnInitialize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnFinalize()">
+                                <a href="00_overview.html#cobra-onfinalize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnFinalize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs">
+                                <a href="00_overview.html#cobra-addtemplatefunc-cobra-addtemplatefuncs" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.CheckErr &amp; cobra.WriteStringAndCheck">
+                                <a href="00_overview.html#cobra-checkerr-cobra-writestringandcheck" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.CheckErr &amp; cobra.WriteStringAndCheck</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.Gt &amp; cobra.Eq">
+                                <a href="00_overview.html#cobra-gt-cobra-eq" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Gt &amp; cobra.Eq</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group is-current-page" data-cat="Command Struct, Tree Topology &amp; Command Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="01_command_struct.html" class="catalog-nav-cat-link is-prose-cat">Command Struct, Tree Topology &amp; Command Groups</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Command">
+                                <a href="#cobra-command" class="catalog-nav-sublink is-prose-sublink" data-target="cobra-command">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Command</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Group &amp; type cobra.FParseErrWhitelist">
+                                <a href="#cobra-group-type-cobra-fparseerrwhitelist" class="catalog-nav-sublink is-prose-sublink" data-target="cobra-group-type-cobra-fparseerrwhitelist">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Group &amp; type cobra.FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree Construction &amp; Navigation Methods">
+                                <a href="#tree-construction-navigation-methods" class="catalog-nav-sublink is-prose-sublink" data-target="tree-construction-navigation-methods">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree Construction &amp; Navigation Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree &amp; Availability Predicate Methods">
+                                <a href="#tree-availability-predicate-methods" class="catalog-nav-sublink is-prose-sublink" data-target="tree-availability-predicate-methods">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree &amp; Availability Predicate Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Naming, Path, Alias &amp; Padding Methods">
+                                <a href="#naming-path-alias-padding-methods" class="catalog-nav-sublink is-prose-sublink" data-target="naming-path-alias-padding-methods">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Naming, Path, Alias &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Group Management Methods">
+                                <a href="#command-group-management-methods" class="catalog-nav-sublink is-prose-sublink" data-target="command-group-management-methods">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Group Management Methods</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="Command Execution, Resolution &amp; I/O Streams" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="02_lifecycle_and_execution.html" class="catalog-nav-cat-link is-prose-cat">Command Execution, Resolution &amp; I/O Streams</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Execution Entrypoints &amp; context.Context">
+                                <a href="02_lifecycle_and_execution.html#execution-entrypoints-context-context" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Execution Entrypoints &amp; context.Context</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Resolution &amp; Dash Boundary()">
+                                <a href="02_lifecycle_and_execution.html#command-resolution-dash-boundary" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Resolution &amp; Dash Boundary()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Global Lifecycle Callbacks &amp; Hook Traversal">
+                                <a href="02_lifecycle_and_execution.html#global-lifecycle-callbacks-hook-traversal" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Global Lifecycle Callbacks &amp; Hook Traversal</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Input/Output Streams, Arg Injection &amp; Error Prefixes">
+                                <a href="02_lifecycle_and_execution.html#input-output-streams-arg-injection-error-prefixes" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Input/Output Streams, Arg Injection &amp; Error Prefixes</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="03_flags_and_flag_groups.html" class="catalog-nav-cat-link">pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method pflag.FlagSet Accessor &amp; Parsing Methods">
+                                <a href="03_flags_and_flag_groups.html#pflag-flagset-accessor-parsing-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">pflag.FlagSet Accessor &amp; Parsing Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method FlagSet Availability Predicates">
+                                <a href="03_flags_and_flag_groups.html#flagset-availability-predicates" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">FlagSet Availability Predicates</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Relational Flag Group API()">
+                                <a href="03_flags_and_flag_groups.html#relational-flag-group-api" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Relational Flag Group API()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Single-Flag Requirement &amp; Shell Completion Annotations()">
+                                <a href="03_flags_and_flag_groups.html#single-flag-requirement-shell-completion-annotations" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Single-Flag Requirement &amp; Shell Completion Annotations()</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="PositionalArgs Type &amp; Built-in Validator Combinators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="04_positional_args.html" class="catalog-nav-cat-link is-prose-cat">PositionalArgs Type &amp; Built-in Validator Combinators</a>
+                            
+                            <span class="catalog-nav-count">3</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type cobra.PositionalArgs &amp; method (*Command).ValidateArgs">
+                                <a href="04_positional_args.html#cobra-positionalargs-method" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.PositionalArgs &amp; method (*Command).ValidateArgs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Complete Positional Argument Validators Reference()">
+                                <a href="04_positional_args.html#complete-positional-argument-validators-reference" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Complete Positional Argument Validators Reference()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Detailed Behavior &amp; Edge Cases">
+                                <a href="04_positional_args.html#detailed-behavior-edge-cases" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Detailed Behavior &amp; Edge Cases</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="05. Dynamic Completions, Directives &amp; ActiveHelp" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="05_completions_and_directives.html" class="catalog-nav-cat-link">05. Dynamic Completions, Directives &amp; ActiveHelp</a>
+                            
+                            <span class="catalog-nav-count">9</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type Completion &amp; CompletionFunc">
+                                <a href="05_completions_and_directives.html#completion-completionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Completion &amp; CompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompletionWithDesc, NoFileCompletions &amp; FixedCompletions">
+                                <a href="05_completions_and_directives.html#completionwithdesc-nofilecompletions-fixedcompletions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionWithDesc, NoFileCompletions &amp; FixedCompletions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="type ShellCompDirective &amp; Bitmask Constants">
+                                <a href="05_completions_and_directives.html#shellcompdirective-bitmask-constants" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompDirective &amp; Bitmask Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct CompletionOptions">
+                                <a href="05_completions_and_directives.html#completionoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionOptions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc">
+                                <a href="05_completions_and_directives.html#command-registerflagcompletionfunc-getflagcompletionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd">
+                                <a href="05_completions_and_directives.html#shellcomprequestcmd-shellcompnodescrequestcmd" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompDebug, CompDebugln, CompError &amp; CompErrorln">
+                                <a href="05_completions_and_directives.html#compdebug-compdebugln-comperror-comperrorln" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompDebug, CompDebugln, CompError &amp; CompErrorln</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func AppendActiveHelp &amp; GetActiveHelpConfig">
+                                <a href="05_completions_and_directives.html#appendactivehelp-getactivehelpconfig" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">AppendActiveHelp &amp; GetActiveHelpConfig</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="05_completions_and_directives.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="06. Shell Completion Script Generators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="06_shell_script_generators.html" class="catalog-nav-cat-link">06. Shell Completion Script Generators</a>
+                            
+                            <span class="catalog-nav-count">7</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID">
+                                <a href="06_shell_script_generators.html#command-initdefaultcompletioncmd-setcompletioncommandgroupid" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Bash Completion Generators()">
+                                <a href="06_shell_script_generators.html#bash-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Bash Completion Generators()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Zsh Completion Generators">
+                                <a href="06_shell_script_generators.html#zsh-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Zsh Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Fish Completion Generators">
+                                <a href="06_shell_script_generators.html#fish-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Fish Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method PowerShell Completion Generators">
+                                <a href="06_shell_script_generators.html#powershell-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">PowerShell Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Declarative Flag Completion Helpers()">
+                                <a href="06_shell_script_generators.html#declarative-flag-completion-helpers" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Declarative Flag Completion Helpers()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="06_shell_script_generators.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="07. Help, Usage, Templates &amp; Global Configuration" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="07_help_usage_and_templates.html" class="catalog-nav-cat-link">07. Help, Usage, Templates &amp; Global Configuration</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Help Methods()">
+                                <a href="07_help_usage_and_templates.html#help-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Help Methods()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Usage, Version &amp; Padding Methods">
+                                <a href="07_help_usage_and_templates.html#usage-version-padding-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Usage, Version &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Template Functions()">
+                                <a href="07_help_usage_and_templates.html#template-functions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Template Functions()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Suggestions, Flag Error Handling &amp; FParseErrWhitelist">
+                                <a href="07_help_usage_and_templates.html#suggestions-flag-error-handling-fparseerrwhitelist" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Suggestions, Flag Error Handling &amp; FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Package-Level Configuration Variables (cobra.go)">
+                                <a href="07_help_usage_and_templates.html#package-level-configuration-variables" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="07_help_usage_and_templates.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="08. Auto-Generated Documentation (cobra/doc)" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="08_doc_generation.html" class="catalog-nav-cat-link">08. Auto-Generated Documentation (cobra/doc)</a>
+                            
+                            <span class="catalog-nav-count">15</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="Format Comparison Matrix">
+                                <a href="08_doc_generation.html#format-comparison-matrix" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Format Comparison Matrix</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdown()">
+                                <a href="08_doc_generation.html#genmarkdown" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdown()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownCustom()">
+                                <a href="08_doc_generation.html#genmarkdowncustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTree()">
+                                <a href="08_doc_generation.html#genmarkdowntree" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTree()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTreeCustom()">
+                                <a href="08_doc_generation.html#genmarkdowntreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManHeader (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmanheader" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManHeader (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManTreeOptions (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmantreeoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTreeOptions (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMan()">
+                                <a href="08_doc_generation.html#genman" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMan()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenManTree &amp; func GenManTreeFromOpts()">
+                                <a href="08_doc_generation.html#genmantree-func-genmantreefromopts" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTree &amp; func GenManTreeFromOpts()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReST &amp; func GenReSTCustom()">
+                                <a href="08_doc_generation.html#genrest-func-genrestcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReST &amp; func GenReSTCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReSTTree &amp; func GenReSTTreeCustom()">
+                                <a href="08_doc_generation.html#genresttree-func-genresttreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReSTTree &amp; func GenReSTTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYaml &amp; func GenYamlCustom()">
+                                <a href="08_doc_generation.html#genyaml-func-genyamlcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYaml &amp; func GenYamlCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYamlTree &amp; func GenYamlTreeCustom()">
+                                <a href="08_doc_generation.html#genyamltree-func-genyamltreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYamlTree &amp; func GenYamlTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Command.DisableAutoGenTag (command.go)">
+                                <a href="08_doc_generation.html#command-disableautogentag" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.DisableAutoGenTag (command.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="08_doc_generation.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    
+                    <div id="catalog-nav-empty" class="catalog-nav-empty" hidden>No matching items found.</div>
+                </nav>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <div class="content-wrapper">
+            <div class="top-bar">
+                <div class="breadcrumbs">
+                    <a href="index.html" class="crumb">API Reference</a>
+                    <span class="crumb-separator">/</span>
+                    <span class="crumb active">Command Struct, Tree Topology &amp; Command Groups</span>
+                </div>
+                
+                <div class="top-bar-right">
+                    
+                    
+                    <div class="lang-switcher" aria-label="Language switcher">
+                        <details class="lang-dropdown">
+                            <summary class="lang-dropdown-btn" aria-haspopup="listbox">
+                                <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                <span class="lang-current-label">English</span>
+                                <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </summary>
+                            <div class="lang-dropdown-menu" role="listbox">
+                                
+                                
+                                <span class="lang-option active" role="option" aria-selected="true">
+                                    <span>English</span>
+                                    <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </span>
+                                
+                                
+                                
+                                <a href="../ja/01_command_struct.html" class="lang-option" role="option" hreflang="">
+                                    <span>日本語</span>
+                                </a>
+                                
+                                
+                            </div>
+                        </details>
+                    </div>
+                    
+                </div>
+                
+            </div>
+
+            <main class="main-content catalog-main-content">
+                <h1 class="catalog-page-title">Command Struct, Tree Topology &amp; Command Groups</h1>
+<p>The <code>cobra.Command</code> struct (<code>command.go</code>) is the central data structure of Cobra. Every root application binary, intermediate category subcommand, leaf action command, and additional help topic is represented as a <code>*cobra.Command</code> node in an in-memory n-ary tree.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/01_command_struct/api_command_struct_anatomy.png" alt="01_command_struct_1" />
+  <figcaption class="drawlib-caption">cobra.Command Struct Anatomy — 35 Exported Fields Across Identity, Parsing & Lifecycle Hooks</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">Colors</span>
+
+<span class="n">col_specs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span>
+        <span class="mf">4.0</span><span class="p">,</span>
+        <span class="s2">"1. Identity &amp; Tree"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"Use, Short, Long, Example"</span><span class="p">,</span> <span class="s2">"Usage syntax &amp; help prose"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">file_text</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Aliases, SuggestFor, GroupID"</span><span class="p">,</span> <span class="s2">"Routing aliases &amp; help groups"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Version &amp; Annotations"</span><span class="p">,</span> <span class="s2">"--version flag &amp; metadata map"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">bookmarks</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="mf">65.5</span><span class="p">,</span>
+        <span class="s2">"2. Flags, Args &amp; Toggles"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"Args &amp; ValidArgs[Function]"</span><span class="p">,</span> <span class="s2">"Positional checks &amp; completion"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">list_checks</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"SilenceErrors / SilenceUsage"</span><span class="p">,</span> <span class="s2">"Suppress stderr &amp; usage dump"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">speaker_slash</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"Disable* &amp; TraverseChildren"</span><span class="p">,</span> <span class="s2">"Flag parsing &amp; parent traversal"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">gear</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="mf">127.0</span><span class="p">,</span>
+        <span class="s2">"3. 5-Stage Run Hooks"</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+        <span class="n">phosphor</span><span class="o">.</span><span class="n">play_circle</span><span class="p">,</span>
+        <span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"PersistentPreRun[E]"</span><span class="p">,</span> <span class="s2">"Inherited pre-execution hook"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">arrow_bend_down_right</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"PreRun[E] &amp; Run[E]"</span><span class="p">,</span> <span class="s2">"Local pre-hook &amp; primary action"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">play</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"PostRun &amp; PersistentPostRun"</span><span class="p">,</span> <span class="s2">"Local &amp; inherited post-hooks"</span><span class="p">,</span> <span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+
+<span class="k">for</span> <span class="n">x0</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">body_style</span><span class="p">,</span> <span class="n">hdr_style</span><span class="p">,</span> <span class="n">hdr_text_style</span><span class="p">,</span> <span class="n">hdr_icon</span><span class="p">,</span> <span class="n">hdr_icon_style</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">col_specs</span><span class="p">:</span>
+    <span class="n">panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+        <span class="n">title</span><span class="p">,</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">body_style</span><span class="p">,</span>
+        <span class="n">header_style</span><span class="o">=</span><span class="n">hdr_style</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">hdr_text_style</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">hdr_icon</span><span class="p">,</span>
+        <span class="n">icon_style</span><span class="o">=</span><span class="n">hdr_icon_style</span><span class="p">,</span>
+        <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+        <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="n">x0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">57.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">)</span>
+    <span class="n">inner_xy</span><span class="p">,</span> <span class="n">inner_w</span><span class="p">,</span> <span class="n">inner_h</span> <span class="o">=</span> <span class="n">panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span>
+        <span class="n">width</span><span class="o">=</span><span class="mf">57.0</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">),</span>
+        <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">cards</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+        <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+        <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+        <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+        <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="o">=</span><span class="mf">2.6</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">mod_name</span><span class="p">,</span> <span class="n">mod_desc</span><span class="p">,</span> <span class="n">mod_icon</span><span class="p">,</span> <span class="n">is_focal</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_focal</span><span class="p">:</span>
+            <span class="n">cards</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+                <span class="n">mod_name</span><span class="p">,</span>
+                <span class="n">mod_desc</span><span class="p">,</span>
+                <span class="n">icon</span><span class="o">=</span><span class="n">mod_icon</span><span class="p">,</span>
+                <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+                <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cards</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mod_name</span><span class="p">,</span> <span class="n">mod_desc</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">mod_icon</span><span class="p">)</span>
+    <span class="n">cards</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">inner_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">inner_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">inner_h</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"bottom_left"</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="cobra-command" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-class">struct</span><code class="catalog-sig"><span class="catalog-sig-name">cobra.Command</span></code><a class="header-anchor" href="#cobra-command" aria-label="Permalink to cobra.Command">#</a></h2>
+<p>Defines a CLI command node (<code>command.go:L54-L260</code>). A <code>Command</code> struct is instantiated as a struct literal (<code>&amp;cobra.Command{...}</code>) and wired into a command hierarchy via <code>AddCommand()</code>.</p>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">Command</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// Identity, Documentation &amp; Grouping</span>
+<span class="w">	</span><span class="nx">Use</span><span class="w">         </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Aliases</span><span class="w">     </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">SuggestFor</span><span class="w">  </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Short</span><span class="w">       </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">GroupID</span><span class="w">     </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Long</span><span class="w">        </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Example</span><span class="w">     </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Annotations</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Version</span><span class="w">     </span><span class="kt">string</span>
+
+<span class="w">	</span><span class="c1">// Argument Validation &amp; Shell Completion</span>
+<span class="w">	</span><span class="nx">ValidArgs</span><span class="w">              </span><span class="p">[]</span><span class="nx">Completion</span>
+<span class="w">	</span><span class="nx">ValidArgsFunction</span><span class="w">      </span><span class="nx">CompletionFunc</span>
+<span class="w">	</span><span class="nx">Args</span><span class="w">                   </span><span class="nx">PositionalArgs</span>
+<span class="w">	</span><span class="nx">ArgAliases</span><span class="w">             </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">BashCompletionFunction</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">CompletionOptions</span><span class="w">      </span><span class="nx">CompletionOptions</span>
+
+<span class="w">	</span><span class="c1">// Execution Lifecycle Hooks (Executed in order: PersistentPreRun -&gt; PreRun -&gt; Run -&gt; PostRun -&gt; PersistentPostRun)</span>
+<span class="w">	</span><span class="nx">PersistentPreRun</span><span class="w">   </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">PersistentPreRunE</span><span class="w">  </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">	</span><span class="nx">PreRun</span><span class="w">             </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">PreRunE</span><span class="w">            </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">	</span><span class="nx">Run</span><span class="w">                </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">RunE</span><span class="w">               </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">	</span><span class="nx">PostRun</span><span class="w">            </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">PostRunE</span><span class="w">           </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">	</span><span class="nx">PersistentPostRun</span><span class="w">  </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">PersistentPostRunE</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="w">	</span><span class="c1">// Flag Parsing, Error Handling &amp; Suggestion Toggles</span>
+<span class="w">	</span><span class="nx">FParseErrWhitelist</span><span class="w">         </span><span class="nx">FParseErrWhitelist</span>
+<span class="w">	</span><span class="nx">TraverseChildren</span><span class="w">           </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">Hidden</span><span class="w">                     </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">Deprecated</span><span class="w">                 </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">SilenceErrors</span><span class="w">              </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">SilenceUsage</span><span class="w">               </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">DisableFlagParsing</span><span class="w">         </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">DisableAutoGenTag</span><span class="w">          </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">DisableFlagsInUseLine</span><span class="w">      </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">DisableSuggestions</span><span class="w">         </span><span class="kt">bool</span>
+<span class="w">	</span><span class="nx">SuggestionsMinimumDistance</span><span class="w"> </span><span class="kt">int</span>
+<span class="p">}</span>
+</code></pre>
+<h3 id="1-identity-documentation-grouping-fields">1. Identity, Documentation &amp; Grouping Fields<a class="header-anchor" href="#1-identity-documentation-grouping-fields" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Field</th>
+<th style="text-align:left">Type</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Use</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">One-line usage signature. The <strong>first whitespace-delimited token</strong> becomes <code>cmd.Name()</code> (e.g., <code>&quot;deploy [flags] &lt;env&gt;&quot;</code> -&gt; <code>Name() == &quot;deploy&quot;</code>). Recommended syntax uses <code>[ ]</code> for optional args, <code>...</code> for repeatable args, <code>|</code> for mutually exclusive choices, and <code>{ }</code> for required mutually exclusive sets.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Aliases</code></td>
+<td style="text-align:left"><code>[]string</code></td>
+<td style="text-align:left">Alternative command names accepted during command resolution (<code>findNext</code>) in place of <code>Name()</code>. Displayed in help output under <code>Aliases:</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SuggestFor</code></td>
+<td style="text-align:left"><code>[]string</code></td>
+<td style="text-align:left">Command names (such as common typos or competitor CLI verbs like <code>&quot;remove&quot;</code> or <code>&quot;rm&quot;</code> on a <code>delete</code> command) that are <strong>not</strong> executable aliases, but trigger <code>&quot;Did you mean this?&quot;</code> suggestions via <code>SuggestionsFor()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Short</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Concise one-line summary shown in the parent command's <code>Available Commands:</code> table and shell completion descriptions.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>GroupID</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">ID of a <code>cobra.Group</code> registered on the <strong>parent</strong> command via <code>parent.AddGroup()</code>. If set to a non-empty string not registered on the parent, <code>ExecuteC()</code> panics (<code>checkCommandGroups()</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Long</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Full multi-line description rendered by <code>help &lt;command&gt;</code> / <code>&lt;command&gt; --help</code> and <code>cobra/doc</code> generators. Falls back to <code>Short</code> when empty.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Example</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Multi-line usage examples rendered under the <code>Examples:</code> section of usage/help output and documentation.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Annotations</code></td>
+<td style="text-align:left"><code>map[string]string</code></td>
+<td style="text-align:left">Arbitrary application metadata map. Setting <code>Annotations[cobra.CommandDisplayNameAnnotation]</code> overrides <code>cmd.DisplayName()</code> in help output.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Version</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Version string for this command. When non-empty, <code>InitDefaultVersionFlag()</code> automatically registers <code>--version</code> (and <code>-v</code> if <code>-v</code> is unused) and prints <code>versionTemplate</code> when passed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-flags-arguments-completion-behavior-fields">2. Flags, Arguments, Completion &amp; Behavior Fields<a class="header-anchor" href="#2-flags-arguments-completion-behavior-fields" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Field</th>
+<th style="text-align:left">Type</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>ValidArgs</code></td>
+<td style="text-align:left"><code>[]Completion</code></td>
+<td style="text-align:left">Static slice of valid positional arguments for shell completion (and checked by <code>OnlyValidArgs</code>). Elements may include a <code>\t</code>-separated description via <code>CompletionWithDesc()</code>. Mutually exclusive with <code>ValidArgsFunction</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ValidArgsFunction</code></td>
+<td style="text-align:left"><code>CompletionFunc</code></td>
+<td style="text-align:left">Dynamic Go callback <code>func(cmd *Command, args []string, toComplete string) ([]Completion, ShellCompDirective)</code> invoked by <code>__complete</code> to compute positional argument completions at runtime.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Args</code></td>
+<td style="text-align:left"><code>PositionalArgs</code></td>
+<td style="text-align:left">Positional argument validator <code>func(cmd *Command, args []string) error</code> (see <a href="04_positional_args.html">04. Positional Args</a>). When <code>nil</code>, <code>Find()</code> applies <code>legacyArgs</code> and <code>ValidateArgs()</code> allows arbitrary args.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ArgAliases</code></td>
+<td style="text-align:left"><code>[]string</code></td>
+<td style="text-align:left">Hidden aliases for <code>ValidArgs</code> accepted by Bash completion without being actively suggested in completion menus.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>BashCompletionFunction</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Custom raw Bash script functions injected into legacy <code>GenBashCompletion()</code> V1 output. Prefer <code>ValidArgsFunction</code> for cross-shell portability.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CompletionOptions</code></td>
+<td style="text-align:left"><code>CompletionOptions</code></td>
+<td style="text-align:left">Configures the built-in <code>completion</code> command (<code>DisableDefaultCmd</code>, <code>DisableNoDescFlag</code>, <code>DisableDescriptions</code>, <code>HiddenDefaultCmd</code>, <code>DefaultShellCompDirective</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>FParseErrWhitelist</code></td>
+<td style="text-align:left"><code>FParseErrWhitelist</code></td>
+<td style="text-align:left">Alias of <code>pflag.ParseErrorsAllowlist</code> (<code>struct{ UnknownFlags bool }</code>). When <code>UnknownFlags: true</code>, <code>ParseFlags()</code> ignores unknown flags instead of returning an error.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>TraverseChildren</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code> on the root command, <code>ExecuteC()</code> uses <code>Traverse()</code> instead of <code>Find()</code>, parsing local and persistent flags on every intermediate parent command along the path before dispatching to the target child command.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Deprecated</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Deprecation notice message. When non-empty, hides the command from <code>Available Commands:</code> (<code>IsAvailableCommand() == false</code>), omits it from completions, and prints <code>&quot;Command &lt;name&gt; is deprecated, &lt;msg&gt;&quot;</code> when invoked.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Hidden</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code>, hides the command from help output, shell completions, and <code>cobra/doc</code> generation while keeping it executable if typed explicitly.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SilenceErrors</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code> (on either the executed command or root command), prevents <code>ExecuteC()</code> from automatically printing <code>Error: &lt;err&gt;</code> to <code>ErrOrStderr()</code> when <code>execute()</code> returns an error.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SilenceUsage</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code> (on either the executed command or root command), prevents <code>ExecuteC()</code> from automatically dumping <code>UsageString()</code> when <code>RunE</code> or flag/arg validation returns an error.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableFlagParsing</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code>, skips <code>pflag</code> parsing entirely and passes all raw tokens (including <code>-f</code> / <code>--flag</code>) directly to <code>Run</code> / <code>RunE</code> via <code>args []string</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableAutoGenTag</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code>, suppresses the <code>&quot;Auto generated by spf13/cobra on ...&quot;</code> footer in <code>cobra/doc</code> Markdown, Man, and ReST output.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableFlagsInUseLine</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code>, prevents <code>UseLine()</code> from automatically appending <code>&quot; [flags]&quot;</code> when the command has available flags.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableSuggestions</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">When <code>true</code>, disables Levenshtein distance <code>&quot;Did you mean this?&quot;</code> typo suggestions on unknown subcommand errors.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SuggestionsMinimumDistance</code></td>
+<td style="text-align:left"><code>int</code></td>
+<td style="text-align:left">Maximum Levenshtein edit distance to consider a child command name a typo match (defaults to <code>2</code> when <code>&lt;= 0</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-execution-lifecycle-hook-fields">3. Execution Lifecycle Hook Fields<a class="header-anchor" href="#3-execution-lifecycle-hook-fields" aria-label="Permalink">#</a></h3>
+<p>All 10 lifecycle hooks receive <code>(cmd *Command, args []string)</code>, where <code>args</code> is the slice of positional arguments remaining after flag extraction. Hooks are only executed on commands where <code>cmd.Runnable()</code> is <code>true</code> (<code>Run != nil || RunE != nil</code>). If both <code>*E</code> and non-<code>E</code> variants are set on the same command, <strong><code>*E</code> takes precedence</strong> (<code>if c.RunE != nil { ... } else { c.Run(...) }</code>).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Hook Field</th>
+<th style="text-align:left">Signature</th>
+<th style="text-align:left">Inheritance &amp; Execution Order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>PersistentPreRunE</code> / <code>PersistentPreRun</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) [error]</code></td>
+<td style="text-align:left"><strong>Stage 1</strong>: Inherited by child commands. By default (<code>EnableTraverseRunHooks == false</code>), executes the first defined hook found walking up <code>c -&gt; c.Parent() -&gt; ...</code>. When <code>EnableTraverseRunHooks == true</code>, executes all defined ancestor hooks top-down from <code>Root()</code> to <code>c</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>PreRunE</code> / <code>PreRun</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) [error]</code></td>
+<td style="text-align:left"><strong>Stage 2</strong>: Local to <code>c</code> (not inherited by children). Runs after <code>PersistentPreRun[E]</code> and <strong>before</strong> <code>ValidateRequiredFlags()</code> and <code>ValidateFlagGroups()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>RunE</code> / <code>Run</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) [error]</code></td>
+<td style="text-align:left"><strong>Stage 3</strong>: Primary command workload. Runs after <code>ValidateRequiredFlags()</code> and <code>ValidateFlagGroups()</code> succeed.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>PostRunE</code> / <code>PostRun</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) [error]</code></td>
+<td style="text-align:left"><strong>Stage 4</strong>: Local to <code>c</code>. Runs immediately after <code>Run</code> / <code>RunE</code> succeeds (skipped if <code>RunE</code> returns an error).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>PersistentPostRunE</code> / <code>PersistentPostRun</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) [error]</code></td>
+<td style="text-align:left"><strong>Stage 5</strong>: Inherited by child commands. Runs after <code>PostRun[E]</code>. When <code>EnableTraverseRunHooks == true</code>, executes bottom-up from <code>c</code> to <code>Root()</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cobra-group-type-cobra-fparseerrwhitelist" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-class">struct</span><code class="catalog-sig"><span class="catalog-sig-name">cobra.Group &amp; type cobra.FParseErrWhitelist</span></code><a class="header-anchor" href="#cobra-group-type-cobra-fparseerrwhitelist" aria-label="Permalink to cobra.Group &amp; type cobra.FParseErrWhitelist">#</a></h2>
+<p>Supporting types declared at the top of <code>command.go</code> (<code>L41-L48</code>):</p>
+<pre><code class="language-go"><span class="c1">// FParseErrWhitelist configures Flag parse errors to be ignored</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">FParseErrWhitelist</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ParseErrorsAllowlist</span>
+
+<span class="c1">// Group Structure to manage groups for commands</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Group</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">ID</span><span class="w">    </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Title</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Type / Field</th>
+<th style="text-align:left">Underlying Type</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>FParseErrWhitelist.UnknownFlags</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">Ignores unknown <code>--flags</code> during <code>c.ParseFlags(args)</code> instead of failing with <code>unknown flag</code>. Copied onto <code>c.Flags().ParseErrorsAllowlist</code> right before <code>Parse()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Group.ID</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Unique identifier matched against child <code>Command.GroupID</code>, <code>SetHelpCommandGroupID()</code>, and <code>SetCompletionCommandGroupID()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Group.Title</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Section header title printed in <code>UsageString()</code> above all child commands belonging to <code>Group.ID</code> (e.g., <code>&quot;Basic Commands:&quot;</code>, <code>&quot;Cluster Management:&quot;</code>).</td>
+</tr>
+</tbody>
+</table>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/01_command_struct/api_command_tree_and_groups.png" alt="01_command_struct_2" />
+  <figcaption class="drawlib-caption">Command Tree Topology & Subcommand Group Assignment (AddCommand, AddGroup, GroupID)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.diagrams.architecture</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArchitectureDiagram</span><span class="p">,</span> <span class="n">Node</span><span class="p">,</span> <span class="n">NodeGroup</span><span class="p">,</span> <span class="n">PhosphorIcon</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">84</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">Colors</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">ArchitectureDiagram</span><span class="p">(</span>
+    <span class="n">node_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">node_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.2</span><span class="p">),</span>
+    <span class="n">edge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">line_width</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">edge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">node_card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">root_node</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"Root *Command (Use: </span><span class="se">\"</span><span class="s2">ctl</span><span class="se">\"</span><span class="s2">)</span><span class="se">\n</span><span class="s2">AddCommand() &amp; AddGroup()"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">TERMINAL_WINDOW</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">7.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.5</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">28.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">core_grp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">NodeGroup</span><span class="p">(</span>
+        <span class="s2">"Group{ID: </span><span class="se">\"</span><span class="s2">work</span><span class="se">\"</span><span class="s2">, Title: </span><span class="se">\"</span><span class="s2">Workload Commands:</span><span class="se">\"</span><span class="s2">}"</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">112</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">34</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.8</span><span class="p">,</span> <span class="n">halign</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">"top"</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">68.0</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">deploy_node</span> <span class="o">=</span> <span class="n">core_grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"deploy *Command</span><span class="se">\n</span><span class="s2">GroupID: </span><span class="se">\"</span><span class="s2">work</span><span class="se">\"</span><span class="s2">"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">ROCKET_LAUNCH</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">29.0</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">roll_node</span> <span class="o">=</span> <span class="n">core_grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"rollback *Command</span><span class="se">\n</span><span class="s2">GroupID: </span><span class="se">\"</span><span class="s2">work</span><span class="se">\"</span><span class="s2">"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">ARROW_COUNTER_CLOCKWISE</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">83.0</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">sys_grp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">NodeGroup</span><span class="p">(</span>
+        <span class="s2">"Built-in &amp; Ungrouped Subcommands"</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">112</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">34</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.8</span><span class="p">,</span> <span class="n">halign</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">"top"</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">68.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">help_node</span> <span class="o">=</span> <span class="n">sys_grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"help *Command</span><span class="se">\n</span><span class="s2">SetHelpCommandGroupID()"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">QUESTION</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">29.0</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">comp_node</span> <span class="o">=</span> <span class="n">sys_grp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="n">Node</span><span class="p">(</span>
+        <span class="s2">"completion *Command</span><span class="se">\n</span><span class="s2">SetCompletionCommandGroupID()"</span><span class="p">,</span>
+        <span class="n">icon</span><span class="o">=</span><span class="n">PhosphorIcon</span><span class="o">.</span><span class="n">SPARKLE</span><span class="p">,</span>
+        <span class="n">icon_size</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">card_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">83.0</span><span class="p">,</span> <span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">root_node</span><span class="p">,</span> <span class="n">deploy_node</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">root_node</span><span class="p">,</span> <span class="n">help_node</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">deploy_node</span><span class="p">,</span> <span class="n">roll_node</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">help_node</span><span class="p">,</span> <span class="n">comp_node</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="tree-construction-navigation-methods" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Tree Construction &amp; Navigation Methods</span></code><a class="header-anchor" href="#tree-construction-navigation-methods" aria-label="Permalink to Tree Construction &amp; Navigation Methods">#</a></h2>
+<p>Methods on <code>*Command</code> for building, mutating, and walking the command tree (<code>command.go</code>).</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">cmds</span><span class="w"> </span><span class="p">...</span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveCommand</span><span class="p">(</span><span class="nx">cmds</span><span class="w"> </span><span class="p">...</span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ResetCommands</span><span class="p">()</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Commands</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">Command</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Parent</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Root</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">VisitParents</span><span class="p">(</span><span class="nx">fn</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">))</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Signature</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>AddCommand</code></td>
+<td style="text-align:left"><code>func (c *Command) AddCommand(cmds ...*Command)</code></td>
+<td style="text-align:left">Attaches one or more child commands to <code>c</code>, sets <code>child.parent = c</code>, recomputes padding widths (<code>commandsMaxUseLen</code>, <code>commandsMaxCommandPathLen</code>, <code>commandsMaxNameLen</code>), propagates <code>c.globNormFunc</code> if present, and marks <code>c.commandsAreSorted = false</code>. Panics with <code>&quot;Command can't be a child of itself&quot;</code> if <code>cmd == c</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>RemoveCommand</code></td>
+<td style="text-align:left"><code>func (c *Command) RemoveCommand(cmds ...*Command)</code></td>
+<td style="text-align:left">Detaches matching child commands (<code>command.parent = nil</code>) and recomputes max padding widths across remaining children.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ResetCommands</code></td>
+<td style="text-align:left"><code>func (c *Command) ResetCommands()</code></td>
+<td style="text-align:left">Clears <code>c.parent</code>, <code>c.commands</code>, <code>c.helpCommand</code>, and <code>c.parentsPflags</code> to <code>nil</code> (primarily used in test suites).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Commands</code></td>
+<td style="text-align:left"><code>func (c *Command) Commands() []*Command</code></td>
+<td style="text-align:left">Returns the slice of direct child commands. Lazily sorts <code>c.commands</code> by <code>Name()</code> on first call when <code>cobra.EnableCommandSorting == true</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Parent</code></td>
+<td style="text-align:left"><code>func (c *Command) Parent() *Command</code></td>
+<td style="text-align:left">Returns the immediate parent <code>*Command</code>, or <code>nil</code> if <code>c</code> is the root command.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Root</code></td>
+<td style="text-align:left"><code>func (c *Command) Root() *Command</code></td>
+<td style="text-align:left">Recursively climbs <code>c.Parent()</code> to return the top-most root <code>*Command</code> (<code>if c.HasParent() { return c.Parent().Root() }; return c</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>VisitParents</code></td>
+<td style="text-align:left"><code>func (c *Command) VisitParents(fn func(*Command))</code></td>
+<td style="text-align:left">Invokes <code>fn</code> on <code>c.Parent()</code>, <code>c.Parent().Parent()</code>, and so on up to <code>Root()</code> (does <strong>not</strong> invoke <code>fn</code> on <code>c</code> itself).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tree-availability-predicate-methods" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Tree &amp; Availability Predicate Methods</span></code><a class="header-anchor" href="#tree-availability-predicate-methods" aria-label="Permalink to Tree &amp; Availability Predicate Methods">#</a></h2>
+<p>Boolean inspection methods used by <code>ExecuteC()</code>, usage templates, and <code>cobra/doc</code> generators.</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasParent</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasSubCommands</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasAvailableSubCommands</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasHelpSubCommands</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">IsAvailableCommand</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">IsAdditionalHelpTopicCommand</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Runnable</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasExample</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Return Condition</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>HasParent()</code></td>
+<td style="text-align:left"><code>c.parent != nil</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>c</code> has been added to a parent command.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HasSubCommands()</code></td>
+<td style="text-align:left"><code>len(c.commands) &gt; 0</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>c</code> has at least one child command (regardless of hidden/deprecated status).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HasAvailableSubCommands()</code></td>
+<td style="text-align:left"><code>any child.IsAvailableCommand()</code></td>
+<td style="text-align:left">Returns <code>true</code> if at least one child command is visible under <code>Available Commands:</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HasHelpSubCommands()</code></td>
+<td style="text-align:left"><code>any child.IsAdditionalHelpTopicCommand()</code></td>
+<td style="text-align:left">Returns <code>true</code> if at least one child command qualifies as an <code>Additional help topics:</code> entry.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>IsAvailableCommand()</code></td>
+<td style="text-align:left"><code>Deprecated == &quot;&quot; &amp;&amp; !Hidden &amp;&amp; c != parent.helpCommand &amp;&amp; (Runnable() || HasAvailableSubCommands())</code></td>
+<td style="text-align:left">Determines whether <code>c</code> is a normal user-invocable command shown in help listings and documentation.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>IsAdditionalHelpTopicCommand()</code></td>
+<td style="text-align:left"><code>!Runnable() &amp;&amp; Deprecated == &quot;&quot; &amp;&amp; !Hidden &amp;&amp; all children are help topics</code></td>
+<td style="text-align:left">Identifies non-runnable documentation-only topic commands (e.g., <code>myapp environment</code>) rendered under <code>Additional help topics:</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Runnable()</code></td>
+<td style="text-align:left"><code>c.Run != nil || c.RunE != nil</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>c</code> has a <code>Run</code> or <code>RunE</code> action function. Non-runnable parent commands print help (<code>flag.ErrHelp</code>) when invoked without a subcommand.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HasExample()</code></td>
+<td style="text-align:left"><code>len(c.Example) &gt; 0</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>c.Example</code> is non-empty.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="naming-path-alias-padding-methods" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Naming, Path, Alias &amp; Padding Methods</span></code><a class="header-anchor" href="#naming-path-alias-padding-methods" aria-label="Permalink to Naming, Path, Alias &amp; Padding Methods">#</a></h2>
+<p>Methods that extract command names, full CLI paths, invocation aliases, and column widths for tabular help formatting.</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">DisplayName</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">CommandPath</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">UseLine</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">CalledAs</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">HasAlias</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">NameAndAliases</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">UsagePadding</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">CommandPathPadding</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">NamePadding</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Return Type</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Name()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Extracts the first word of <code>c.Use</code> up to the first space <code>&quot; &quot;</code> (<code>c.Use[:i]</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisplayName()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Returns <code>c.Annotations[CommandDisplayNameAnnotation]</code> if present; otherwise returns <code>c.Name()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CommandPath()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Space-separated path from root to <code>c</code> (<code>c.Parent().CommandPath() + &quot; &quot; + c.Name()</code>), using <code>DisplayName()</code> at the root.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>UseLine()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Full usage line including <code>parent.CommandPath()</code>, <code>c.Use</code> (with <code>Name()</code> replaced by <code>DisplayName()</code>), and trailing <code>&quot; [flags]&quot;</code> (unless <code>DisableFlagsInUseLine</code> is <code>true</code> or <code>!HasAvailableFlags()</code> exists).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CalledAs()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Returns the exact command name or alias string used to invoke <code>c</code> during <code>Find()</code> / <code>Traverse()</code>, or <code>&quot;&quot;</code> if <code>c</code> was not called.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HasAlias(s string)</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>s</code> matches any entry in <code>c.Aliases</code> (respecting <code>cobra.EnableCaseInsensitive</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>NameAndAliases()</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">Comma-separated string joining <code>c.Name()</code> and all <code>c.Aliases</code> (<code>&quot;deploy, dep, d&quot;</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>NamePadding()</code></td>
+<td style="text-align:left"><code>int</code></td>
+<td style="text-align:left">Column width for <code>Available Commands:</code> (<code>max(11, c.parent.commandsMaxNameLen)</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CommandPathPadding()</code></td>
+<td style="text-align:left"><code>int</code></td>
+<td style="text-align:left">Column width for <code>Additional help topics:</code> (<code>max(11, c.parent.commandsMaxCommandPathLen)</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>UsagePadding()</code></td>
+<td style="text-align:left"><code>int</code></td>
+<td style="text-align:left">Column width for <code>Use</code> strings (<code>max(25, c.parent.commandsMaxUseLen)</code>).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="command-group-management-methods" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Command Group Management Methods</span></code><a class="header-anchor" href="#command-group-management-methods" aria-label="Permalink to Command Group Management Methods">#</a></h2>
+<p>Methods on <code>*Command</code> for organizing subcommands into labeled sections in <code>help</code> / <code>Usage</code> output (<code>command.go</code>).</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">AddGroup</span><span class="p">(</span><span class="nx">groups</span><span class="w"> </span><span class="p">...</span><span class="o">*</span><span class="nx">Group</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Groups</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">Group</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ContainsGroup</span><span class="p">(</span><span class="nx">groupID</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">AllChildCommandsHaveGroup</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetHelpCommandGroupID</span><span class="p">(</span><span class="nx">groupID</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">SetCompletionCommandGroupID</span><span class="p">(</span><span class="nx">groupID</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Signature</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>AddGroup</code></td>
+<td style="text-align:left"><code>func (c *Command) AddGroup(groups ...*Group)</code></td>
+<td style="text-align:left">Appends one or more <code>*Group</code> definitions to <code>c.commandgroups</code>. Groups are rendered in <code>Usage()</code> in the order they were added.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Groups</code></td>
+<td style="text-align:left"><code>func (c *Command) Groups() []*Group</code></td>
+<td style="text-align:left">Returns the slice of <code>*Group</code> definitions registered on <code>c</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ContainsGroup</code></td>
+<td style="text-align:left"><code>func (c *Command) ContainsGroup(groupID string) bool</code></td>
+<td style="text-align:left">Returns <code>true</code> if <code>c.commandgroups</code> contains a group with <code>ID == groupID</code>. Used by <code>checkCommandGroups()</code> during <code>ExecuteC()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>AllChildCommandsHaveGroup</code></td>
+<td style="text-align:left"><code>func (c *Command) AllChildCommandsHaveGroup() bool</code></td>
+<td style="text-align:left">Returns <code>true</code> if every available child command (plus <code>helpCommand</code>) has a non-empty <code>GroupID</code>. When <code>false</code>, ungrouped commands are rendered under an <code>Additional Commands:</code> fallback header.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetHelpCommandGroupID</code></td>
+<td style="text-align:left"><code>func (c *Command) SetHelpCommandGroupID(groupID string)</code></td>
+<td style="text-align:left">Assigns the built-in <code>help</code> subcommand to <code>groupID</code> so it appears inside a custom group instead of <code>Additional Commands:</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetCompletionCommandGroupID</code></td>
+<td style="text-align:left"><code>func (c *Command) SetCompletionCommandGroupID(groupID string)</code></td>
+<td style="text-align:left">Assigns the built-in <code>completion</code> subcommand on <code>c.Root()</code> to <code>groupID</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-grouping-subcommands-in-help-output">Example: Grouping Subcommands in Help Output<a class="header-anchor" href="#example-grouping-subcommands-in-help-output" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span><span class="nx">Use</span><span class="p">:</span><span class="w"> </span><span class="s">"ctl"</span><span class="p">,</span><span class="w"> </span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Cluster control CLI"</span><span class="p">}</span>
+
+<span class="nx">rootCmd</span><span class="p">.</span><span class="nx">AddGroup</span><span class="p">(</span>
+<span class="w">	</span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Group</span><span class="p">{</span><span class="nx">ID</span><span class="p">:</span><span class="w"> </span><span class="s">"workload"</span><span class="p">,</span><span class="w"> </span><span class="nx">Title</span><span class="p">:</span><span class="w"> </span><span class="s">"Workload Commands:"</span><span class="p">},</span>
+<span class="w">	</span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Group</span><span class="p">{</span><span class="nx">ID</span><span class="p">:</span><span class="w"> </span><span class="s">"system"</span><span class="p">,</span><span class="w"> </span><span class="nx">Title</span><span class="p">:</span><span class="w"> </span><span class="s">"System &amp; Shell Commands:"</span><span class="p">},</span>
+<span class="p">)</span>
+
+<span class="nx">deployCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Use</span><span class="p">:</span><span class="w">     </span><span class="s">"deploy &lt;service&gt;"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Aliases</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"dep"</span><span class="p">},</span>
+<span class="w">	</span><span class="nx">Short</span><span class="p">:</span><span class="w">   </span><span class="s">"Deploy a service workload"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">GroupID</span><span class="p">:</span><span class="w"> </span><span class="s">"workload"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Deploying %s (called as %s)\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CalledAs</span><span class="p">())</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="p">}</span>
+
+<span class="nx">rootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">deployCmd</span><span class="p">)</span>
+<span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetHelpCommandGroupID</span><span class="p">(</span><span class="s">"system"</span><span class="p">)</span>
+<span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetCompletionCommandGroupID</span><span class="p">(</span><span class="s">"system"</span><span class="p">)</span>
+</code></pre>
+
+
+                
+                <nav class="catalog-pager" aria-label="Catalog Page Navigation">
+                    
+                    <a href="00_overview.html" class="catalog-pager-card is-prev">
+                        <span class="catalog-pager-dir">&larr; Previous</span>
+                        <span class="catalog-pager-title">Cobra API Reference Overview</span>
+                    </a>
+                    
+                    
+                    <a href="02_lifecycle_and_execution.html" class="catalog-pager-card is-next">
+                        <span class="catalog-pager-dir">Next &rarr;</span>
+                        <span class="catalog-pager-title">Command Execution, Resolution &amp; I/O Streams</span>
+                    </a>
+                    
+                </nav>
+                
+            </main>
+
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial API reference — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var toggleBtn = document.getElementById('theme-toggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    var current = document.documentElement.getAttribute('data-theme');
+                    if (!current) {
+                        current = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                    }
+                    var next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    try { localStorage.setItem('drawlib-theme', next); } catch (e) {}
+                });
+            }
+
+            var menuBtn = document.getElementById('menu-toggle');
+            var sidebar = document.getElementById('catalog-sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            function closeMenu() {
+                if (sidebar) sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-open');
+            }
+            if (menuBtn && sidebar && backdrop) {
+                menuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('is-open');
+                    backdrop.classList.toggle('is-open');
+                });
+                backdrop.addEventListener('click', closeMenu);
+            }
+
+            document.querySelectorAll('.catalog-nav-cat-link').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            if (sidebar) {
+                try {
+                    var savedScroll = sessionStorage.getItem('drawlib-catalog-sidebar-scroll');
+                    if (savedScroll !== null) {
+                        sidebar.scrollTop = parseInt(savedScroll, 10) || 0;
+                    }
+                    sidebar.addEventListener('scroll', function() {
+                        try { sessionStorage.setItem('drawlib-catalog-sidebar-scroll', String(sidebar.scrollTop)); } catch (e) {}
+                    }, { passive: true });
+                } catch (e) {}
+            }
+
+            var groups = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-group'));
+            var expandBtn = document.getElementById('catalog-expand-toggle');
+            function updateExpandBtnLabel() {
+                if (!expandBtn || groups.length === 0) return;
+                var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                var expandText = expandBtn.getAttribute('data-expand-label') || 'Expand All';
+                var collapseText = expandBtn.getAttribute('data-collapse-label') || 'Collapse All';
+                expandBtn.textContent = allOpen ? collapseText : expandText;
+            }
+            if (expandBtn) {
+                updateExpandBtnLabel();
+                expandBtn.addEventListener('click', function() {
+                    var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                    var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                    visibleGroups.forEach(function(g) { g.open = !allOpen; });
+                    updateExpandBtnLabel();
+                });
+                groups.forEach(function(g) {
+                    g.addEventListener('toggle', updateExpandBtnLabel);
+                });
+            }
+
+            var filterInput = document.getElementById('catalog-filter-input');
+            var emptyNotice = document.getElementById('catalog-nav-empty');
+            var savedOpenState = null;
+
+            if (filterInput) {
+                filterInput.addEventListener('input', function() {
+                    var q = filterInput.value.trim().toLowerCase();
+                    if (q && !savedOpenState) {
+                        savedOpenState = groups.map(function(g) { return g.open; });
+                    }
+                    var anyMatch = false;
+                    groups.forEach(function(g, idx) {
+                        var catText = (g.getAttribute('data-cat') || '').toLowerCase();
+                        var catMatches = q !== '' && catText.indexOf(q) !== -1;
+                        var items = Array.prototype.slice.call(g.querySelectorAll('.catalog-nav-subitem'));
+                        var visibleCount = 0;
+
+                        items.forEach(function(li) {
+                            var symText = (li.getAttribute('data-sym') || '').toLowerCase();
+                            var show = (q === '') || catMatches || symText.indexOf(q) !== -1;
+                            li.hidden = !show;
+                            if (show) visibleCount += 1;
+                        });
+
+                        if (q === '') {
+                            g.hidden = false;
+                            if (savedOpenState && typeof savedOpenState[idx] === 'boolean') {
+                                g.open = savedOpenState[idx];
+                            }
+                            anyMatch = true;
+                        } else if (catMatches || visibleCount > 0) {
+                            g.hidden = false;
+                            g.open = true;
+                            anyMatch = true;
+                        } else {
+                            g.hidden = true;
+                        }
+                    });
+
+                    if (q === '') {
+                        savedOpenState = null;
+                    }
+                    if (emptyNotice) {
+                        emptyNotice.hidden = anyMatch;
+                    }
+                    updateExpandBtnLabel();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === '/' && document.activeElement !== filterInput) {
+                        var tag = document.activeElement ? document.activeElement.tagName : '';
+                        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                            e.preventDefault();
+                            filterInput.focus();
+                        }
+                    } else if (e.key === 'Escape' && document.activeElement === filterInput) {
+                        filterInput.value = '';
+                        filterInput.dispatchEvent(new Event('input'));
+                        filterInput.blur();
+                    }
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                document.querySelectorAll('.lang-dropdown[open]').forEach(function(dd) {
+                    if (!dd.contains(e.target)) {
+                        dd.removeAttribute('open');
+                    }
+                });
+            });
+
+            var activeLinks = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-sublink[data-target]'));
+            if (activeLinks.length > 0 && 'IntersectionObserver' in window) {
+                var linkBySlug = {};
+                var headings = [];
+                activeLinks.forEach(function(a) {
+                    var slug = a.getAttribute('data-target');
+                    var el = slug ? document.getElementById(slug) : null;
+                    if (slug && el) {
+                        linkBySlug[slug] = a;
+                        headings.push(el);
+                    }
+                    a.addEventListener('click', closeMenu);
+                });
+
+                function setActiveSlug(slug) {
+                    activeLinks.forEach(function(a) {
+                        if (a.getAttribute('data-target') === slug) {
+                            a.classList.add('is-active');
+                        } else {
+                            a.classList.remove('is-active');
+                        }
+                    });
+                }
+
+                if (window.location.hash) {
+                    var initSlug = decodeURIComponent(window.location.hash.slice(1));
+                    if (linkBySlug[initSlug]) setActiveSlug(initSlug);
+                } else if (headings.length > 0) {
+                    setActiveSlug(headings[0].id);
+                }
+
+                var visibleIds = {};
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        visibleIds[entry.target.id] = entry.isIntersecting;
+                    });
+                    for (var i = 0; i < headings.length; i++) {
+                        if (visibleIds[headings[i].id]) {
+                            setActiveSlug(headings[i].id);
+                            break;
+                        }
+                    }
+                }, { rootMargin: '-90px 0px -65% 0px', threshold: [0, 1] });
+
+                headings.forEach(function(h) { observer.observe(h); });
+            }
+        })();
+    </script>
+</body>
+</html>

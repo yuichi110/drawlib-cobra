@@ -1,0 +1,999 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章: Annotation ベースの関係フラググループと `PositionalArgs` コンビネータ — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html">
+    
+    
+    
+    <meta name="description" content="第1章では Command が管理する5つの遅延初期化 *pflag.FlagSet（flags, pflags, lflags, iflags, parentsPflags）を、第3章では c.execute() における6段階のフック実行パイプラインを解説しました。本章では、Cobra v1.10.2 の…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra 内部アーキテクチャ">
+    <meta property="og:title" content="第4章: Annotation ベースの関係フラググループと PositionalArgs コンビネータ — Cobra 内部アーキテクチャ">
+    <meta property="og:description" content="第1章では Command が管理する5つの遅延初期化 *pflag.FlagSet（flags, pflags, lflags, iflags, parentsPflags）を、第3章では c.execute() における6段階のフック実行パイプラインを解説しました。本章では、Cobra v1.10.2 の…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="第4章: Annotation ベースの関係フラググループと PositionalArgs コンビネータ — Cobra 内部アーキテクチャ">
+    <meta name="twitter:description" content="第1章では Command が管理する5つの遅延初期化 *pflag.FlagSet（flags, pflags, lflags, iflags, parentsPflags）を、第3章では c.execute() における6段階のフック実行パイプラインを解説しました。本章では、Cobra v1.10.2 の…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra 内部アーキテクチャ">
+                    
+                    Cobra 内部アーキテクチャ
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >アーキテクチャ概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. パッケージ構成と複合ツリー</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command ツリーと FlagSet 遅延初期化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. パーサーとコマンド解決</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find / Traverse と stripFlags パーサー</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. ライフサイクル実行エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC・execute() とフック連鎖</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 関係フラググループと引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="relational_flag_engine.html" >Annotation フラググループとバリデータ</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete プロトコルとシェル生成</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. ドキュメント合成エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >cobra/doc の再帰ツリー直列化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra ユーザーガイド<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">第4章: Annotation ベースの関係フラググループと `PositionalArgs` コンビネータ</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/04_flag_groups_and_args/relational_flag_engine.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="relational_flag_engine.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>第4章: Annotation ベースの関係フラググループと <code>PositionalArgs</code> コンビネータ</h1>
+<p><a href="../01_package_and_tree/command_tree_topology.html">第1章</a>では <code>Command</code> が管理する5つの遅延初期化 <code>*pflag.FlagSet</code>（<code>flags</code>, <code>pflags</code>, <code>lflags</code>, <code>iflags</code>, <code>parentsPflags</code>）を、<a href="../03_execution_engine/executec_and_hook_chain.html">第3章</a>では <code>c.execute()</code> における6段階のフック実行パイプラインを解説しました。本章では、Cobra v1.10.2 の <strong>Layer 3</strong> を構成する2つの検証エンジン――<strong>Annotation ベース関係フラググループ・エンジン</strong>（<code>flag_groups.go</code>、<code>291 LOC</code>）および <strong><code>PositionalArgs</code> 関数コンビネータ・エンジン</strong>（<code>args.go</code>、<code>132 LOC</code>）――の内部実装をソースコードの行番号単位で解剖します。これら計 <code>423 LOC</code> の実装は、複数フラグ間の関係制約（<code>RequiredTogether</code>, <code>OneRequired</code>, <code>MutuallyExclusive</code>）の実行時検証だけでなく、<code>&lt;TAB&gt;</code> シェル補完時の動的なフラグ必須化・非表示化、および関数合成による位置引数バリデーションを担っています。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/04_flag_groups_and_args/relational_flag_engine/flag_group_annotation_engine_ja.png" alt="relational_flag_engine_1" />
+  <figcaption class="drawlib-caption">図1: Annotation ベース関係フラググループの格納構造、状態マトリクス構築、および実行時検証・補完時動的制御 (flag_groups.go)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">tag</span><span class="p">((</span><span class="mi">19</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"Annotation ベース関係フラググループ・エンジン (flag_groups.go, 291 LOC)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">((</span><span class="mi">169</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Registration &amp; pflag.Flag.Annotations Storage</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. Annotation 格納"</span><span class="p">,</span>
+    <span class="s2">"L25-77"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">55</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"MarkFlagsRequiredTogether</span><span class="se">\n</span><span class="s2">MarkFlagsOneRequired</span><span class="se">\n</span><span class="s2">MarkFlagsMutuallyExclusive"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">32.5</span><span class="p">,</span> <span class="mi">74</span><span class="p">),</span> <span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">67.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. c.mergePersistentFlags()</span><span class="se">\n</span><span class="s2">2. c.Flags().Lookup(v)</span><span class="se">\n</span><span class="s2">3. strings.Join(names, </span><span class="se">\"</span><span class="s2"> </span><span class="se">\"</span><span class="s2">)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">28.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">33</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"pflag.Flag.Annotations</span><span class="se">\n</span><span class="s2">[key][]string スライスへ追記:</span><span class="se">\n</span><span class="s2">• ..._required_if_others_set</span><span class="se">\n</span><span class="s2">• ..._one_required</span><span class="se">\n</span><span class="s2">• ..._mutually_exclusive</span><span class="se">\n</span><span class="s2">(呼び出し毎に1要素を追加)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: Status Matrix Builder</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 状態マップ構築"</span><span class="p">,</span>
+    <span class="s2">"L111-142"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"c.Flags().VisitAll(func)</span><span class="se">\n</span><span class="s2">processFlagForGroupAnnotation</span><span class="se">\n</span><span class="s2">(各フラグにつき3種を走査)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mi">74</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">67.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"hasAllFlags(flags, names...)</span><span class="se">\n</span><span class="s2">一部ローカルフラグが欠ける</span><span class="se">\n</span><span class="s2">継承グループを安全にスキップ"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">28.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">33</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3つの状態マップを構築:</span><span class="se">\n</span><span class="s2">map[string]map[string]bool</span><span class="se">\n</span><span class="s2">• groupStatus</span><span class="se">\n</span><span class="s2">• oneRequiredGroupStatus</span><span class="se">\n</span><span class="s2">• mutuallyExclusiveStatus</span><span class="se">\n</span><span class="s2">[group][f.Name] = f.Changed"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3A: ValidateFlagGroups() Execution Path</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3A. 実行時グループ検証"</span><span class="p">,</span>
+    <span class="s2">"L81-218"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">55</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">44</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mi">85</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"sortedKeys(data) + sort.Strings</span><span class="se">\n</span><span class="s2">決定論的な順序でエラーを生成"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">78.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">73.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. validateRequiredFlagGroups</span><span class="se">\n</span><span class="s2">2. validateOneRequired...</span><span class="se">\n</span><span class="s2">3. validateExclusiveFlagGroups"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3B: enforceFlagGroupsForCompletion() Completion Path</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3B. 補完時フラグ制御"</span><span class="p">,</span>
+    <span class="s2">"L225-290"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">55</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">44</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mi">37</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"同時必須 / 1つ必須:</span><span class="se">\n</span><span class="s2">c.MarkFlagRequired(fName) 呼び出し"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">30.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">155.5</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">49</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"相互排他 (指定済み時):</span><span class="se">\n</span><span class="s2">他方 flag.Hidden = true に変更</span><span class="se">\n</span><span class="s2">(自身の Slice フラグは維持)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel connectors</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">60</span><span class="p">,</span> <span class="mi">54</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">54</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">74</span><span class="p">),</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">74</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. <code>pflag.Flag.Annotations</code> による構造体フィールド追加ゼロのフラググループ設計</h2>
+<p>Cobra の関係フラググループ機構（<code>flag_groups.go</code>）における最大の設計上の特徴は、<strong><code>Command</code> 構造体に新しいフィールドを1つも追加していない</strong>点にあります。<code>Command</code> 側にグループ管理用のスライスやマップを持たせると、永続フラグ（<code>PersistentFlags</code>）がサブコマンドへ継承される際に複雑な同期処理が必要になりますが、Cobra は各 <code>*pflag.Flag</code> が標準で備えている <code>Annotations</code> マップ（<code>map[string][]string</code>）の内部にグループ定義文字列を直接格納することでこれを解決しています。</p>
+<h3>1.1 3つの非公開 Annotation キー定数（<code>flag_groups.go:25–29</code>）</h3>
+<p><code>flag_groups.go</code> の冒頭では、以下の3つの非公開（unexported）定数が定義されています。</p>
+<pre><code class="language-go"><span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="nx">requiredAsGroupAnnotation</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s">"cobra_annotation_required_if_others_set"</span>
+<span class="w">	</span><span class="nx">oneRequiredAnnotation</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">"cobra_annotation_one_required"</span>
+<span class="w">	</span><span class="nx">mutuallyExclusiveAnnotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"cobra_annotation_mutually_exclusive"</span>
+<span class="p">)</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">登録メソッド</th>
+<th style="text-align:left">行番号</th>
+<th style="text-align:left">Annotation キー (<code>pflag.Flag.Annotations</code>)</th>
+<th style="text-align:left">検証される関係制約（不変条件）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>c.MarkFlagsRequiredTogether(flagNames ...string)</code></td>
+<td style="text-align:left"><code>flag_groups.go:33–45</code></td>
+<td style="text-align:left"><code>&quot;cobra_annotation_required_if_others_set&quot;</code></td>
+<td style="text-align:left"><strong>All-or-None（同時必須）</strong>: グループ内の1つ以上のフラグが指定（<code>Changed == true</code>）された場合、グループ内の<strong>すべて</strong>のフラグが指定されていなければならない。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.MarkFlagsOneRequired(flagNames ...string)</code></td>
+<td style="text-align:left"><code>flag_groups.go:49–61</code></td>
+<td style="text-align:left"><code>&quot;cobra_annotation_one_required&quot;</code></td>
+<td style="text-align:left"><strong>At-Least-One（最低1つ必須）</strong>: コマンド実行時にグループ内の<strong>少なくとも1つ</strong>のフラグが指定（<code>Changed == true</code>）されていなければならない。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.MarkFlagsMutuallyExclusive(flagNames ...string)</code></td>
+<td style="text-align:left"><code>flag_groups.go:65–77</code></td>
+<td style="text-align:left"><code>&quot;cobra_annotation_mutually_exclusive&quot;</code></td>
+<td style="text-align:left"><strong>At-Most-One（相互排他）</strong>: グループ内で同時に指定できるフラグは<strong>高々1つ</strong>（<code>len(set) &lt;= 1</code>）まで。</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 登録手順と複数グループ所属を可能にするスライス追記（<code>flag_groups.go:33–77</code>）</h3>
+<p>3つの登録メソッドはすべて、完全に同一の3ステップで動作します。</p>
+<ol>
+<li><strong>永続フラグの即時マージ（<code>c.mergePersistentFlags()</code>）</strong>:
+メソッド冒頭で必ず <code>c.mergePersistentFlags()</code>（<code>flag_groups.go:34</code>, <code>L50</code>, <code>L66</code>）を呼び出します。<a href="../01_package_and_tree/command_tree_topology.html">第1章</a>で詳述した通り、これにより親コマンドから継承された永続フラグ（<code>c.PersistentFlags()</code>, <code>c.parentsPflags</code>）とローカルフラグが <code>c.flags</code> に統合され、継承された永続フラグとサブコマンド固有のローカルフラグをまたぐフラググループも構成可能になります。</li>
+<li><strong>フラグ存在確認と即時 Panic（<code>c.Flags().Lookup(v)</code>）</strong>:
+引数 <code>flagNames</code> の各フラグ名 <code>v</code> に対して <code>f := c.Flags().Lookup(v)</code> を実行し、<code>f == nil</code> の場合は <code>panic(fmt.Sprintf(&quot;Failed to find flag %q ...&quot;, v))</code> を発生させます（<code>L37–39</code>, <code>L53–55</code>, <code>L69–71</code>）。実行時ではなく CLI 初期化時に即座にクラッシュさせることで、フラグ名のタイポを確実に検出します。</li>
+<li><strong>空白区切りグループ文字列のスライス追記（<code>strings.Join(flagNames, &quot; &quot;)</code>）</strong>:
+グループ全体のフラグ名を半角スペースで結合した文字列 <code>strings.Join(flagNames, &quot; &quot;)</code> を生成し、既存の <code>f.Annotations[key]</code> スライスの末尾へ <code>append</code> して <code>c.Flags().SetAnnotation(...)</code> で保存します。</li>
+</ol>
+<pre><code class="language-go"><span class="c1">// flag_groups.go:65-77</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">MarkFlagsMutuallyExclusive</span><span class="p">(</span><span class="nx">flagNames</span><span class="w"> </span><span class="p">...</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">mergePersistentFlags</span><span class="p">()</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">flagNames</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">f</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">Lookup</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nb">panic</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Sprintf</span><span class="p">(</span><span class="s">"Failed to find flag %q and mark it as being in a mutually exclusive flag group"</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">))</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="c1">// Each time this is called is a single new entry; this allows it to be a member of multiple groups if needed.</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">SetAnnotation</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">mutuallyExclusiveAnnotation</span><span class="p">,</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">Annotations</span><span class="p">[</span><span class="nx">mutuallyExclusiveAnnotation</span><span class="p">],</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">flagNames</span><span class="p">,</span><span class="w"> </span><span class="s">" "</span><span class="p">)));</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h4>なぜスライス要素として追記することで複数グループへの重複所属が可能になるのか</h4>
+<p><code>pflag.Flag.Annotations</code> の型は <code>map[string][]string</code> です。上書きではなく <code>append(f.Annotations[key], strings.Join(flagNames, &quot; &quot;))</code> で <strong>呼び出しごとに1つのスライス要素を追加</strong> するため、1つのフラグが複数の独立した関係グループに同時に所属できます。</p>
+<p>たとえば、フラグ <code>&quot;a&quot;</code> を2つの異なる相互排他グループに登録したとします。</p>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsMutuallyExclusive</span><span class="p">(</span><span class="s">"a"</span><span class="p">,</span><span class="w"> </span><span class="s">"b"</span><span class="p">)</span>
+<span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsMutuallyExclusive</span><span class="p">(</span><span class="s">"a"</span><span class="p">,</span><span class="w"> </span><span class="s">"c"</span><span class="p">)</span>
+</code></pre>
+<p>このとき、<code>flagA.Annotations[&quot;cobra_annotation_mutually_exclusive&quot;]</code> には <code>[]string{&quot;a b&quot;, &quot;a c&quot;}</code> という2要素が格納されます。検証時には <code>&quot;a b&quot;</code> と <code>&quot;a c&quot;</code> が独立したグループキーとして評価されるため、<code>--b --c</code> の同時指定は許可しつつ、<code>--a --b</code> や <code>--a --c</code> の同時指定だけを正確に拒否できます。さらに、<code>mergePersistentFlags()</code> によって <code>*pflag.Flag</code> ポインタが子孫コマンドの <code>FlagSet</code> へコピーされる際、この <code>Annotations</code> マップも自動的に引き継がれます。</p>
+<hr />
+<h2>2. 実行時バリデーションエンジン: <code>ValidateFlagGroups()</code></h2>
+<p><code>c.execute()</code>（<code>command.go:1010–1012</code>）では、<code>PersistentPreRunE</code>、<code>PreRunE</code>、および単一必須フラグ検証 <code>c.ValidateRequiredFlags()</code> が完了した直後――かつ <code>c.RunE</code> / <code>c.Run</code> が呼ばれる直前――に <code>c.ValidateFlagGroups()</code> が呼び出されます。<code>PreRunE</code> の<strong>後</strong>に検証を行うのは、Viper 等を用いた設定ファイル読み込みフック（<code>PersistentPreRunE</code> / <code>PreRunE</code>）内でフラグ値をプログラムから事後設定したり Annotation を調整したりするユースケースを成立させるためです。</p>
+<h3>2.1 <code>processFlagForGroupAnnotation</code> による状態マトリクス構築（<code>flag_groups.go:81–142</code>）</h3>
+<p><code>c.DisableFlagParsing</code> が <code>true</code> の場合、<code>ValidateFlagGroups()</code> は即座に <code>nil</code> を返します（<code>L82–84</code>）。それ以外の場合、<code>map[string]map[string]bool</code> 型の3つの2階層ステータスマップ（第1キーが空白区切りのグループ名 <code>&quot;username password&quot;</code>、第2キーが各フラグ名 <code>flagName</code>、値が <code>pflag.Changed</code>）を初期化します。</p>
+<pre><code class="language-go"><span class="c1">// flag_groups.go:90-97</span>
+<span class="nx">groupStatus</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="p">{}</span>
+<span class="nx">oneRequiredGroupStatus</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="p">{}</span>
+<span class="nx">mutuallyExclusiveGroupStatus</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="p">{}</span>
+<span class="nx">flags</span><span class="p">.</span><span class="nx">VisitAll</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">pflag</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">Flag</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">processFlagForGroupAnnotation</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">pflag</span><span class="p">,</span><span class="w"> </span><span class="nx">requiredAsGroupAnnotation</span><span class="p">,</span><span class="w"> </span><span class="nx">groupStatus</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">processFlagForGroupAnnotation</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">pflag</span><span class="p">,</span><span class="w"> </span><span class="nx">oneRequiredAnnotation</span><span class="p">,</span><span class="w"> </span><span class="nx">oneRequiredGroupStatus</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">processFlagForGroupAnnotation</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">pflag</span><span class="p">,</span><span class="w"> </span><span class="nx">mutuallyExclusiveAnnotation</span><span class="p">,</span><span class="w"> </span><span class="nx">mutuallyExclusiveGroupStatus</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre>
+<p><code>c.Flags()</code> 内の各フラグに対し、<code>processFlagForGroupAnnotation</code>（<code>flag_groups.go:121–142</code>）は <code>pflag.Annotations[annotation]</code> を走査します。</p>
+<pre><code class="language-go"><span class="c1">// flag_groups.go:111-142</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">hasAllFlags</span><span class="p">(</span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">,</span><span class="w"> </span><span class="nx">flagnames</span><span class="w"> </span><span class="p">...</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">fname</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">flagnames</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">f</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fs</span><span class="p">.</span><span class="nx">Lookup</span><span class="p">(</span><span class="nx">fname</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">processFlagForGroupAnnotation</span><span class="p">(</span><span class="nx">flags</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">,</span><span class="w"> </span><span class="nx">pflag</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">Flag</span><span class="p">,</span><span class="w"> </span><span class="nx">annotation</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">groupStatus</span><span class="w"> </span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">groupInfo</span><span class="p">,</span><span class="w"> </span><span class="nx">found</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pflag</span><span class="p">.</span><span class="nx">Annotations</span><span class="p">[</span><span class="nx">annotation</span><span class="p">]</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">found</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">group</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">groupInfo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">groupStatus</span><span class="p">[</span><span class="nx">group</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">flagnames</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Split</span><span class="p">(</span><span class="nx">group</span><span class="p">,</span><span class="w"> </span><span class="s">" "</span><span class="p">)</span>
+
+<span class="w">				</span><span class="c1">// Only consider this flag group at all if all the flags are defined.</span>
+<span class="w">				</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">hasAllFlags</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">flagnames</span><span class="p">...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">					</span><span class="k">continue</span>
+<span class="w">				</span><span class="p">}</span>
+
+<span class="w">				</span><span class="nx">groupStatus</span><span class="p">[</span><span class="nx">group</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kt">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">flagnames</span><span class="p">))</span>
+<span class="w">				</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">flagnames</span><span class="w"> </span><span class="p">{</span>
+<span class="w">					</span><span class="nx">groupStatus</span><span class="p">[</span><span class="nx">group</span><span class="p">][</span><span class="nx">name</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">				</span><span class="p">}</span>
+<span class="w">			</span><span class="p">}</span>
+
+<span class="w">			</span><span class="nx">groupStatus</span><span class="p">[</span><span class="nx">group</span><span class="p">][</span><span class="nx">pflag</span><span class="p">.</span><span class="nx">Name</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">pflag</span><span class="p">.</span><span class="nx">Changed</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h4>なぜ <code>hasAllFlags(flags, flagnames...)</code> が永続フラグとローカルフラグの混合グループに不可欠なのか</h4>
+<p>親コマンド <code>parentCmd</code> が <strong>永続フラグ</strong> <code>--region</code> と <strong>ローカルフラグ</strong> <code>--zone</code> を定義し、<code>parentCmd.MarkFlagsRequiredTogether(&quot;region&quot;, &quot;zone&quot;)</code> を呼んだとします。このとき <code>--region</code> と <code>--zone</code> の双方に <code>&quot;region zone&quot;</code> という Annotation が付与されます。
+ここでサブコマンド <code>childCmd</code> を実行した場合を考えます。</p>
+<ul>
+<li><code>childCmd</code> は永続フラグ <code>--region</code>（およびその <code>&quot;region zone&quot;</code> Annotation）を継承します。</li>
+<li>しかし、<code>parentCmd</code> のローカルフラグである <code>--zone</code> は <code>childCmd</code> には継承されません。</li>
+</ul>
+<p><code>childCmd.ValidateFlagGroups()</code> が <code>--region</code> を走査した際、<code>processFlagForGroupAnnotation</code> は <code>&quot;region zone&quot;</code> を分割して <code>hasAllFlags(childCmd.Flags(), &quot;region&quot;, &quot;zone&quot;)</code>（<code>L129</code>）を呼び出します。<code>childCmd.Flags().Lookup(&quot;zone&quot;)</code> は <code>nil</code> を返すため <code>hasAllFlags</code> は <code>false</code> となり、<code>childCmd</code> 上では <code>&quot;region zone&quot;</code> グループが安全にスキップされます（<code>L129–131</code>）。すなわち、<strong>実行対象コマンドの <code>FlagSet</code> 上にグループ内の全フラグが揃っている場合のみ</strong>そのグループ制約が有効化されます。</p>
+<h3>2.2 <code>sortedKeys</code> による決定論的ソートと3段階検証（<code>flag_groups.go:99–218</code>）</h3>
+<p>Go の <code>map</code> 反復順序はランダム化されているため、<code>map[string]map[string]bool</code> をそのままループすると、複数グループ違反時や複数フラグ欠落時にエラーメッセージが毎回変わる問題が生じます。Cobra は以下の2段階で完全な決定論的（deterministic）順序を保証しています。</p>
+<ol>
+<li><strong>グループキーの辞書順ソート（<code>sortedKeys(data)</code>、<code>flag_groups.go:209–218</code>）</strong>: マップの第1キー（<code>flagList</code>）をスライスに抽出して <code>sort.Strings(keys)</code> でソートします。</li>
+<li><strong>違反フラグ名スライスのソート（<code>sort.Strings(...)</code>、<code>L160</code>, <code>L182</code>, <code>L203</code>）</strong>: エラーメッセージに埋め込む <code>unset</code> または <code>set</code> フラグ配列も <code>sort.Strings</code> でソートしてからフォーマットします。</li>
+</ol>
+<p>その後、<code>ValidateFlagGroups()</code> は以下の順序で3つの検証関数を実行します（<code>L99–108</code>）。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">段階</th>
+<th style="text-align:left">検証ヘルパー関数</th>
+<th style="text-align:left">行番号</th>
+<th style="text-align:left">判定条件と返却される正確なエラーフォーマット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. 同時必須</strong></td>
+<td style="text-align:left"><code>validateRequiredFlagGroups(groupStatus)</code></td>
+<td style="text-align:left"><code>L144–165</code></td>
+<td style="text-align:left"><code>!isSet</code> のフラグを <code>unset</code> に収集。<code>len(unset) == len(flagnameAndStatus)</code>（未指定）または <code>len(unset) == 0</code>（全指定）なら正常。それ以外は <code>unset</code> をソートし次を返却:<br><code>if any flags in the group [%v] are set they must all be set; missing %v</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. 1つ必須</strong></td>
+<td style="text-align:left"><code>validateOneRequiredFlagGroups(oneRequiredGroupStatus)</code></td>
+<td style="text-align:left"><code>L167–186</code></td>
+<td style="text-align:left"><code>isSet</code> のフラグを <code>set</code> に収集。<code>len(set) &gt;= 1</code> なら正常。0個の場合は次を返却:<br><code>at least one of the flags in the group [%v] is required</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. 相互排他</strong></td>
+<td style="text-align:left"><code>validateExclusiveFlagGroups(mutuallyExclusiveGroupStatus)</code></td>
+<td style="text-align:left"><code>L188–207</code></td>
+<td style="text-align:left"><code>isSet</code> のフラグを <code>set</code> に収集。<code>len(set) == 0 || len(set) == 1</code> なら正常。2個以上の場合は <code>set</code> をソートし次を返却:<br><code>if any flags in the group [%v] are set none of the others can be; %v were all set</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. シェル補完時の動的メタデータ変更: <code>enforceFlagGroupsForCompletion()</code></h2>
+<p>関係フラググループは実行時のエラーチェックだけでなく、<code>getCompletions()</code>（<code>completions.go:430</code>）における <code>&lt;TAB&gt;</code> 補完候補の動的フィルタリングにも活用されます。フラグ補完候補を生成する直前に呼ばれる <code>finalCmd.enforceFlagGroupsForCompletion()</code>（<code>flag_groups.go:225–290</code>）は、<code>processFlagForGroupAnnotation</code> で同じ3つの状態マトリクスを構築した上で（<code>L230–238</code>）、メモリ上の <code>pflag.Flag</code> メタデータを直接書き換えます。</p>
+<ol>
+<li><strong>同時必須グループの残りフラグを必須化（<code>flag_groups.go:242–251</code>）</strong>:
+<code>groupStatus</code> 内のグループで1つでも <code>isSet == true</code> のフラグが存在する場合、グループ内の全フラグ名 <code>fName</code> に対して <code>_ = c.MarkFlagRequired(fName)</code>（<code>L247</code>）を呼び出します。<code>getCompletions()</code> は未指定の必須フラグを <code>completeRequireFlags()</code>（<code>completions.go:440</code>, <code>528</code>）で最優先提案するため、片方のフラグを入力した瞬間に相方のフラグが優先補完候補に昇格します。</li>
+<li><strong>未充足の1つ必須グループを全員必須化（<code>flag_groups.go:255–271</code>）</strong>:
+<code>oneRequiredGroupStatus</code> 内のグループで、まだ1つもフラグが指定されていない場合（<code>!isSet</code>）、グループ内の全フラグに対して <code>_ = c.MarkFlagRequired(fName)</code>（<code>L266–270</code>）を呼び出して補完候補に優先表示させます。ユーザーがグループ内のどれか1つを指定した時点で <code>isSet</code> が <code>true</code> となり、残りのフラグは必須扱いから外れます。</li>
+<li><strong>相互排他グループの競合フラグを非表示化（<code>flag_groups.go:275–289</code>）</strong>:
+<code>mutuallyExclusiveGroupStatus</code> 内のグループでいずれかのフラグ <code>flagName</code> が指定済み（<code>isSet == true</code>）である場合、グループ内の<strong>他のフラグ</strong>（<code>fName != flagName</code>）に対して <code>flag := c.Flags().Lookup(fName); flag.Hidden = true</code>（<code>L282–285</code>）を設定し、補完候補から除外します。
+<ul>
+<li><strong>なぜ <code>fName != flagName</code> で自分自身を除外しないのか</strong>: <code>L279–280</code> のコメントにある通り、すでに指定された <code>flagName</code> 自体が <code>Slice</code> や <code>Array</code> 型の複数回指定可能フラグ（例: <code>--tag a --tag &lt;TAB&gt;</code>）である場合、2回目以降の入力でも引き続き補完候補として表示させる必要があるため、自身の <code>Hidden</code> は変更せず競合する他方のフラグのみを隠蔽します。</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>4. <code>PositionalArgs</code> 関数コンビネータ・アーキテクチャ (<code>args.go</code>)</h2>
+<p><code>flag_groups.go</code> がフラグ間の制約を司るのに対し、<code>args.go</code>（<code>132 LOC</code>）はフラグ解析後に残った位置引数（<code>argWoFlags := c.Flags().Args()</code>）の検証を担います。Cobra は位置引数バリデータを第1級関数型 <code>PositionalArgs</code> として定義しています（<code>args.go:22</code>）。</p>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">PositionalArgs</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>各 <code>Command</code> 構造体は <code>Args PositionalArgs</code> フィールド（<code>command.go:112</code>）を保持しており、関数値の直接代入（<code>Args: cobra.NoArgs</code>）、高階関数によるクロージャ生成（<code>Args: cobra.ExactArgs(2)</code>）、および <code>cobra.MatchAll(...)</code> による複数バリデータの直列合成が可能です。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/04_flag_groups_and_args/relational_flag_engine/positional_args_combinators_ja.png" alt="relational_flag_engine_2" />
+  <figcaption class="drawlib-caption">図2: PositionalArgs 関数コンビネータの設計、legacyArgs の分岐木、および ValidateArgs の呼び出し箇所 (args.go & command.go)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">110</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mf">105.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">105.5</span><span class="p">),</span>
+    <span class="s2">"PositionalArgs 関数コンビネータ設計と呼び出しフロー (args.go, 132 LOC)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="mi">167</span><span class="p">,</span> <span class="mf">105.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Two Call Sites (Find vs execute) &amp; legacyArgs</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. 2つの検証箇所"</span><span class="p">,</span>
+    <span class="s2">"L28-39"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">80.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"呼び出しA: Find() (command.go:725)</span><span class="se">\n</span><span class="s2">cmd.Args == nil の場合に</span><span class="se">\n</span><span class="s2">legacyArgs(cmd, argsWoFlags) 実行"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mi">73</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">67</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">55.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"legacyArgs (args.go:28-39):</span><span class="se">\n</span><span class="s2">• !cmd.HasSubCommands() -&gt; nil</span><span class="se">\n</span><span class="s2">• !HasParent() &amp;&amp; len(args)&gt;0</span><span class="se">\n</span><span class="s2">  -&gt; </span><span class="se">\"</span><span class="s2">unknown command</span><span class="se">\"</span><span class="s2"> + 候補提案</span><span class="se">\n</span><span class="s2">• サブコマンド -&gt; nil"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"呼び出しB: c.execute() (L968)</span><span class="se">\n</span><span class="s2">c.ValidateArgs(argWoFlags)</span><span class="se">\n</span><span class="s2">(command.go:1172-1177):</span><span class="se">\n</span><span class="s2">• c.Args == nil -&gt;</span><span class="se">\n</span><span class="s2">  ArbitraryArgs(c, args)</span><span class="se">\n</span><span class="s2">• 設定済 -&gt; c.Args(c, args)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: Built-In Validators &amp; Closure Factories</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 標準バリデータ群"</span><span class="p">,</span>
+    <span class="s2">"L41-111"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">79</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"直接関数型バリデータ:</span><span class="se">\n</span><span class="s2">• NoArgs (L42: len(args) &gt; 0 でエラー)</span><span class="se">\n</span><span class="s2">• ArbitraryArgs (L69: 常に nil)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"OnlyValidArgs (L51-66):</span><span class="se">\n</span><span class="s2">strings.SplitN(v, </span><span class="se">\"\\</span><span class="s2">t</span><span class="se">\"</span><span class="s2">, 2)[0] で</span><span class="se">\n</span><span class="s2">タブ以降の説明文を除去した上で</span><span class="se">\n</span><span class="s2">stringInSlice(v, validArgs) 照合"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"個数制約クロージャ生成器:</span><span class="se">\n</span><span class="s2">• MinimumNArgs(n) (L74: len &lt; n)</span><span class="se">\n</span><span class="s2">• MaximumNArgs(n) (L84: len &gt; n)</span><span class="se">\n</span><span class="s2">• ExactArgs(n) (L94: len != n)</span><span class="se">\n</span><span class="s2">• RangeArgs(min, max) (L104)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3: MatchAll Combinator &amp; Composition</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. MatchAll 合成"</span><span class="p">,</span>
+    <span class="s2">"L114-131"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">76</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"MatchAll(pargs ...PositionalArgs)</span><span class="se">\n</span><span class="s2">(args.go:114-123):</span><span class="se">\n</span><span class="s2">for _, parg := range pargs {</span><span class="se">\n</span><span class="s2">  if err := parg(cmd, args); err!=nil</span><span class="se">\n</span><span class="s2">    return err</span><span class="se">\n</span><span class="s2">}"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">155</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"合成パターン例:</span><span class="se">\n</span><span class="s2">MatchAll(</span><span class="se">\n</span><span class="s2">  ExactArgs(1),</span><span class="se">\n</span><span class="s2">  OnlyValidArgs,</span><span class="se">\n</span><span class="s2">)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">155</span><span class="p">,</span> <span class="mf">34.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">28.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ExactValidArgs(n) (L129, 非推奨):</span><span class="se">\n</span><span class="s2">return MatchAll(</span><span class="se">\n</span><span class="s2">  ExactArgs(n), OnlyValidArgs)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel arrows</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">24.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>4.1 なぜ位置引数は <code>Find()</code> (<code>legacyArgs</code>) と <code>execute()</code> (<code>ValidateArgs</code>) の2箇所で検証されるのか</h3>
+<p>Cobra の内部アーキテクチャにおいて、<code>Command.Args</code> はライフサイクル上の<strong>2つの異なるフェーズ</strong>で参照されます。</p>
+<ol>
+<li>
+<p><strong>コマンド解決フェーズ（<code>command.go:724–727</code> の <code>Find()</code> 内）</strong>:
+<code>TraverseChildren</code> が <code>false</code>（デフォルト）のとき、<code>Find()</code> がフラグ除去とツリー探索を終えた段階で <code>commandFound.Args == nil</code> であれば、<code>legacyArgs(commandFound, argsWoFlags)</code>（<code>args.go:28–39</code>）が呼び出されます。</p>
+<pre><code class="language-go"><span class="c1">// args.go:28-39</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">legacyArgs</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// no subcommand, always take args</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HasSubCommands</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// root command with subcommands, do subcommand checking.</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HasParent</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"unknown command %q for %q%s"</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CommandPath</span><span class="p">(),</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">findSuggestions</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p><code>legacyArgs</code> の3つの分岐には重要な意味があります。</p>
+<ul>
+<li><strong>サブコマンドを持たない葉コマンド（<code>!cmd.HasSubCommands()</code>）</strong>: 任意の位置引数を受け入れます（<code>return nil</code>）。</li>
+<li><strong>サブコマンドを持つルートコマンド（<code>!cmd.HasParent() &amp;&amp; len(args) &gt; 0</code>）</strong>: 余った位置引数を「未知のサブコマンド名のタイポ」と見なし、レーベンシュタイン距離による候補提案 <code>cmd.findSuggestions(args[0])</code> 付きで <code>&quot;unknown command %q for %q%s&quot;</code> エラーを返します。（※サブコマンドを持たないルートコマンドに対して <code>initCompleteCmd</code> や <code>InitDefaultCompletionCmd</code> が <code>__complete</code> や <code>completion</code> を即座に <code>RemoveCommand</code> で削除するのは、それらが残っていると <code>cmd.HasSubCommands()</code> が <code>true</code> になり、ルートコマンドが位置引数を受け取れなくなるためです。）</li>
+<li><strong>親を持つ中間・葉サブコマンド（<code>cmd.HasParent()</code>）</strong>: <code>cmd.Args == nil</code> であれば常に <code>nil</code> を返します。</li>
+</ul>
+</li>
+<li>
+<p><strong>コマンド実行フェーズ（<code>command.go:968</code> の <code>c.execute()</code> -&gt; <code>command.go:1172–1177</code> の <code>ValidateArgs</code>）</strong>:
+<code>c.execute()</code> がフラグ解析を終え、フックチェーン（<code>PersistentPreRunE</code> / <code>PreRunE</code>）を開始する<strong>前</strong>に <code>c.ValidateArgs(argWoFlags)</code> を呼び出します。</p>
+<pre><code class="language-go"><span class="c1">// command.go:1172-1177</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">ValidateArgs</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Args</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">ArbitraryArgs</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Args</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<p><code>c.Args</code> が未設定（<code>nil</code>）の場合、<code>Find()</code> 側で既に <code>legacyArgs</code> チェックが完了しているため、ここでは常に <code>nil</code> を返す <code>ArbitraryArgs(c, args)</code> にフォールバックします。</p>
+</li>
+</ol>
+<h3>4.2 標準 <code>PositionalArgs</code> バリデータ・コンビネータ全一覧（<code>args.go:41–131</code>）</h3>
+<p><code>args.go</code> で公開されている全バリデータおよび高階コンビネータの実装仕様は以下の通りです。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">バリデータ / コンビネータ</th>
+<th style="text-align:left"><code>args.go</code> 行番号</th>
+<th style="text-align:left">関数シグネチャ</th>
+<th style="text-align:left">内部ロジックとエラー出力フォーマット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>NoArgs</code></td>
+<td style="text-align:left"><code>L42–46</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) error</code></td>
+<td style="text-align:left"><code>len(args) &gt; 0</code> の場合、<code>fmt.Errorf(&quot;unknown command %q for %q&quot;, args[0], cmd.CommandPath())</code> を返却。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>OnlyValidArgs</code></td>
+<td style="text-align:left"><code>L51–66</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) error</code></td>
+<td style="text-align:left"><code>len(cmd.ValidArgs) == 0</code> なら <code>nil</code>。それ以外は <code>strings.SplitN(v, &quot;\t&quot;, 2)[0]</code> でタブ以降の説明文を除去し、各引数を <code>stringInSlice(v, validArgs)</code> で検査。不一致時は <code>fmt.Errorf(&quot;invalid argument %q for %q%s&quot;, v, cmd.CommandPath(), cmd.findSuggestions(args[0]))</code> を返却。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ArbitraryArgs</code></td>
+<td style="text-align:left"><code>L69–71</code></td>
+<td style="text-align:left"><code>func(cmd *Command, args []string) error</code></td>
+<td style="text-align:left">無条件に <code>nil</code> を返却。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>MinimumNArgs(n int)</code></td>
+<td style="text-align:left"><code>L74–81</code></td>
+<td style="text-align:left"><code>func(n int) PositionalArgs</code></td>
+<td style="text-align:left">クロージャを返却: <code>len(args) &lt; n</code> の場合、<code>fmt.Errorf(&quot;requires at least %d arg(s), only received %d&quot;, n, len(args))</code>。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>MaximumNArgs(n int)</code></td>
+<td style="text-align:left"><code>L84–91</code></td>
+<td style="text-align:left"><code>func(n int) PositionalArgs</code></td>
+<td style="text-align:left">クロージャを返却: <code>len(args) &gt; n</code> の場合、<code>fmt.Errorf(&quot;accepts at most %d arg(s), received %d&quot;, n, len(args))</code>。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ExactArgs(n int)</code></td>
+<td style="text-align:left"><code>L94–101</code></td>
+<td style="text-align:left"><code>func(n int) PositionalArgs</code></td>
+<td style="text-align:left">クロージャを返却: <code>len(args) != n</code> の場合、<code>fmt.Errorf(&quot;accepts %d arg(s), received %d&quot;, n, len(args))</code>。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>RangeArgs(min, max int)</code></td>
+<td style="text-align:left"><code>L104–111</code></td>
+<td style="text-align:left"><code>func(min int, max int) PositionalArgs</code></td>
+<td style="text-align:left">クロージャを返却: <code>len(args) &lt; min || len(args) &gt; max</code> の場合、<code>fmt.Errorf(&quot;accepts between %d and %d arg(s), received %d&quot;, min, max, len(args))</code>。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>MatchAll(pargs ...PositionalArgs)</code></td>
+<td style="text-align:left"><code>L114–123</code></td>
+<td style="text-align:left"><code>func(pargs ...PositionalArgs) PositionalArgs</code></td>
+<td style="text-align:left">複数の <code>PositionalArgs</code> を順番に実行し、最初に非 <code>nil</code> エラーを返した時点で短絡（short-circuit）リターンする高階コンビネータ。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ExactValidArgs(n int)</code></td>
+<td style="text-align:left"><code>L129–131</code></td>
+<td style="text-align:left"><code>func(n int) PositionalArgs</code></td>
+<td style="text-align:left"><em>(Deprecated)</em> <code>return MatchAll(ExactArgs(n), OnlyValidArgs)</code> の1行で実装されている互換ラッパー。</td>
+</tr>
+</tbody>
+</table>
+<h3>4.3 <code>OnlyValidArgs</code> における <code>\t</code>（タブ区切り説明文）のストリップ処理（<code>args.go:51–66</code>）</h3>
+<p><code>OnlyValidArgs</code>（<code>args.go:51–66</code>）は、<a href="../05_completion_v2_engine/complete_protocol_and_shells.html">第5章</a>で解説する Shell Completion V2 エンジンと密接に連携しています。</p>
+<pre><code class="language-go"><span class="c1">// args.go:51-66</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">OnlyValidArgs</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ValidArgs</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="c1">// Remove any description that may be included in ValidArgs.</span>
+<span class="w">		</span><span class="c1">// A description is following a tab character.</span>
+<span class="w">		</span><span class="nx">validArgs</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ValidArgs</span><span class="p">))</span>
+<span class="w">		</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">ValidArgs</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">validArgs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">validArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">SplitN</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="s">"\t"</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">stringInSlice</span><span class="p">(</span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">validArgs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"invalid argument %q for %q%s"</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CommandPath</span><span class="p">(),</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">findSuggestions</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p>Cobra の <code>cmd.ValidArgs</code> には、<code>CompletionWithDesc(&quot;json&quot;, &quot;Output in JSON format&quot;)</code> のように <code>&lt;候補名&gt;\t&lt;説明文&gt;</code> 形式の文字列を登録できます。そのため <code>OnlyValidArgs</code> は検証前に <code>strings.SplitN(v, &quot;\t&quot;, 2)[0]</code> でタブ文字以降の説明文を切り落としてから <code>stringInSlice</code> 照合を行います。この仕組みにより、単一の <code>cmd.ValidArgs</code> スライスが <strong>シェル補完時の説明付き候補リスト</strong> と <strong>実行時の厳密な許可リスト（Allowlist）</strong> の二役を同時に果たします。</p>
+<hr />
+<h2>5. まとめと次章への展望</h2>
+<ul>
+<li><strong>Annotation ベースの関係フラググループ（<code>flag_groups.go:25–77</code>）</strong>: <code>MarkFlagsRequiredTogether</code>, <code>MarkFlagsOneRequired</code>, <code>MarkFlagsMutuallyExclusive</code> は最初に <code>c.mergePersistentFlags()</code> を呼び出し、空白区切りのグループ文字列を <code>pflag.Flag.Annotations</code> のスライスに追記することで、<code>Command</code> 構造体フィールドを増やさずに複数グループへの重複所属を実現しています。</li>
+<li><strong>ハイブリッド継承の安全性と決定論的検証（<code>flag_groups.go:81–218</code>）</strong>: <code>processFlagForGroupAnnotation</code> は <code>hasAllFlags(flags, flagnames...)</code> によってサブコマンド上に存在しないローカルフラグを含む継承グループを安全にスキップし、<code>sortedKeys</code> と <code>sort.Strings</code> でエラーメッセージの決定論的な順序を保証します。</li>
+<li><strong>シェル補完時のメタデータ動的書き換え（<code>flag_groups.go:225–290</code>）</strong>: <code>enforceFlagGroupsForCompletion()</code> は <code>__complete</code> 実行中に <code>MarkFlagRequired</code> の呼び出しや競合ピアフラグの <code>flag.Hidden = true</code> 化（<code>fName != flagName</code>）を動的に行います。</li>
+<li><strong>関数合成可能な <code>PositionalArgs</code>（<code>args.go:22–131</code>）</strong>: <code>MatchAll</code> によって個数制約クロージャと <code>OnlyValidArgs</code>（<code>\t</code> 説明文ストリップ対応）を自在に組み合わせることができます。</li>
+</ul>
+<p>続く <strong><a href="../05_completion_v2_engine/complete_protocol_and_shells.html">第5章: Shell Completion V2 エンジン — <code>__complete</code> プロトコルとシェルスクリプト生成</a></strong> では、<code>initCompleteCmd</code>、<code>getCompletions()</code> 状態機械、<code>checkIfFlagCompletion()</code>、および4大シェル向けスクリプト生成器の内部プロトコルを徹底解説します。</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式の内部アーキテクチャ解説であり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,956 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: Shell Completion V2 エンジン — `__complete` プロトコル、`getCompletions` 状態機械と4大シェルスクリプト生成器 — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html">
+    
+    
+    
+    <meta name="description" content="初期の補完スクリプト生成器（bash_completions.go、649 LOC）は、コマンドツリーやフラグ一覧を巨大な静的シェルスクリプトとして出力する方式をとっていました。これに対し、Cobra の Shell Completion V2 エンジン（completions.go…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra 内部アーキテクチャ">
+    <meta property="og:title" content="第5章: Shell Completion V2 エンジン — complete プロトコル、getCompletions 状態機械と4大シェルスクリプト生成器 — Cobra 内部アーキテクチャ">
+    <meta property="og:description" content="初期の補完スクリプト生成器（bash_completions.go、649 LOC）は、コマンドツリーやフラグ一覧を巨大な静的シェルスクリプトとして出力する方式をとっていました。これに対し、Cobra の Shell Completion V2 エンジン（completions.go…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="第5章: Shell Completion V2 エンジン — complete プロトコル、getCompletions 状態機械と4大シェルスクリプト生成器 — Cobra 内部アーキテクチャ">
+    <meta name="twitter:description" content="初期の補完スクリプト生成器（bash_completions.go、649 LOC）は、コマンドツリーやフラグ一覧を巨大な静的シェルスクリプトとして出力する方式をとっていました。これに対し、Cobra の Shell Completion V2 エンジン（completions.go…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra 内部アーキテクチャ">
+                    
+                    Cobra 内部アーキテクチャ
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >アーキテクチャ概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. パッケージ構成と複合ツリー</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command ツリーと FlagSet 遅延初期化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. パーサーとコマンド解決</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find / Traverse と stripFlags パーサー</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. ライフサイクル実行エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC・execute() とフック連鎖</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 関係フラググループと引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation フラググループとバリデータ</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="complete_protocol_and_shells.html" >__complete プロトコルとシェル生成</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. ドキュメント合成エンジン</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >cobra/doc の再帰ツリー直列化</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra ユーザーガイド<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">第5章: Shell Completion V2 エンジン — `__complete` プロトコル、`getCompletions` 状態機械と4大シェルスクリプト生成器</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/05_completion_v2_engine/complete_protocol_and_shells.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="complete_protocol_and_shells.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>第5章: Shell Completion V2 エンジン — <code>__complete</code> プロトコル、<code>getCompletions</code> 状態機械と4大シェルスクリプト生成器</h1>
+<p>初期の補完スクリプト生成器（<code>bash_completions.go</code>、<code>649 LOC</code>）は、コマンドツリーやフラグ一覧を巨大な静的シェルスクリプトとして出力する方式をとっていました。これに対し、Cobra の <strong>Shell Completion V2 エンジン</strong>（<code>completions.go</code>, <code>active_help.go</code>, <code>shell_completions.go</code> — 計 <code>1,181 LOC</code>）および <strong>4つの V2 シェルスクリプト生成器</strong>（<code>bash_completionsV2.go</code>, <code>zsh_completions.go</code>, <code>fish_completions.go</code>, <code>powershell_completions.go</code> — 計 <code>1,438 LOC</code>）は、補完ロジックの知能をすべてコンパイル済み Go バイナリ本体へ集約しています。ユーザーが <code>&lt;TAB&gt;</code> キーを押すたびに、シェルアダプタは隠しサブコマンド（<code>&lt;program&gt; __complete [args...]</code>）を IPC 呼び出しし、<code>stdout</code> から返却される構造化候補行と末尾の <code>:&lt;directive&gt;</code> ビットマスク整数を各シェルのネイティブ補完プリミティブへ変換します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completion_v2_engine/complete_protocol_and_shells/complete_v2_wire_protocol_ja.png" alt="complete_protocol_and_shells_1" />
+  <figcaption class="drawlib-caption">図1: シェルアダプタ、__complete、getCompletions()、stdout、stderr 間の Shell Completion V2 エンドツーエンド通信プロトコル</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">112</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">((</span><span class="mi">24</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span>
+    <span class="s2">"Shell Completion V2: __complete IPC ワイヤプロトコル全体像"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_left_right</span><span class="p">((</span><span class="mi">164</span><span class="p">,</span> <span class="mf">107.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Shell Script Adapter (bash / zsh / fish / pwsh)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. シェルアダプタ"</span><span class="p">,</span>
+    <span class="s2">"4大シェル"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ユーザーが &lt;TAB&gt; キーを押下</span><span class="se">\n</span><span class="s2">カーソル位置までトークンを切り詰め</span><span class="se">\n</span><span class="s2">末尾空白時は </span><span class="se">\"\"</span><span class="s2"> を追加"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">17</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"サブプロセス IPC 呼び出し:</span><span class="se">\n</span><span class="s2">&lt;prog&gt; __complete [args...]</span><span class="se">\n</span><span class="s2">(または __completeNoDesc)</span><span class="se">\n</span><span class="s2">2&gt;/dev/null (stderr は破棄)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"stdout 解析とディレクティブ適用:</span><span class="se">\n</span><span class="s2">• 最終行 :&lt;directive&gt; を抽出</span><span class="se">\n</span><span class="s2">• _activeHelp_ 行を分離</span><span class="se">\n</span><span class="s2">• &lt;choice&gt;</span><span class="se">\\</span><span class="s2">t&lt;desc&gt; を分割</span><span class="se">\n</span><span class="s2">• compopt / _describe /</span><span class="se">\n</span><span class="s2">  complete -k / CompletionResult"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: __complete Runtime Engine in Go Binary</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. __complete 本体"</span><span class="p">,</span>
+    <span class="s2">"L231-306"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">92</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">82</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ExecuteC() -&gt; initCompleteCmd()</span><span class="se">\n</span><span class="s2">隠しコマンド __complete を注入</span><span class="se">\n</span><span class="s2">(通常実行時は即座に削除!)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">74.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">17</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"__complete.Run(cmd, args):</span><span class="se">\n</span><span class="s2">DisableFlagParsing: true</span><span class="se">\n</span><span class="s2">finalCmd.execute() を呼ばない</span><span class="se">\n</span><span class="s2">(PreRun / OnInitialize 副作用ゼロ)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">50.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"cmd.getCompletions(args):</span><span class="se">\n</span><span class="s2">1. finalCmd とフラグ状態を解決</span><span class="se">\n</span><span class="s2">2. ActiveHelp と </span><span class="se">\\</span><span class="s2">t 説明を制御</span><span class="se">\n</span><span class="s2">3. 改行 (</span><span class="se">\\</span><span class="s2">n) と末尾空白を除去</span><span class="se">\n</span><span class="s2">4. stdout と stderr へ出力"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3A: stdout Wire Stream</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3A. stdout ストリーム"</span><span class="p">,</span>
+    <span class="s2">"L258-290"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">81.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">19</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1..N行目: 補完候補と ActiveHelp</span><span class="se">\n</span><span class="s2">&lt;choice&gt;</span><span class="se">\\</span><span class="s2">t&lt;description&gt;</span><span class="se">\n</span><span class="s2">_activeHelp_ &lt;message&gt;"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">155</span><span class="p">,</span> <span class="mi">72</span><span class="p">),</span> <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">67</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">59.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"最終行: :&lt;directive&gt;</span><span class="se">\n</span><span class="s2">例: :4 (NoFileComp ビットマスク)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3B: stderr &amp; Debug Log</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3B. stderr &amp; デバッグ"</span><span class="p">,</span>
+    <span class="s2">"L952-989"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">38</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"シェルからは無視 (2&gt;/dev/null):</span><span class="se">\n\"</span><span class="s2">Completion ended with</span><span class="se">\n</span><span class="s2"> directive: ShellComp...</span><span class="se">\"\n</span><span class="s2">+ BASH_COMP_DEBUG_FILE 追記"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel connectors</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">61</span><span class="p">,</span> <span class="mf">27.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mi">68</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. 隠しコマンド <code>__complete</code> のエフェメラル注入 (<code>initCompleteCmd</code>, <code>completions.go:231–306</code>)</h2>
+<p><code>ExecuteC()</code>（<code>command.go:1110</code>）の実行中、<code>InitDefaultHelpCmd()</code> の直後かつ <code>InitDefaultCompletionCmd()</code> の直前に、ルートコマンド上で <code>c.initCompleteCmd(args)</code> が呼び出されます。</p>
+<h3>1.1 隠しコマンド <code>__complete</code> の構造体設定（<code>completions.go:28–35, 232–295</code>）</h3>
+<p><code>initCompleteCmd</code> は以下の設定を持つ特別な <code>Command</code> インスタンス <code>completeCmd</code> を構築します。</p>
+<ul>
+<li><strong><code>Use: &quot;__complete [command-line]&quot;</code></strong>（<code>ShellCompRequestCmd = &quot;__complete&quot;</code>、<code>L31</code>）</li>
+<li><strong><code>Aliases: []string{&quot;__completeNoDesc&quot;}</code></strong>（<code>ShellCompNoDescRequestCmd = &quot;__completeNoDesc&quot;</code>、<code>L34</code>）</li>
+<li><strong><code>Hidden: true</code></strong> および <strong><code>DisableFlagsInUseLine: true</code></strong>（<code>L235–236</code>）</li>
+<li><strong><code>DisableFlagParsing: true</code></strong>（<code>L237</code>）: 極めて重要な設定です。これにより <code>ExecuteC()</code> 内の <code>Find(args)</code> や <code>Traverse(args)</code> が補完対象コマンド向けのフラグを誤ってパース・消費してしまうことを防ぎ、ユーザーが入力した生のコマンドライン引数スライス全体をそのまま <code>__complete</code> の <code>Run</code> クロージャへ渡します。</li>
+<li><strong><code>Args: MinimumNArgs(1)</code></strong>（<code>L238</code>）: 最低でも1つの引数（現在カーソルが置かれている未完了トークン <code>toComplete</code>。スペース直後の <code>&lt;TAB&gt;</code> なら空文字列 <code>&quot;&quot;</code>）を要求します。</li>
+</ul>
+<h3>1.2 なぜ通常実行時に <code>c.RemoveCommand(completeCmd)</code> で即座に削除するのか（<code>completions.go:296–305</code>）</h3>
+<p><code>c.AddCommand(completeCmd)</code> でルートコマンドに追加した直後、<code>initCompleteCmd</code> は <code>c.Find(args)</code> で実際に <code>__complete</code> が呼ばれているかどうかを検査します。</p>
+<pre><code class="language-go"><span class="c1">// completions.go:296-305</span>
+<span class="nx">c</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">completeCmd</span><span class="p">)</span>
+<span class="nx">subCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">subCmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">ShellCompRequestCmd</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// Only create this special command if it is actually being called.</span>
+<span class="w">	</span><span class="c1">// This reduces possible side-effects of creating such a command;</span>
+<span class="w">	</span><span class="c1">// for example, having this command would cause problems to a</span>
+<span class="w">	</span><span class="c1">// cobra program that only consists of the root command, since this</span>
+<span class="w">	</span><span class="c1">// command would cause the root command to suddenly have a subcommand.</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">RemoveCommand</span><span class="p">(</span><span class="nx">completeCmd</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<p><code>completeCmd.Hidden = true</code> であるにもかかわらず、なぜわざわざツリーから削除する必要があるのでしょうか？
+<a href="../04_flag_groups_and_args/relational_flag_engine.html">第4章</a>で見た通り、<code>Command.HasSubCommands()</code>（<code>command.go:1619–1626</code>）は <code>c.helpCommand</code> 以外のすべての子コマンドをカウントし、<strong>隠しコマンド（<code>Hidden: true</code>）を除外しません</strong>。もしサブコマンドを持たない単一コマンド型 CLI（例: <code>mytool file1.txt</code>）で <code>__complete</code> が残ったままだと、<code>rootCmd.HasSubCommands()</code> が <code>true</code> に変化してしまい、<code>legacyArgs()</code>（<code>args.go:35</code>）が位置引数 <code>file1.txt</code> を「未知のサブコマンド」として拒絶してしまいます。そのため、<code>__complete</code> 自体が呼び出されたとき以外は即座に <code>c.RemoveCommand(completeCmd)</code> で除去する設計になっています。</p>
+<h3>1.3 なぜ <code>__complete</code> は <code>finalCmd.execute()</code> を一切呼ばないのか（副作用の完全遮断）</h3>
+<p><code>&lt;TAB&gt;</code> 補完時に <code>ExecuteC()</code> が実行するのは <code>completeCmd.execute(flags)</code> です。<code>completeCmd</code> 自身には <code>PreRun</code> フックが定義されておらず、その <code>Run</code> クロージャは <code>cmd.getCompletions(args)</code>（<code>L243</code>）を直接呼び出し、<strong>補完対象である <code>finalCmd.execute()</code> は決して呼び出しません</strong>。
+その結果、<code>&lt;TAB&gt;</code> 補完時には以下の処理が完全にバイパスされます。</p>
+<ul>
+<li><code>finalCmd.PersistentPreRunE</code> / <code>PersistentPreRun</code></li>
+<li><code>finalCmd.PreRunE</code> / <code>PreRun</code></li>
+<li><code>finalCmd.RunE</code> / <code>Run</code></li>
+</ul>
+<p>この設計により、たとえば本番環境を削除するコマンド（<code>mycli delete-cluster --region &lt;TAB&gt;</code>）で <code>&lt;TAB&gt;</code> を押しても、DB 接続の初期化や認証トークン更新、副作用を伴う <code>PreRun</code> フックが誤作動することは一切ありません。</p>
+<hr />
+<h2>2. <code>getCompletions</code> 6段階状態機械の完全ウォークスルー (<code>completions.go:316–582</code>)</h2>
+<p><code>__complete</code> の <code>Run</code> クロージャから呼び出される <code>cmd.getCompletions(args)</code>（<code>L316–582</code>）は、以下の6段階のステートマシンに従って補完候補とディレクティブを決定します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completion_v2_engine/complete_protocol_and_shells/getcompletions_state_machine_ja.png" alt="complete_protocol_and_shells_2" />
+  <figcaption class="drawlib-caption">図2: getCompletions() の6段階決定状態機械、checkIfFlagCompletion() パーサー、および ShellCompDirective ビットマスク表 (completions.go)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">188</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">114</span><span class="p">)</span>
+
+<span class="n">phosphor</span><span class="o">.</span><span class="n">magnifying_glass</span><span class="p">((</span><span class="mi">22</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span>
+    <span class="s2">"getCompletions() 6段階状態機械と ShellCompDirective ビットマスク"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_fork</span><span class="p">((</span><span class="mi">166</span><span class="p">,</span> <span class="mf">109.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="p">)</span>
+
+<span class="c1"># Panel 1: Stages 1-3 (Split, Flag Probe, '--' Detection)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. 事前解決・フラグ判定"</span><span class="p">,</span>
+    <span class="s2">"L316-395"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"第1-2段階: 対象コマンド解決</span><span class="se">\n</span><span class="s2">toComplete = args[len-1]</span><span class="se">\n</span><span class="s2">唯一の子なら __complete 除去</span><span class="se">\n</span><span class="s2">Traverse() または Find(trimmed)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">71</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"第3段階: checkIfFlagCompletion</span><span class="se">\n</span><span class="s2">(L362, ParseFlags 前に実行):</span><span class="se">\n</span><span class="s2">• --flag=val / -asd=val</span><span class="se">\n</span><span class="s2">• 2語形式: --flag &lt;TAB&gt;</span><span class="se">\n</span><span class="s2">• NoOptDefVal (bool) ならリセット"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">33</span><span class="p">,</span> <span class="mf">47.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mf">26.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">29</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"第4-5段階: '--' 検出とパース</span><span class="se">\n</span><span class="s2">append(</span><span class="se">\"</span><span class="s2">--</span><span class="se">\"</span><span class="s2">) 時の NArg() と</span><span class="se">\n</span><span class="s2">通常の NArg() を比較検証</span><span class="se">\n</span><span class="s2">newArg &gt; realArg ならフラグ無効</span><span class="se">\n</span><span class="s2">--help / --version 時は即終了"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 2: Stage 6 (Annotations, Flag Names, Nouns, Custom Funcs)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 補完候補の生成"</span><span class="p">,</span>
+    <span class="s2">"L402-582"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">66</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">84.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6A. フラグ値 Annotation 補完:</span><span class="se">\n</span><span class="s2">• BashCompFilenameExt -&gt; :8</span><span class="se">\n</span><span class="s2">• BashCompSubdirsInDir -&gt; :16</span><span class="se">\n</span><span class="s2">+ enforceFlagGroups (L430)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">76.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">71</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6B. フラグ名 (toComplete[0]=='-'):</span><span class="se">\n</span><span class="s2">1. completeRequireFlags() 優先</span><span class="se">\n</span><span class="s2">2. Inherited + NonInherited</span><span class="se">\n</span><span class="s2">(!Changed || SliceValue/Array)</span><span class="se">\n</span><span class="s2">単一 '=' 候補時は NoSpace"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">94</span><span class="p">,</span> <span class="mf">47.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mf">26.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">29</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"6C. サブコマンド・引数・カスタム関数:</span><span class="se">\n</span><span class="s2">• Subcommands + 必須フラグ</span><span class="se">\n</span><span class="s2">• ValidArgs + ArgAliases (L532)</span><span class="se">\n</span><span class="s2">• flagCompletionFunctions[flag]</span><span class="se">\n</span><span class="s2">  (RWMutex) / ValidArgsFunction"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Panel 3: ShellCompDirective Bitmask &amp; ActiveHelp</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. Directive マスク"</span><span class="p">,</span>
+    <span class="s2">"L56-96"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">127</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">94</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">46</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ビットマスク定数 (1 &lt;&lt; iota):</span><span class="se">\n</span><span class="s2">• :0  Default (標準ファイル補完)</span><span class="se">\n</span><span class="s2">• :1  Error (候補を全破棄)</span><span class="se">\n</span><span class="s2">• :2  NoSpace (末尾空白なし)</span><span class="se">\n</span><span class="s2">• :4  NoFileComp (ファイル補完禁止)</span><span class="se">\n</span><span class="s2">• :8  FilterFileExt (拡張子限定)</span><span class="se">\n</span><span class="s2">• :16 FilterDirs (ディレクトリ限定)</span><span class="se">\n</span><span class="s2">• :32 KeepOrder (順序維持)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">155</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">27</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ActiveHelp &amp; 環境変数制御:</span><span class="se">\n</span><span class="s2">• _activeHelp_ 接頭辞 (L23)</span><span class="se">\n</span><span class="s2">• &lt;PROG&gt;_ACTIVE_HELP=0</span><span class="se">\n</span><span class="s2">• COBRA_ACTIVE_HELP=0</span><span class="se">\n</span><span class="s2">• COBRA_COMPLETION_DESCRIPTIONS"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Inter-panel connectors</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">61</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">69.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">122</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mf">25.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>第1段階: <code>toComplete</code> と <code>trimmedArgs</code> の分離（<code>completions.go:319–320</code>）</h3>
+<p>シェルスクリプトは、現在カーソルがある未確定トークンを常に最終引数として渡します（スペースの直後で <code>&lt;TAB&gt;</code> を押した場合は空文字列 <code>&quot;&quot;</code>）。<code>getCompletions</code> はまず最終要素を分離します。</p>
+<pre><code class="language-go"><span class="nx">toComplete</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="nx">trimmedArgs</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</code></pre>
+<h3>第2段階: <code>finalCmd</code> の解決と単一ルートコマンド不変条件の復元（<code>completions.go:327–356</code>）</h3>
+<p>続いて <code>trimmedArgs</code> から補完対象コマンド <code>finalCmd</code> を特定します。<code>c.Root().TraverseChildren</code> が有効なら <code>c.Root().Traverse(trimmedArgs)</code>（<code>L327–328</code>）、無効なら <code>rootCmd.Find(trimmedArgs)</code>（<code>L329–341</code>）を呼び出します。
+ここで <code>L335–338</code> の処理に注目してください。</p>
+<pre><code class="language-go"><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Root</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">Commands</span><span class="p">())</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">RemoveCommand</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">finalCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">trimmedArgs</span><span class="p">)</span>
+</code></pre>
+<p>もしルートコマンドの子コマンドが <code>__complete</code>（<code>c</code>）の1つだけである場合（<code>len(rootCmd.Commands()) == 1</code>）、<code>Find(trimmedArgs)</code> を呼ぶ直前に <code>__complete</code> 自身を <code>rootCmd</code> から削除します。これを忘れると、サブコマンドを持たないルート専用 CLI で2つ目の位置引数を補完しようとした際（例: <code>mytool arg1 &lt;TAB&gt;</code>）、<code>Find()</code> 内の <code>legacyArgs()</code> が <code>rootCmd.HasSubCommands() == true</code> と判定してエラーを返してしまうためです。
+<code>finalCmd</code> の特定後、<code>finalCmd.ctx = c.ctx</code> を引き継ぎ（<code>L346</code>）、さらに <code>finalCmd.execute()</code> を呼ばない代わりに <code>finalCmd.InitDefaultHelpFlag()</code> と <code>finalCmd.InitDefaultVersionFlag()</code> を手動で呼び出して <code>--help</code> と <code>--version</code> を補完対象に登録します（<code>L353–356</code>）。</p>
+<h3>第3段階: <code>ParseFlags</code> 前のフラグ値補完判定 (<code>checkIfFlagCompletion</code>, <code>completions.go:362, 654–738</code>)</h3>
+<p><code>finalCmd.ParseFlags(finalArgs)</code> を呼ぶ<strong>前</strong>に、必ず <code>checkIfFlagCompletion(finalCmd, finalArgs, toComplete)</code>（<code>L362</code>）を実行します。なぜ <code>ParseFlags</code> の前なのかというと、ユーザーが2語形式のフラグ値を入力しようとしている最中（例: <code>mycli --count &lt;TAB&gt;</code>）では <code>finalArgs</code> の末尾に値なしの <code>&quot;--count&quot;</code> が残っており、そのまま <code>ParseFlags</code> に渡すと <code>flag needs an argument: --count</code> でパースエラーになってしまうからです。</p>
+<p><code>checkIfFlagCompletion</code>（<code>L654–738</code>）は以下の3パターンを処理します。</p>
+<ol>
+<li><strong><code>=</code> を含む1語フラグ形式（<code>--flag=val</code> または <code>-asd=val</code>、<code>L669–688</code>）</strong>:
+<code>lastArg</code>（<code>toComplete</code>）が <code>'-'</code> で始まり、インデックス <code>index</code> に <code>'='</code> を含む場合:
+<ul>
+<li><code>&quot;--&quot;</code> で始まっていれば <code>flagName = lastArg[2:index]</code>（<code>L674</code>）を抽出します。</li>
+<li>短縮フラグ（<code>-asd=val</code> 等）の場合、<code>=</code> の<strong>直前の1文字</strong> <code>flagName = lastArg[index-1 : index]</code>（<code>L680</code>、この例では <code>'d'</code>）を取り出します（Issue <code>#1257</code> 対応）。</li>
+<li><code>lastArg = lastArg[index+1:]</code> で <code>=</code> 以降の文字列のみを補完対象プレフィックスとし、<code>flagWithEqual = true</code> を記録します（<code>L682–683</code>）。</li>
+</ul>
+</li>
+<li><strong>空白区切りの2語フラグ形式（<code>--flag &lt;TAB&gt;</code> または <code>-asd &lt;TAB&gt;</code>、<code>L690–714</code>）</strong>:
+直前のトークン <code>prevArg := args[len(args)-1]</code> が <code>isFlagArg(prevArg)</code> を満たし、かつ <code>'='</code> を含まない場合:
+<ul>
+<li><code>flagName = prevArg[2:]</code>（長形式）または <code>flagName = prevArg[len(prevArg)-1:]</code>（短形式の末尾文字）を抽出します。</li>
+<li><strong><code>trimmedArgs = args[:len(args)-1]</code>（<code>L710</code>）で未完了フラグを <code>trimmedArgs</code> から除去</strong>し、後続の <code>ParseFlags</code> がエラーにならないようにします。</li>
+</ul>
+</li>
+<li><strong>真偽値フラグ（<code>NoOptDefVal</code>）のリセット判定（<code>L721–735</code>）</strong>:
+<code>findFlag(finalCmd, flagName)</code>（<code>L721</code>、<code>L929–946</code> で <code>ShorthandLookup</code> も実行）で <code>*pflag.Flag</code> を検索し、存在しなければ <code>&amp;flagCompError</code> を返します（<code>L724</code>）。
+ここで <code>!flagWithEqual &amp;&amp; len(flag.NoOptDefVal) != 0</code>（<code>L727–735</code>）だった場合、直前のフラグは引数を伴わない <strong>boolean フラグ</strong>（例: <code>--verbose &lt;TAB&gt;</code>）であったことを意味します。この場合、次のトークンはフラグ値ではなく通常の位置引数／サブコマンドであるため、<code>trimmedArgs = args</code> に戻し <code>flag = nil</code> にリセットします。</li>
+</ol>
+<h3>第4段階: <code>NArg()</code> 二重パース比較による先行 <code>--</code> および <code>Interspersed == false</code> の検出（<code>completions.go:368–388</code>）</h3>
+<p><code>pflag.Parse()</code> はコマンドライン上の <code>--</code> トークンを消費してしまうため、ユーザーがそれより前の位置で既に <code>--</code> を入力していたかどうか（あるいは <code>Flags().SetInterspersed(false)</code> によって位置引数以降のフラグ解析が停止しているかどうか）を直接知ることはできません。そこで Cobra は、<code>append(finalArgs, &quot;--&quot;)</code> と <code>finalArgs</code> の2回パースして <code>NArg()</code>（残余位置引数数）を比較する巧妙なプローブを行います（<code>L368–381</code>）。</p>
+<pre><code class="language-go"><span class="c1">// completions.go:368-381</span>
+<span class="nx">flagCompletion</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kc">true</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nb">append</span><span class="p">(</span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="s">"--"</span><span class="p">))</span>
+<span class="nx">newArgCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">NArg</span><span class="p">()</span>
+
+<span class="c1">// Parse the flags early so we can check if required flags are set</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">finalArgs</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="nx">Completion</span><span class="p">{},</span><span class="w"> </span><span class="nx">ShellCompDirectiveDefault</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"Error while parsing flags from args %v: %s"</span><span class="p">,</span><span class="w"> </span><span class="nx">finalArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="nx">realArgCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">finalCmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">NArg</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">newArgCount</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">realArgCount</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// don't do flag completion (see above)</span>
+<span class="w">	</span><span class="nx">flagCompletion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre>
+<ul>
+<li>通常時は、末尾に追加した <code>&quot;--&quot;</code> は <code>pflag</code> によってフラグ終了マーカーとして消費されるため、<code>newArgCount == realArgCount</code> となります。</li>
+<li>一方、既に <code>finalArgs</code> 内に <code>&quot;--&quot;</code> が存在していた場合（または <code>Interspersed == false</code> で位置引数が先行していた場合）、末尾に追加した <code>&quot;--&quot;</code> は単なる位置引数文字列としてカウントされるため、<code>newArgCount &gt; realArgCount</code> となります！</li>
+<li>このとき <code>flagCompletion = false</code>（<code>L380</code>）が設定され、以降のフラグ補完がすべて抑止されるとともに、<code>flagCompError</code> も無視されます（<code>L383–388</code>）。</li>
+</ul>
+<h3>第5段階: <code>--help</code> / <code>--version</code> 指定時の短絡終了（<code>completions.go:392–394, 584–594</code>）</h3>
+<p><code>helpOrVersionFlagPresent(finalCmd)</code>（<code>L392–394</code>, <code>L584–594</code>）は、Cobra が自動注入した <code>--version</code> または <code>--help</code> フラグ（<code>FlagSetByCobraAnnotation</code> で識別）が <code>Changed == true</code> かどうかを調べます。いずれかが指定されていれば、それ以上の補完は無意味であるため即座に <code>[]Completion{}, ShellCompDirectiveNoFileComp, nil</code> を返して終了します。</p>
+<h3>第6段階: 候補生成とカスタム <code>CompletionFunc</code> ディスパッチ（<code>completions.go:402–581</code>）</h3>
+<p>最後に、以下の4つの経路で補完候補と <code>ShellCompDirective</code> を決定します。</p>
+<ol>
+<li><strong>フラグ値 Annotation によるファイル／ディレクトリ補完（<code>L402–424</code>）</strong>:
+<code>flag != nil &amp;&amp; flagCompletion</code> のとき:
+<ul>
+<li><code>flag.Annotations[BashCompFilenameExt]</code>（<code>MarkFlagFilename</code> で設定）が存在し空でなければ、拡張子リスト <code>validExts</code> と <code>ShellCompDirectiveFilterFileExt</code>（<code>:8</code>）を返します（<code>L404–408</code>）。</li>
+<li><code>flag.Annotations[BashCompSubdirsInDir]</code>（<code>MarkFlagDirname</code> で設定）が存在すれば、<code>subDir</code> と <code>ShellCompDirectiveFilterDirs</code>（<code>:16</code>）を返します（<code>L416–423</code>）。</li>
+</ul>
+</li>
+<li><strong>関係フラググループの補完時制約適用（<code>L430</code>）</strong>:
+<a href="../04_flag_groups_and_args/relational_flag_engine.html">第4章</a>で解説した <code>finalCmd.enforceFlagGroupsForCompletion()</code>（<code>flag_groups.go:225–290</code>）を呼び出し、グループ内の未指定フラグの必須化（<code>MarkFlagRequired</code>）や相互排他フラグの非表示化（<code>flag.Hidden = true</code>）を実行します。</li>
+<li><strong>フラグ名補完（<code>flag == nil &amp;&amp; toComplete[0] == '-' &amp;&amp; !strings.Contains(toComplete, &quot;=&quot;) &amp;&amp; flagCompletion</code>、<code>L438–487</code>）</strong>:
+<ul>
+<li>まず <code>completeRequireFlags(finalCmd, toComplete)</code>（<code>L440</code>, <code>L629–652</code>）で <code>BashCompOneRequiredFlag</code> を持つ未指定の必須フラグを検索します。</li>
+<li>必須フラグが1つも見つからなかった場合（<code>len(completions) == 0</code>、<code>L443</code>）に限り、<code>InheritedFlags()</code> と <code>NonInheritedFlags()</code> を走査して一般フラグを提案します。この際、<code>!flag.Changed</code>（未指定）であるか、または複数回指定可能な型（<code>flag.Value.(SliceValue)</code> を実装しているか、<code>flag.Value.Type()</code> に <code>&quot;Slice&quot;</code>, <code>&quot;Array&quot;</code> を含むか、<code>&quot;stringTo&quot;</code> で始まる型、<code>L445–455</code>）のみが候補に追加されます。</li>
+<li>ディレクティブは <code>ShellCompDirectiveNoFileComp</code>（<code>:4</code>）に設定され（<code>L474</code>）、候補が1件のみで末尾が <code>&quot;=&quot;</code> の場合は <code>ShellCompDirectiveNoSpace</code>（<code>:2</code>）となります（<code>L475–479</code>）。</li>
+</ul>
+</li>
+<li><strong>サブコマンド・必須フラグ・<code>ValidArgs</code>・<code>ArgAliases</code>・カスタム <code>CompletionFunc</code>（<code>L488–580</code>）</strong>:
+<ul>
+<li><code>finalCmd</code> から親方向へ <code>CompletionOptions.DefaultShellCompDirective</code> を探索し、未設定なら <code>ShellCompDirectiveDefault</code>（<code>:0</code>）を初期値とします（<code>L489–496</code>）。</li>
+<li><code>flag == nil</code> の場合:
+<ul>
+<li><strong>サブコマンド補完（<code>L513–525</code>）</strong>: <code>len(finalArgs) == 0 &amp;&amp; !foundLocalNonPersistentFlag</code> であれば、利用可能なサブコマンドと <code>helpCommand</code> を <code>CompletionWithDesc(subCmd.Name(), subCmd.Short)</code> で追加し、<code>ShellCompDirectiveNoFileComp</code> を設定します。</li>
+<li><strong>必須フラグの優先提案（<code>L528</code>）</strong>: ユーザーが <code>-</code> を入力していなくても <code>completeRequireFlags(finalCmd, toComplete)</code> を追加します。</li>
+<li><strong><code>ValidArgs</code> と <code>ArgAliases</code>（<code>L532–556</code>）</strong>: <code>len(finalCmd.ValidArgs) &gt; 0</code> の場合、第1引数（<code>len(finalArgs) == 0</code>）に対して <code>ValidArgs</code> の前方一致候補を追加し、0件なら <code>finalCmd.ArgAliases</code>（<code>L544–550</code>）へフォールバックした上で、<code>ValidArgsFunction</code> とは排他的であるためここで即座に <code>return</code> します（<code>L555</code>）。</li>
+</ul>
+</li>
+<li><strong>カスタム <code>CompletionFunc</code> の呼び出し（<code>L564–580</code>）</strong>:
+<ul>
+<li>フラグ値補完（<code>flag != nil &amp;&amp; flagCompletion</code>）なら <code>flagCompletionMutex.RLock()</code> でロックを取得して <code>flagCompletionFunctions[flag]</code> を参照します（<code>L567–569</code>）。</li>
+<li>位置引数補完なら <code>finalCmd.ValidArgsFunction</code> を参照します（<code>L571</code>）。</li>
+<li>関数が登録されていれば <code>comps, directive = completionFn(finalCmd, finalArgs, toComplete)</code> を実行し、結果を <code>completions</code> に追加します（<code>L576–578</code>）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>3. <code>stdout</code> / <code>stderr</code> ワイヤプロトコルと <code>ActiveHelp</code> (<code>completions.go:251–294</code>, <code>active_help.go</code>)</h2>
+<p><code>getCompletions</code> から <code>(finalCmd, completions, directive, err)</code> を受け取った <code>__complete</code> の <code>Run</code> クロージャ（<code>completions.go:243–294</code>）は、シェルスクリプトが読み取る <code>stdout</code> と、人間・デバッグ用の <code>stderr</code> を厳密に分離して出力します。</p>
+<h3>3.1 <code>stdout</code> 出力フォーマットとサニタイズ処理（<code>completions.go:251–290</code>）</h3>
+<p><code>completions</code> スライスの各要素 <code>comp</code> に対して、以下の順序でフィルタリングと整形が行われます。</p>
+<ol>
+<li><strong>ActiveHelp のフィルタリング（<code>L257, L260–263</code>, <code>active_help.go:23–60</code>）</strong>:
+<code>AppendActiveHelp(compArray, activeHelpStr)</code>（<code>active_help.go:38–40</code>）は、接頭辞 <code>activeHelpMarker = &quot;_activeHelp_ &quot;</code> を付与したヒント行を候補配列へ追加します。<code>GetActiveHelpConfig(finalCmd)</code>（<code>active_help.go:47–53</code>）はまずグローバル環境変数 <code>COBRA_ACTIVE_HELP</code> を調べ、<code>&quot;0&quot;</code> でなければプログラム別環境変数 <code>&lt;PROGRAM&gt;_ACTIVE_HELP</code>（非英数字を <code>_</code> に置換した大文字コマンド名）を参照します。結果が <code>&quot;0&quot;</code>（<code>activeHelpGlobalDisable</code>）であれば、<code>&quot;_activeHelp_ &quot;</code> で始まる行をすべてスキップします。</li>
+<li><strong>タブ区切り説明文のストリップ（<code>L251–256, L264–267</code>）</strong>:
+<code>__completeNoDesc</code> エイリアス経由で呼ばれた場合（<code>cmd.CalledAs() == ShellCompNoDescRequestCmd</code>）、または環境変数 <code>&lt;PROGRAM&gt;_COMPLETION_DESCRIPTIONS</code> / <code>COBRA_COMPLETION_DESCRIPTIONS</code> が <code>false</code> と評価された場合、<code>comp = strings.SplitN(comp, &quot;\t&quot;, 2)[0]</code> でタブ以降の説明文を切り落とします。</li>
+<li><strong>複数行の切り詰めと末尾空白除去（<code>L273, L280</code>）</strong>:
+説明文に改行が含まれているとシェル側で別候補として誤認されるため、<code>comp = strings.SplitN(comp, &quot;\n&quot;, 2)[0]</code> で1行目のみを抽出し、<code>strings.TrimSpace(comp)</code> で末尾の余分なタブや空白を除去します（Zsh の <code>_describe</code> で空の説明区切り <code>--</code> が表示される不具合を防止）。</li>
+<li><strong>最終行 <code>:&lt;directive&gt;</code> の出力（<code>L289</code>）</strong>:
+全候補行を <code>out := finalCmd.OutOrStdout()</code> に出力した後、必ず最終行にコロン始まりの10進整数としてディレクティブを出力します。<pre><code class="language-go"><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">out</span><span class="p">,</span><span class="w"> </span><span class="s">":%d\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">directive</span><span class="p">)</span>
+</code></pre>
+</li>
+</ol>
+<h3>3.2 <code>ShellCompDirective</code> ビットマスク一覧（<code>completions.go:56–96</code>）</h3>
+<p><code>ShellCompDirective</code> は <code>1 &lt;&lt; iota</code> で定義されたビットマスク整数型です。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">定数名</th>
+<th style="text-align:left">ビット演算</th>
+<th style="text-align:left">10進値</th>
+<th style="text-align:left">ワイヤ出力</th>
+<th style="text-align:left">シェル補完スクリプトへの指示内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveDefault</code></td>
+<td style="text-align:left"><code>0</code></td>
+<td style="text-align:left"><code>0</code></td>
+<td style="text-align:left"><code>:0</code></td>
+<td style="text-align:left">デフォルト動作（候補が0件ならローカルファイル名補完へフォールバック）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveError</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 0</code></td>
+<td style="text-align:left"><code>1</code></td>
+<td style="text-align:left"><code>:1</code></td>
+<td style="text-align:left">エラー発生。返却された候補をすべて破棄して補完を中断する。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveNoSpace</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 1</code></td>
+<td style="text-align:left"><code>2</code></td>
+<td style="text-align:left"><code>:2</code></td>
+<td style="text-align:left">単一候補が確定した際、末尾に半角スペースを自動挿入しない。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveNoFileComp</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 2</code></td>
+<td style="text-align:left"><code>4</code></td>
+<td style="text-align:left"><code>:4</code></td>
+<td style="text-align:left">候補が0件であってもローカルファイル名補完を行わない。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveFilterFileExt</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 3</code></td>
+<td style="text-align:left"><code>8</code></td>
+<td style="text-align:left"><code>:8</code></td>
+<td style="text-align:left">返却された候補配列をファイル拡張子フィルタ（例: <code>yaml</code>, <code>json</code>）として扱う。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveFilterDirs</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 4</code></td>
+<td style="text-align:left"><code>16</code></td>
+<td style="text-align:left"><code>:16</code></td>
+<td style="text-align:left">ディレクトリ名のみを補完する（<code>completions[0]</code> があればその配下を検索）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirectiveKeepOrder</code></td>
+<td style="text-align:left"><code>1 &lt;&lt; 5</code></td>
+<td style="text-align:left"><code>32</code></td>
+<td style="text-align:left"><code>:32</code></td>
+<td style="text-align:left">シェル側の辞書順ソートを抑止し、Go 側が返したスライス順序をそのまま維持する。</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 <code>stderr</code> 診断メッセージと <code>BASH_COMP_DEBUG_FILE</code>（<code>completions.go:293, 952–989</code>）</h3>
+<p><code>finalCmd.ErrOrStderr()</code> には、毎回 <code>L293</code> で人間が読めるビットマスク名が出力されます。</p>
+<pre><code class="language-text">Completion ended with directive: ShellCompDirectiveNoFileComp, ShellCompDirectiveKeepOrder
+</code></pre>
+<p>シェルスクリプトは <code>2&gt;/dev/null</code> で <code>stderr</code> を破棄するため補完動作には影響せず、開発者が手動で <code>mycli __complete sub &quot;&quot;</code> を実行した際のデバッグ情報として機能します。また、<code>CompDebug(msg, printToStdErr)</code>（<code>L952–970</code>）および <code>CompError(msg)</code>（<code>L980–984</code>）は、環境変数 <code>BASH_COMP_DEBUG_FILE</code> が指定されているとそのファイルへ <code>[Debug]</code> / <code>[Error]</code> ログを追記します。4つのシェルスクリプト内の <code>__&lt;name&gt;_debug</code> 関数も同じ <code>BASH_COMP_DEBUG_FILE</code> にログを書き込むため、Go 本体とシェルスクリプトの双方のトレースを単一ファイル上で時系列に追跡できます。</p>
+<hr />
+<h2>4. 4大シェルスクリプト生成器による <code>__complete</code> 解析の比較</h2>
+<p><code>&lt;program&gt; completion [bash|zsh|fish|powershell]</code>（<code>completions.go:745–927</code>）が生成する4つのシェルスクリプトは、同一の <code>__complete</code> プロトコルを各シェルの補完機構へマッピングします。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">機能 / 処理項目</th>
+<th style="text-align:left">Bash V2 (<code>bash_completionsV2.go</code>, <code>485 LOC</code>)</th>
+<th style="text-align:left">Zsh (<code>zsh_completions.go</code>, <code>309 LOC</code>)</th>
+<th style="text-align:left">Fish (<code>fish_completions.go</code>, <code>293 LOC</code>)</th>
+<th style="text-align:left">PowerShell (<code>powershell_completions.go</code>, <code>351 LOC</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>生成メソッドと内部関数</strong></td>
+<td style="text-align:left"><code>GenBashCompletionV2(w, includeDesc)</code> (<code>L482</code>) -&gt; <code>genBashComp</code> (<code>L31</code>)</td>
+<td style="text-align:left"><code>GenZshCompletion(w)</code> (<code>L31</code>) / <code>GenZshCompletionNoDesc(w)</code> (<code>L42</code>) -&gt; <code>genZshComp</code> (<code>L87</code>)</td>
+<td style="text-align:left"><code>GenFishCompletion(w, includeDesc)</code> (<code>L276</code>) -&gt; <code>genFishComp</code> (<code>L25</code>)</td>
+<td style="text-align:left"><code>GenPowerShellCompletionWithDesc(w)</code> (<code>L348</code>) / <code>GenPowerShellCompletion(w)</code> (<code>L337</code>) -&gt; <code>genPowerShellComp</code> (<code>L28</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>シェルへの登録フック</strong></td>
+<td style="text-align:left"><code>complete -o default -F __start_&lt;name&gt; &lt;name&gt;</code> (<code>L456–460</code>)</td>
+<td style="text-align:left"><code>#compdef &lt;name&gt;</code> + <code>compdef _&lt;name&gt; &lt;name&gt;</code> (<code>L92–93</code>)</td>
+<td style="text-align:left"><code>complete -c &lt;name&gt; -n ... -f -a '$__&lt;var&gt;_comp_results'</code> (<code>L263–269</code>、<code>KeepOrder</code> 用に <code>-k</code> ルールを併用)</td>
+<td style="text-align:left"><code>Register-ArgumentCompleter -CommandName '&lt;name&gt;' -ScriptBlock ${__&lt;var&gt;CompleterBlock}</code> (<code>L307</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>:&lt;directive&gt;</code> の抽出式</strong></td>
+<td style="text-align:left"><code>directive=${out##*:}</code> で抽出し <code>out=${out%%:*}</code> で本体から除去 (<code>L87–89</code>)</td>
+<td style="text-align:left">最終行 <code>lastLine</code> を取得し <code>directive=${lastLine[2,-1]}</code>、<code>out=${out[1,-$suffix]}</code> (<code>L155–166</code>)</td>
+<td style="text-align:left"><code>set -l directive (string sub --start 2 $__..._result[-1])</code> (<code>L129</code>, <code>L165</code>)、結果は <code>__&lt;var&gt;_perform_completion_once_result</code> にキャッシュ (<code>L93–109</code>)</td>
+<td style="text-align:left"><code>[int]$Directive = $Out[-1].TrimStart(':')</code> で整数化し最終要素を除外 (<code>L132–140</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>--flag=val</code> のプレフィックス処理</strong></td>
+<td style="text-align:left"><code>_init_completion -n =:</code> に加え <code>cur=&quot;${cur#*=}&quot;</code> (<code>L78–80</code>) と <code>__&lt;name&gt;_handle_special_char &quot;$cur&quot; =</code> (<code>L177, L368–379</code>)</td>
+<td style="text-align:left">正規表現 <code>[[ &quot;${lastParam}&quot; =~ '-.*=' ]]</code> で <code>flagPrefix=&quot;-P ${BASH_REMATCH}&quot;</code> を構築し <code>_describe</code> / <code>_arguments</code> に渡す (<code>L133–137</code>)</td>
+<td style="text-align:left"><code>set -l flagPrefix (string match -r -- '-.*=' &quot;$lastArg&quot;)</code> を各候補の先頭に結合して出力 (<code>L79–87</code>)</td>
+<td style="text-align:left"><code>$Flag,$WordToComplete = $WordToComplete.Split(&quot;=&quot;,2)</code> で分割 (<code>L99–104</code>) し、フィルタ後に <code>$_.Name = $Flag + &quot;=&quot; + $_.Name</code> で再結合 (<code>L192–195</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>説明文 (<code>\t</code>) の整形・表示</strong></td>
+<td style="text-align:left">候補が複数ある場合は <code>$COLUMNS</code> 幅に合わせて <code>comp  (desc)</code> 形式にパディング・省略記号 <code>…</code> 付与 (<code>__&lt;name&gt;_format_comp_descriptions</code>, <code>L381–425</code>)。単一候補確定時 (<code>L358–361</code>) や <code>COMP_TYPE</code> が <code>37|42</code> のとき (<code>L274–294</code>) は説明文を除去。</td>
+<td style="text-align:left">候補内の <code>:</code> を <code>\\:</code> にエスケープした上で <code>\t</code> を <code>:</code> に置換し、Zsh 標準の <code>_describe</code> に委譲 (<code>L205–213, L272</code>)。</td>
+<td style="text-align:left">Fish が <code>-a</code> 引数内の <code>&lt;choice&gt;\t&lt;description&gt;</code> をネイティブ描画。単一候補で <code>NoSpace</code> を効かせる際のみ <code>\t</code> で分割してダミーの第2候補 <code>$split[1].</code> を追加 (<code>L218–235</code>)。</td>
+<td style="text-align:left"><code>$Name, $Description = $_.Split(&quot;</code>t&quot;,2)<code> (</code>L152<code>) で分割し、</code>Complete<code>/</code>MenuComplete<code>/</code>TabCompleteNext<code>の3モードに応じて</code>[System.Management.Automation.CompletionResult]<code> を生成 (</code>L237–302`)。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>ActiveHelp (<code>_activeHelp_ </code>)</strong></td>
+<td style="text-align:left"><strong>対応</strong>: <code>__&lt;name&gt;_extract_activeHelp</code> (<code>L250–268</code>) で分離し、2回目の <code>&lt;TAB&gt;</code> (<code>COMP_TYPE -eq 63</code>) 等で表示後に <code>${PS1@P}${COMP_LINE[@]}</code> でプロンプトを再描画 (<code>L183–246</code>)。</td>
+<td style="text-align:left"><strong>対応</strong>: <code>compadd -x &quot;${comp}&quot;</code> でメッセージを表示 (<code>L188–195</code>) し、後続候補がある場合は <code>compadd -x &quot;--&quot;</code> で区切り線を追加 (<code>L219–225</code>)。</td>
+<td style="text-align:left"><strong>非対応（無効化）</strong>: <code>requestComp</code> の先頭に <code>&lt;PROGRAM&gt;_ACTIVE_HELP=0</code> を付与して呼び出し (<code>L56</code>)。</td>
+<td style="text-align:left"><strong>非対応（無効化）</strong>: <code>Invoke-Expression</code> の直前に <code>${env:&lt;PROGRAM&gt;_ACTIVE_HELP}=0</code> を設定 (<code>L125</code>)。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>FilterFileExt</code> (<code>:8</code>) &amp; <code>FilterDirs</code> (<code>:16</code>)</strong></td>
+<td style="text-align:left"><code>_filedir $fullFilter</code> (<code>L157</code>) または <code>pushd &quot;$subdir&quot; &amp;&amp; _filedir -d</code> (<code>L167–170</code>) を実行。</td>
+<td style="text-align:left"><code>_arguments '*:filename:_files -g \*.$filter'</code> (<code>L237–251</code>) または <code>_arguments '*:dirname:_files -/'</code> (<code>L252–269</code>) を実行。</td>
+<td style="text-align:left">Fish 側ではフィルタ非対応のため <code>1</code> を返して通常のファイル補完へフォールバック (<code>L188–194</code>)。</td>
+<td style="text-align:left">PowerShell 側ではフィルタ非対応のため早期 <code>return</code> して標準のパス補完へ委譲 (<code>L179–185</code>)。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. まとめと次章への展望</h2>
+<ul>
+<li><strong>副作用ゼロの <code>__complete</code> 動的注入（<code>completions.go:231–306</code>）</strong>: <code>initCompleteCmd</code> は <code>DisableFlagParsing: true</code> を持つ隠しコマンド <code>__complete</code>（エイリアス <code>__completeNoDesc</code>）を追加し、通常実行時には即座に <code>RemoveCommand</code> で削除します。また、<code>__complete.Run</code> 内で <code>cmd.getCompletions(args)</code> を直接呼ぶことで、<code>finalCmd</code> の <code>PreRun</code> フック群が <code>&lt;TAB&gt;</code> 補完時に誤実行されることを防いでいます。</li>
+<li><strong>6段階の <code>getCompletions</code> ステートマシン（<code>completions.go:316–582</code>）</strong>: <code>toComplete</code> の分離、<code>finalCmd</code> の解決、<code>ParseFlags</code> 前の <code>checkIfFlagCompletion()</code>、<code>NArg()</code> 二重パースによる <code>--</code> 境界検出、関係フラググループの動的反映、そして <code>flagCompletionMutex</code>（<code>sync.RWMutex</code>）で保護された <code>flagCompletionFunctions</code> / <code>ValidArgsFunction</code> の呼び出しを一貫して処理します。</li>
+<li><strong><code>stdout</code> ワイヤプロトコルと4大シェル適応（<code>completions.go:251–294</code>, <code>*_completions*.go</code>）</strong>: <code>&lt;choice&gt;\t&lt;description&gt;</code>、<code>_activeHelp_ &lt;msg&gt;</code>、および最終行 <code>:&lt;directive&gt;</code> というシンプルなテキストプロトコルにより、Bash V2・Zsh・Fish・PowerShell の4シェルすべてで高度な動的補完を実現しています。</li>
+</ul>
+<p>最終章となる <strong><a href="../06_doc_synthesis/ast_free_doc_generators.html">第6章: AST 不要のリファレンスドキュメント合成 (<code>cobra/doc</code>)</a></strong> では、<code>cobra/doc</code> サブパッケージが AST 解析を一切行わずにメモリ上の <code>*cobra.Command</code> ツリーを走査し、Markdown・Man ページ（<code>roff</code>）・ReStructuredText・YAML リファレンスを生成する仕組みを解説します。</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式の内部アーキテクチャ解説であり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

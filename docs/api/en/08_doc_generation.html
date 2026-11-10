@@ -1,0 +1,1542 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>08. Auto-Generated Documentation (cobra/doc) — Cobra API Reference (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('drawlib-theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    
+    <link rel="icon" href="../_assets/favicon.png">
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/08_doc_generation.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/08_doc_generation.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/08_doc_generation.html">
+    
+    
+    
+    <meta name="description" content="Package github.com/spf13/cobra/doc inspects a *cobra.Command hierarchy—including command synopses, long descriptions, examples, local and inherited…">
+    <link rel="canonical" href="https://cobra.drawlib.com/api/en/08_doc_generation.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra API Reference">
+    <meta property="og:title" content="08. Auto-Generated Documentation (cobra/doc) — Cobra API Reference">
+    <meta property="og:description" content="Package github.com/spf13/cobra/doc inspects a *cobra.Command hierarchy—including command synopses, long descriptions, examples, local and inherited…">
+    <meta property="og:url" content="https://cobra.drawlib.com/api/en/08_doc_generation.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="08. Auto-Generated Documentation (cobra/doc) — Cobra API Reference">
+    <meta name="twitter:description" content="Package github.com/spf13/cobra/doc inspects a *cobra.Command hierarchy—including command synopses, long descriptions, examples, local and inherited…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    
+    
+    
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">API REFERENCE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial API &amp; CLI Reference for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">API Reference</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar" id="catalog-sidebar">
+            <div class="sidebar-header has-subbar">
+                <a href="index.html" class="site-title">
+                    Cobra API Reference
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme" title="Toggle light/dark mode">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation menu">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-subbar">
+                
+                
+                <a href="index.html" class="sidebar-version-badge">
+                    <span class="sidebar-version-dot"></span>
+                    <span>API Reference · v1.10.2</span>
+                </a>
+                
+                
+                
+                <a href="https://github.com/spf13/cobra" target="_blank" rel="noopener noreferrer" class="sidebar-github-link" aria-label="Repository" title="View Upstream Cobra Repository">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </a>
+                
+            </div>
+            
+
+            <div class="sidebar-menu">
+                <div class="catalog-sidebar-toolbar">
+                    <div class="catalog-filter-box">
+                        <svg class="catalog-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input id="catalog-filter-input" type="search" class="catalog-filter-input" placeholder="Filter items..." autocomplete="off" spellcheck="false" aria-label="Filter items...">
+                        <kbd class="catalog-filter-kbd">/</kbd>
+                    </div>
+                    <div class="catalog-toolbar-meta">
+                        <span class="catalog-toolbar-label">Categories &amp; Items</span>
+                        <button type="button" id="catalog-expand-toggle" class="catalog-expand-btn" data-expand-label="Expand All" data-collapse-label="Collapse All">Collapse All</button>
+                    </div>
+                </div>
+
+                <nav class="catalog-sidebar-nav" id="catalog-sidebar-nav" aria-label="Catalog Navigation">
+                    
+                    
+                    
+                    <details class="catalog-nav-group" data-cat="Cobra API Reference Overview" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="00_overview.html" class="catalog-nav-cat-link is-prose-cat">Cobra API Reference Overview</a>
+                            
+                            <span class="catalog-nav-count">8</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="package github.com/spf13/cobra">
+                                <a href="00_overview.html#github-com-spf13-cobra" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">package</span>
+                                    
+                                    <span class="catalog-nav-sym-text">github.com/spf13/cobra</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="var Package-Level Configuration Variables (cobra.go)">
+                                <a href="00_overview.html#var-package-level-configuration-variables-cobra-go" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">var Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const Exported Annotation &amp; Completion Constants">
+                                <a href="00_overview.html#exported-annotation-completion-constants" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Exported Annotation &amp; Completion Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnInitialize()">
+                                <a href="00_overview.html#cobra-oninitialize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnInitialize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnFinalize()">
+                                <a href="00_overview.html#cobra-onfinalize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnFinalize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs">
+                                <a href="00_overview.html#cobra-addtemplatefunc-cobra-addtemplatefuncs" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.CheckErr &amp; cobra.WriteStringAndCheck">
+                                <a href="00_overview.html#cobra-checkerr-cobra-writestringandcheck" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.CheckErr &amp; cobra.WriteStringAndCheck</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.Gt &amp; cobra.Eq">
+                                <a href="00_overview.html#cobra-gt-cobra-eq" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Gt &amp; cobra.Eq</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="Command Struct, Tree Topology &amp; Command Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="01_command_struct.html" class="catalog-nav-cat-link is-prose-cat">Command Struct, Tree Topology &amp; Command Groups</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Command">
+                                <a href="01_command_struct.html#cobra-command" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Command</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Group &amp; type cobra.FParseErrWhitelist">
+                                <a href="01_command_struct.html#cobra-group-type-cobra-fparseerrwhitelist" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Group &amp; type cobra.FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree Construction &amp; Navigation Methods">
+                                <a href="01_command_struct.html#tree-construction-navigation-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree Construction &amp; Navigation Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Tree &amp; Availability Predicate Methods">
+                                <a href="01_command_struct.html#tree-availability-predicate-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Tree &amp; Availability Predicate Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Naming, Path, Alias &amp; Padding Methods">
+                                <a href="01_command_struct.html#naming-path-alias-padding-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Naming, Path, Alias &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Group Management Methods">
+                                <a href="01_command_struct.html#command-group-management-methods" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Group Management Methods</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="Command Execution, Resolution &amp; I/O Streams" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="02_lifecycle_and_execution.html" class="catalog-nav-cat-link is-prose-cat">Command Execution, Resolution &amp; I/O Streams</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Execution Entrypoints &amp; context.Context">
+                                <a href="02_lifecycle_and_execution.html#execution-entrypoints-context-context" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Execution Entrypoints &amp; context.Context</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command Resolution &amp; Dash Boundary()">
+                                <a href="02_lifecycle_and_execution.html#command-resolution-dash-boundary" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command Resolution &amp; Dash Boundary()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Global Lifecycle Callbacks &amp; Hook Traversal">
+                                <a href="02_lifecycle_and_execution.html#global-lifecycle-callbacks-hook-traversal" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Global Lifecycle Callbacks &amp; Hook Traversal</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Input/Output Streams, Arg Injection &amp; Error Prefixes">
+                                <a href="02_lifecycle_and_execution.html#input-output-streams-arg-injection-error-prefixes" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Input/Output Streams, Arg Injection &amp; Error Prefixes</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="03_flags_and_flag_groups.html" class="catalog-nav-cat-link">pflag.FlagSet Accessors, Annotations &amp; Relational Flag Groups</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method pflag.FlagSet Accessor &amp; Parsing Methods">
+                                <a href="03_flags_and_flag_groups.html#pflag-flagset-accessor-parsing-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">pflag.FlagSet Accessor &amp; Parsing Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method FlagSet Availability Predicates">
+                                <a href="03_flags_and_flag_groups.html#flagset-availability-predicates" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">FlagSet Availability Predicates</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Relational Flag Group API()">
+                                <a href="03_flags_and_flag_groups.html#relational-flag-group-api" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Relational Flag Group API()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Single-Flag Requirement &amp; Shell Completion Annotations()">
+                                <a href="03_flags_and_flag_groups.html#single-flag-requirement-shell-completion-annotations" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Single-Flag Requirement &amp; Shell Completion Annotations()</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="PositionalArgs Type &amp; Built-in Validator Combinators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="04_positional_args.html" class="catalog-nav-cat-link is-prose-cat">PositionalArgs Type &amp; Built-in Validator Combinators</a>
+                            
+                            <span class="catalog-nav-count">3</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type cobra.PositionalArgs &amp; method (*Command).ValidateArgs">
+                                <a href="04_positional_args.html#cobra-positionalargs-method" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.PositionalArgs &amp; method (*Command).ValidateArgs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Complete Positional Argument Validators Reference()">
+                                <a href="04_positional_args.html#complete-positional-argument-validators-reference" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Complete Positional Argument Validators Reference()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Detailed Behavior &amp; Edge Cases">
+                                <a href="04_positional_args.html#detailed-behavior-edge-cases" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Detailed Behavior &amp; Edge Cases</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="05. Dynamic Completions, Directives &amp; ActiveHelp" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="05_completions_and_directives.html" class="catalog-nav-cat-link">05. Dynamic Completions, Directives &amp; ActiveHelp</a>
+                            
+                            <span class="catalog-nav-count">9</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type Completion &amp; CompletionFunc">
+                                <a href="05_completions_and_directives.html#completion-completionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Completion &amp; CompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompletionWithDesc, NoFileCompletions &amp; FixedCompletions">
+                                <a href="05_completions_and_directives.html#completionwithdesc-nofilecompletions-fixedcompletions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionWithDesc, NoFileCompletions &amp; FixedCompletions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="type ShellCompDirective &amp; Bitmask Constants">
+                                <a href="05_completions_and_directives.html#shellcompdirective-bitmask-constants" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompDirective &amp; Bitmask Constants</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct CompletionOptions">
+                                <a href="05_completions_and_directives.html#completionoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionOptions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc">
+                                <a href="05_completions_and_directives.html#command-registerflagcompletionfunc-getflagcompletionfunc" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd">
+                                <a href="05_completions_and_directives.html#shellcomprequestcmd-shellcompnodescrequestcmd" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompDebug, CompDebugln, CompError &amp; CompErrorln">
+                                <a href="05_completions_and_directives.html#compdebug-compdebugln-comperror-comperrorln" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompDebug, CompDebugln, CompError &amp; CompErrorln</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func AppendActiveHelp &amp; GetActiveHelpConfig">
+                                <a href="05_completions_and_directives.html#appendactivehelp-getactivehelpconfig" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">AppendActiveHelp &amp; GetActiveHelpConfig</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="05_completions_and_directives.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="06. Shell Completion Script Generators" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="06_shell_script_generators.html" class="catalog-nav-cat-link">06. Shell Completion Script Generators</a>
+                            
+                            <span class="catalog-nav-count">7</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID">
+                                <a href="06_shell_script_generators.html#command-initdefaultcompletioncmd-setcompletioncommandgroupid" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Bash Completion Generators()">
+                                <a href="06_shell_script_generators.html#bash-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Bash Completion Generators()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Zsh Completion Generators">
+                                <a href="06_shell_script_generators.html#zsh-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Zsh Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Fish Completion Generators">
+                                <a href="06_shell_script_generators.html#fish-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Fish Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method PowerShell Completion Generators">
+                                <a href="06_shell_script_generators.html#powershell-completion-generators" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">PowerShell Completion Generators</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Declarative Flag Completion Helpers()">
+                                <a href="06_shell_script_generators.html#declarative-flag-completion-helpers" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Declarative Flag Completion Helpers()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="06_shell_script_generators.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="07. Help, Usage, Templates &amp; Global Configuration" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="07_help_usage_and_templates.html" class="catalog-nav-cat-link">07. Help, Usage, Templates &amp; Global Configuration</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Help Methods()">
+                                <a href="07_help_usage_and_templates.html#help-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Help Methods()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Usage, Version &amp; Padding Methods">
+                                <a href="07_help_usage_and_templates.html#usage-version-padding-methods" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Usage, Version &amp; Padding Methods</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func Template Functions()">
+                                <a href="07_help_usage_and_templates.html#template-functions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Template Functions()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Suggestions, Flag Error Handling &amp; FParseErrWhitelist">
+                                <a href="07_help_usage_and_templates.html#suggestions-flag-error-handling-fparseerrwhitelist" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Suggestions, Flag Error Handling &amp; FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Package-Level Configuration Variables (cobra.go)">
+                                <a href="07_help_usage_and_templates.html#package-level-configuration-variables" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Package-Level Configuration Variables (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="07_help_usage_and_templates.html#cross-references" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group is-current-page" data-cat="08. Auto-Generated Documentation (cobra/doc)" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="08_doc_generation.html" class="catalog-nav-cat-link">08. Auto-Generated Documentation (cobra/doc)</a>
+                            
+                            <span class="catalog-nav-count">15</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="Format Comparison Matrix">
+                                <a href="#format-comparison-matrix" class="catalog-nav-sublink" data-target="format-comparison-matrix">
+                                    
+                                    <span class="catalog-nav-sym-text">Format Comparison Matrix</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdown()">
+                                <a href="#genmarkdown" class="catalog-nav-sublink" data-target="genmarkdown">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdown()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownCustom()">
+                                <a href="#genmarkdowncustom" class="catalog-nav-sublink" data-target="genmarkdowncustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTree()">
+                                <a href="#genmarkdowntree" class="catalog-nav-sublink" data-target="genmarkdowntree">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTree()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTreeCustom()">
+                                <a href="#genmarkdowntreecustom" class="catalog-nav-sublink" data-target="genmarkdowntreecustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManHeader (doc/man_docs.go)">
+                                <a href="#genmanheader" class="catalog-nav-sublink" data-target="genmanheader">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManHeader (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManTreeOptions (doc/man_docs.go)">
+                                <a href="#genmantreeoptions" class="catalog-nav-sublink" data-target="genmantreeoptions">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTreeOptions (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMan()">
+                                <a href="#genman" class="catalog-nav-sublink" data-target="genman">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMan()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenManTree &amp; func GenManTreeFromOpts()">
+                                <a href="#genmantree-func-genmantreefromopts" class="catalog-nav-sublink" data-target="genmantree-func-genmantreefromopts">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTree &amp; func GenManTreeFromOpts()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReST &amp; func GenReSTCustom()">
+                                <a href="#genrest-func-genrestcustom" class="catalog-nav-sublink" data-target="genrest-func-genrestcustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReST &amp; func GenReSTCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReSTTree &amp; func GenReSTTreeCustom()">
+                                <a href="#genresttree-func-genresttreecustom" class="catalog-nav-sublink" data-target="genresttree-func-genresttreecustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReSTTree &amp; func GenReSTTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYaml &amp; func GenYamlCustom()">
+                                <a href="#genyaml-func-genyamlcustom" class="catalog-nav-sublink" data-target="genyaml-func-genyamlcustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYaml &amp; func GenYamlCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYamlTree &amp; func GenYamlTreeCustom()">
+                                <a href="#genyamltree-func-genyamltreecustom" class="catalog-nav-sublink" data-target="genyamltree-func-genyamltreecustom">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYamlTree &amp; func GenYamlTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Command.DisableAutoGenTag (command.go)">
+                                <a href="#command-disableautogentag" class="catalog-nav-sublink" data-target="command-disableautogentag">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.DisableAutoGenTag (command.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="Cross-References">
+                                <a href="#cross-references" class="catalog-nav-sublink" data-target="cross-references">
+                                    
+                                    <span class="catalog-nav-sym-text">Cross-References</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    
+                    <div id="catalog-nav-empty" class="catalog-nav-empty" hidden>No matching items found.</div>
+                </nav>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <div class="content-wrapper">
+            <div class="top-bar">
+                <div class="breadcrumbs">
+                    <a href="index.html" class="crumb">API Reference</a>
+                    <span class="crumb-separator">/</span>
+                    <span class="crumb active">08. Auto-Generated Documentation (cobra/doc)</span>
+                </div>
+                
+                <div class="top-bar-right">
+                    
+                    
+                    <div class="lang-switcher" aria-label="Language switcher">
+                        <details class="lang-dropdown">
+                            <summary class="lang-dropdown-btn" aria-haspopup="listbox">
+                                <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                <span class="lang-current-label">English</span>
+                                <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </summary>
+                            <div class="lang-dropdown-menu" role="listbox">
+                                
+                                
+                                <span class="lang-option active" role="option" aria-selected="true">
+                                    <span>English</span>
+                                    <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </span>
+                                
+                                
+                                
+                                <a href="../ja/08_doc_generation.html" class="lang-option" role="option" hreflang="">
+                                    <span>日本語</span>
+                                </a>
+                                
+                                
+                            </div>
+                        </details>
+                    </div>
+                    
+                </div>
+                
+            </div>
+
+            <main class="main-content catalog-main-content">
+                <h1 class="catalog-page-title is-module">08. Auto-Generated Documentation (<code>cobra/doc</code>)</h1>
+<p>Package <code>github.com/spf13/cobra/doc</code> inspects a <code>*cobra.Command</code> hierarchy—including command synopses, long descriptions, examples, local and inherited persistent flags, and parent/child relationships—to generate reference documentation in four formats: <strong>Markdown</strong>, <strong>Man Pages (<code>roff</code>)</strong>, <strong>ReStructuredText (<code>ReST</code>)</strong>, and <strong>YAML</strong>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/08_doc_generation/api_doc_generators_pipeline.png" alt="08_doc_generation_1" />
+  <figcaption class="drawlib-caption">cobra/doc Multi-Format Documentation Generation Pipeline (Markdown, Man, ReST & YAML)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="c1"># 1. Left Panel: Command Tree &amp; Hooks</span>
+<span class="n">p1</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. Command Tree"</span><span class="p">,</span>
+    <span class="s2">"Input"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p1</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
+<span class="n">ix1</span><span class="p">,</span> <span class="n">iw1</span><span class="p">,</span> <span class="n">ih1</span> <span class="o">=</span> <span class="n">p1</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl1</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"*cobra.Command"</span><span class="p">,</span> <span class="s2">"Use, Short, Long, Example"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"CMD"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"Flag Sets"</span><span class="p">,</span> <span class="s2">"NonInherited &amp; InheritedFlags"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"FLG"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"Tree Traversal"</span><span class="p">,</span> <span class="s2">"Skips Hidden &amp; HelpTopic"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"TRV"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"DisableAutoGenTag"</span><span class="p">,</span> <span class="s2">"Propagates parent -&gt; child"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"TAG"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih1</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">45.5</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="p">(</span><span class="mf">51.5</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># 2. Middle Panel: 4 Format Generators</span>
+<span class="n">p2</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. Generators"</span><span class="p">,</span>
+    <span class="s2">"doc"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">gear</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p2</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
+<span class="n">ix2</span><span class="p">,</span> <span class="n">iw2</span><span class="p">,</span> <span class="n">ih2</span> <span class="o">=</span> <span class="n">p2</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl2</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"Markdown (md_docs.go)"</span><span class="p">,</span> <span class="s2">"GenMarkdown / Tree / Custom"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"MD"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"Man Page (man_docs.go)"</span><span class="p">,</span> <span class="s2">"GenMan / Tree / TreeFromOpts"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"MAN"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ReST (rest_docs.go)"</span><span class="p">,</span> <span class="s2">"GenReST / Tree / Custom"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"RST"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"YAML (yaml_docs.go)"</span><span class="p">,</span> <span class="s2">"GenYaml / Tree / Custom"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"YML"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix2</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw2</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih2</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">96.5</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="p">(</span><span class="mf">102.5</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># 3. Right Panel: Output Streams &amp; Files</span>
+<span class="n">p3</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. Output Targets"</span><span class="p">,</span>
+    <span class="s2">"Files"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">files</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p3</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">103</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
+<span class="n">ix3</span><span class="p">,</span> <span class="n">iw3</span><span class="p">,</span> <span class="n">ih3</span> <span class="o">=</span> <span class="n">p3</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">103</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl3</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.2</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"&lt;cmd_path&gt;.md"</span><span class="p">,</span> <span class="s2">"filePrepender + linkHandler"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">".MD"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"&lt;cmd-path&gt;.&lt;sec&gt;"</span><span class="p">,</span> <span class="s2">"go-md2man/v2 + EPOCH date"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">".1"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"&lt;cmd_path&gt;.rst"</span><span class="p">,</span> <span class="s2">"Sphinx :ref: cross-links"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"RST"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"&lt;cmd_path&gt;.yaml"</span><span class="p">,</span> <span class="s2">"yaml/v3 cmdDoc &amp; cmdOption"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"YML"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix3</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw3</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih3</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="format-comparison-matrix" class="catalog-section-heading"><span>Format Comparison Matrix</span><a class="header-anchor" href="#format-comparison-matrix" aria-label="Permalink to Format Comparison Matrix">#</a></h2>
+<p>Before calling any generator in <code>github.com/spf13/cobra/doc</code>, note that every top-level generator calls <code>cmd.InitDefaultHelpCmd()</code> and <code>cmd.InitDefaultHelpFlag()</code> so that <code>--help</code> appears accurately in the generated flag tables. Tree generators recursively walk <code>cmd.Commands()</code>, skipping any subcommand where <code>!c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand()</code>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/08_doc_generation/api_doc_generators_matrix.png" alt="08_doc_generation_2" />
+  <figcaption class="drawlib-caption">cobra/doc Generator Format Comparison Matrix (APIs, Hooks & File Conventions)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mi">46</span><span class="p">),</span>
+    <span class="s2">"cobra/doc Generator Format Comparison Matrix"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"Format"</span><span class="p">,</span> <span class="s2">"Single Stream API"</span><span class="p">,</span> <span class="s2">"Directory Tree API"</span><span class="p">,</span> <span class="s2">"linkHandler Hook"</span><span class="p">,</span> <span class="s2">"Filename Pattern"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"Markdown"</span><span class="p">,</span> <span class="s2">"GenMarkdown[Custom]"</span><span class="p">,</span> <span class="s2">"GenMarkdownTree[Custom]"</span><span class="p">,</span> <span class="s2">"func(string) string"</span><span class="p">,</span> <span class="s2">"&lt;cmd_path&gt;.md"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"Man Page"</span><span class="p">,</span> <span class="s2">"GenMan(cmd, hdr, w)"</span><span class="p">,</span> <span class="s2">"GenManTree[FromOpts]"</span><span class="p">,</span> <span class="s2">"GenManHeader / Opts"</span><span class="p">,</span> <span class="s2">"&lt;cmd-path&gt;.&lt;sec&gt;"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ReST"</span><span class="p">,</span> <span class="s2">"GenReST[Custom]"</span><span class="p">,</span> <span class="s2">"GenReSTTree[Custom]"</span><span class="p">,</span> <span class="s2">"func(name, ref string) string"</span><span class="p">,</span> <span class="s2">"&lt;cmd_path&gt;.rst"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"YAML"</span><span class="p">,</span> <span class="s2">"GenYaml[Custom]"</span><span class="p">,</span> <span class="s2">"GenYamlTree[Custom]"</span><span class="p">,</span> <span class="s2">"func(string) string"</span><span class="p">,</span> <span class="s2">"&lt;cmd_path&gt;.yaml"</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_evenodd</span><span class="p">(</span>
+    <span class="n">even_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">even_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">odd_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">odd_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_header</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Primary</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">rows</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">22</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="genmarkdown" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenMarkdown </span><span class="catalog-sig-params">(doc/md_docs.go)</span></code><a class="header-anchor" href="#genmarkdown" aria-label="Permalink to GenMarkdown()">#</a></h2>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">doc</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenMarkdown</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Generates Markdown documentation for a single <code>*cobra.Command</code> and writes it to <code>w</code>. Calls <code>GenMarkdownCustom(cmd, w, func(s string) string { return s })</code>.</p>
+<h3 id="emitted-markdown-structure">Emitted Markdown Structure<a class="header-anchor" href="#emitted-markdown-structure" aria-label="Permalink">#</a></h3>
+<ol>
+<li><strong><code>## &lt;cmd.CommandPath()&gt;</code></strong> followed by <code>cmd.Short</code>.</li>
+<li><strong><code>### Synopsis</code></strong> — <code>cmd.Long</code> (falls back to <code>cmd.Short</code>), followed by <code>cmd.UseLine()</code> in a fenced code block when <code>cmd.Runnable()</code> is true.</li>
+<li><strong><code>### Examples</code></strong> — <code>cmd.Example</code> in a fenced code block (if non-empty).</li>
+<li><strong><code>### Options</code></strong> — <code>cmd.NonInheritedFlags().FlagUsages()</code> in a fenced code block (if non-empty).</li>
+<li><strong><code>### Options inherited from parent commands</code></strong> — <code>cmd.InheritedFlags().FlagUsages()</code> in a fenced code block (if non-empty).</li>
+<li><strong><code>### SEE ALSO</code></strong> — Bulleted links to the parent command and all available child commands (sorted alphabetically by <code>CommandPath()</code>), formatted as <code>[name](linkHandler(cname + &quot;.md&quot;))	 - short</code>.</li>
+<li><strong>Auto-Gen Footer</strong> — <code>###### Auto generated by spf13/cobra on &lt;DD-Mon-YYYY&gt;</code> unless <code>cmd.DisableAutoGenTag</code> is <code>true</code>.</li>
+</ol>
+<hr />
+<h2 id="genmarkdowncustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenMarkdownCustom </span><span class="catalog-sig-params">(doc/md_docs.go)</span></code><a class="header-anchor" href="#genmarkdowncustom" aria-label="Permalink to GenMarkdownCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenMarkdownCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Generates Markdown documentation for <code>cmd</code> into <code>w</code>, passing every <code>SEE ALSO</code> target filename (such as <code>&quot;mycli_serve.md&quot;</code>) through <code>linkHandler</code> so you can rewrite URLs for static site generators.</p>
+<hr />
+<h2 id="genmarkdowntree" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenMarkdownTree </span><span class="catalog-sig-params">(doc/md_docs.go)</span></code><a class="header-anchor" href="#genmarkdowntree" aria-label="Permalink to GenMarkdownTree()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenMarkdownTree</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Recursively generates one <code>.md</code> file per command in the <code>cmd</code> tree inside directory <code>dir</code>. Spaces in <code>cmd.CommandPath()</code> are replaced with underscores (<code>_</code>) to form the base filename (e.g., <code>mycli sub</code> -&gt; <code>mycli_sub.md</code>). Equivalent to calling <code>GenMarkdownTreeCustom</code> with an empty <code>filePrepender</code> and an identity <code>linkHandler</code>.</p>
+<hr />
+<h2 id="genmarkdowntreecustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenMarkdownTreeCustom </span><span class="catalog-sig-params">(doc/md_docs.go)</span></code><a class="header-anchor" href="#genmarkdowntreecustom" aria-label="Permalink to GenMarkdownTreeCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenMarkdownTreeCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Recursively generates <code>.md</code> files in <code>dir</code> with two customization callbacks:</p>
+<ul>
+<li><strong><code>filePrepender(filename string) string</code></strong>: Receives the full output filepath (e.g., <code>&quot;/docs/mycli_serve.md&quot;</code>) and returns a string written to the file <strong>before</strong> the generated Markdown—ideal for YAML or TOML frontmatter in Hugo, Docusaurus, or MkDocs.</li>
+<li><strong><code>linkHandler(name string) string</code></strong>: Receives the default target filename (e.g., <code>&quot;mycli_serve.md&quot;</code>) and returns the URL used in <code>### SEE ALSO</code> links.</li>
+</ul>
+<h3 id="example-generating-hugo-documentation-with-yaml-frontmatter">Example: Generating Hugo Documentation with YAML Frontmatter<a class="header-anchor" href="#example-generating-hugo-documentation-with-yaml-frontmatter" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"path/filepath"</span>
+<span class="w">	</span><span class="s">"strings"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="w">	</span><span class="s">"github.com/spf13/cobra/doc"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">generateHugoDocs</span><span class="p">(</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">outDir</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">DisableAutoGenTag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="w">	</span><span class="nx">filePrepender</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">filename</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">base</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Base</span><span class="p">(</span><span class="nx">filename</span><span class="p">)</span>
+<span class="w">		</span><span class="nx">name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">TrimSuffix</span><span class="p">(</span><span class="nx">base</span><span class="p">,</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Ext</span><span class="p">(</span><span class="nx">base</span><span class="p">))</span>
+<span class="w">		</span><span class="nx">title</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">ReplaceAll</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="s">"_"</span><span class="p">,</span><span class="w"> </span><span class="s">" "</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Sprintf</span><span class="p">(</span><span class="s">"---\ntitle: %q\nslug: %q\n---\n\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">linkHandler</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">base</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">TrimSuffix</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Ext</span><span class="p">(</span><span class="nx">name</span><span class="p">))</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="s">"/cli/"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">ToLower</span><span class="p">(</span><span class="nx">base</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"/"</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenMarkdownTreeCustom</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">outDir</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2 id="genmanheader" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-class">struct</span><code class="catalog-sig"><span class="catalog-sig-name">GenManHeader </span><span class="catalog-sig-params">(doc/man_docs.go)</span></code><a class="header-anchor" href="#genmanheader" aria-label="Permalink to GenManHeader (doc/man_docs.go)">#</a></h2>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">GenManHeader</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Title</span><span class="w">   </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Section</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Date</span><span class="w">    </span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span>
+<span class="w">	</span><span class="nx">Source</span><span class="w">  </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">Manual</span><span class="w">  </span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre>
+<p>Defines the standard Unix <code>man</code> page <code>.TH</code> header metadata used by <code>GenMan</code>, <code>GenManTree</code>, and <code>GenManTreeFromOpts</code>. Missing fields are automatically populated by <code>fillHeader</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Field</th>
+<th style="text-align:left">Default When Empty / <code>nil</code></th>
+<th style="text-align:left">Role in <code>.TH</code> Macro</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Title</code></td>
+<td style="text-align:left">Uppercase <code>cmd.CommandPath()</code> with spaces replaced by <code>\-</code></td>
+<td style="text-align:left">Man page title (left/right header)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Section</code></td>
+<td style="text-align:left"><code>&quot;1&quot;</code> (User Commands)</td>
+<td style="text-align:left">Man section number (and file extension in <code>GenManTree</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Date</code></td>
+<td style="text-align:left"><code>SOURCE_DATE_EPOCH</code> env var (if set), else <code>time.Now()</code> (<code>&quot;Jan 2006&quot;</code>)</td>
+<td style="text-align:left">Center footer date</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Source</code></td>
+<td style="text-align:left"><code>&quot;Auto generated by spf13/cobra&quot;</code></td>
+<td style="text-align:left">Left footer source</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Manual</code></td>
+<td style="text-align:left"><code>&quot;&quot;</code></td>
+<td style="text-align:left">Center header manual title</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!TIP]
+<strong>Reproducible Builds with <code>SOURCE_DATE_EPOCH</code></strong>: If <code>header.Date</code> is <code>nil</code> and the <code>SOURCE_DATE_EPOCH</code> environment variable is set to a valid Unix timestamp, <code>cobra/doc</code> parses it via <code>strconv.ParseInt(epoch, 10, 64)</code> and formats <code>time.Unix(unixEpoch, 0)</code> instead of <code>time.Now()</code>.</p>
+</blockquote>
+<hr />
+<h2 id="genmantreeoptions" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-class">struct</span><code class="catalog-sig"><span class="catalog-sig-name">GenManTreeOptions </span><span class="catalog-sig-params">(doc/man_docs.go)</span></code><a class="header-anchor" href="#genmantreeoptions" aria-label="Permalink to GenManTreeOptions (doc/man_docs.go)">#</a></h2>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">GenManTreeOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Header</span><span class="w">           </span><span class="o">*</span><span class="nx">GenManHeader</span>
+<span class="w">	</span><span class="nx">Path</span><span class="w">             </span><span class="kt">string</span>
+<span class="w">	</span><span class="nx">CommandSeparator</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre>
+<p>Configuration struct passed to <code>GenManTreeFromOpts</code>:</p>
+<ul>
+<li><strong><code>Header</code></strong>: Pointer to <code>GenManHeader</code> template (copied per command so <code>Title</code> can be reset for each subcommand).</li>
+<li><strong><code>Path</code></strong>: Target directory where <code>&lt;basename&gt;.&lt;Section&gt;</code> files are written.</li>
+<li><strong><code>CommandSeparator</code></strong>: String used to join command path tokens in the output filename (<code>GenManTree</code> sets this to <code>&quot;-&quot;</code>).</li>
+</ul>
+<hr />
+<h2 id="genman" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenMan </span><span class="catalog-sig-params">(doc/man_docs.go)</span></code><a class="header-anchor" href="#genman" aria-label="Permalink to GenMan()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenMan</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">header</span><span class="w"> </span><span class="o">*</span><span class="nx">GenManHeader</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Generates a single Unix <code>roff</code> man page for <code>cmd</code> and writes it to <code>w</code>. If <code>header == nil</code>, an empty <code>&amp;GenManHeader{}</code> is allocated and populated with defaults. Internally builds intermediate Markdown (with sections <code>NAME</code>, <code>SYNOPSIS</code>, <code>DESCRIPTION</code>, <code>OPTIONS</code>, <code>OPTIONS INHERITED FROM PARENT COMMANDS</code>, <code>EXAMPLE</code>, <code>SEE ALSO</code>, <code>HISTORY</code>) and compiles it to <code>roff</code> via <code>github.com/cpuguy83/go-md2man/v2/md2man.Render</code>.</p>
+<hr />
+<h2 id="genmantree-func-genmantreefromopts" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenManTree &amp; func GenManTreeFromOpts </span><span class="catalog-sig-params">(doc/man_docs.go)</span></code><a class="header-anchor" href="#genmantree-func-genmantreefromopts" aria-label="Permalink to GenManTree &amp; func GenManTreeFromOpts()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenManTree</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">header</span><span class="w"> </span><span class="o">*</span><span class="nx">GenManHeader</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenManTreeFromOpts</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">opts</span><span class="w"> </span><span class="nx">GenManTreeOptions</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Recursively generates a <code>roff</code> man page file for <code>cmd</code> and every available subcommand:</p>
+<ul>
+<li><code>GenManTree(cmd, header, dir)</code> delegates directly to <code>GenManTreeFromOpts(cmd, GenManTreeOptions{Header: header, Path: dir, CommandSeparator: &quot;-&quot;})</code>.</li>
+<li>Output filenames replace spaces in <code>cmd.CommandPath()</code> with <code>opts.CommandSeparator</code> (<code>&quot;-&quot;</code>) and append <code>.</code> + <code>header.Section</code> (defaulting to <code>.1</code>, e.g., <code>mycli-completion-zsh.1</code>).</li>
+</ul>
+<pre><code class="language-go"><span class="nx">header</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenManHeader</span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Title</span><span class="p">:</span><span class="w">   </span><span class="s">"MYCLI"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Section</span><span class="p">:</span><span class="w"> </span><span class="s">"1"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Source</span><span class="p">:</span><span class="w">  </span><span class="s">"MyCLI v1.10.2"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Manual</span><span class="p">:</span><span class="w">  </span><span class="s">"MyCLI User Manual"</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenManTree</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">header</span><span class="p">,</span><span class="w"> </span><span class="s">"./man/man1"</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2 id="genrest-func-genrestcustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenReST &amp; func GenReSTCustom </span><span class="catalog-sig-params">(doc/rest_docs.go)</span></code><a class="header-anchor" href="#genrest-func-genrestcustom" aria-label="Permalink to GenReST &amp; func GenReSTCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenReST</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenReSTCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Generates ReStructuredText (<code>.rst</code>) documentation for a single command <code>cmd</code> and writes it to <code>w</code>:</p>
+<ul>
+<li>Emits a Sphinx reference anchor <code>.. _&lt;cmd_path_underscored&gt;:</code> at the top of the document.</li>
+<li>Notice that <code>GenReSTCustom</code>'s <code>linkHandler</code> takes <strong>two</strong> string arguments: <code>func(name, ref string) string</code>, where <code>name</code> is <code>&quot;&lt;cname&gt; - &lt;short&gt;&quot;</code> and <code>ref</code> is the underscored reference target (e.g., <code>&quot;mycli_serve&quot;</code>).</li>
+<li><code>GenReST</code> uses <code>defaultLinkHandler</code>, which formats Sphinx cross-references as <code>* :ref:`&lt;name&gt; &lt;&lt;ref&gt;&gt;` </code>.</li>
+</ul>
+<hr />
+<h2 id="genresttree-func-genresttreecustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenReSTTree &amp; func GenReSTTreeCustom </span><span class="catalog-sig-params">(doc/rest_docs.go)</span></code><a class="header-anchor" href="#genresttree-func-genresttreecustom" aria-label="Permalink to GenReSTTree &amp; func GenReSTTreeCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenReSTTree</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenReSTTreeCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Recursively generates <code>&lt;cmd_path_underscored&gt;.rst</code> files inside <code>dir</code> for <code>cmd</code> and all available subcommands. <code>GenReSTTree</code> passes an empty <code>filePrepender</code> and the Sphinx <code>:ref:</code> <code>defaultLinkHandler</code>.</p>
+<hr />
+<h2 id="genyaml-func-genyamlcustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenYaml &amp; func GenYamlCustom </span><span class="catalog-sig-params">(doc/yaml_docs.go)</span></code><a class="header-anchor" href="#genyaml-func-genyamlcustom" aria-label="Permalink to GenYaml &amp; func GenYamlCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenYaml</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenYamlCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Serializes <code>cmd</code>'s metadata and flags into structured YAML via <code>go.yaml.in/yaml/v3</code> and writes it to <code>w</code>.</p>
+<h3 id="emitted-yaml-schema-cmddoc-cmdoption">Emitted YAML Schema (<code>cmdDoc</code> &amp; <code>cmdOption</code>)<a class="header-anchor" href="#emitted-yaml-schema-cmddoc-cmdoption" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">YAML Key</th>
+<th style="text-align:left">Type</th>
+<th style="text-align:left">Populated From</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>name</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left"><code>cmd.CommandPath()</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>synopsis</code></td>
+<td style="text-align:left"><code>string,omitempty</code></td>
+<td style="text-align:left"><code>cmd.Short</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>description</code></td>
+<td style="text-align:left"><code>string,omitempty</code></td>
+<td style="text-align:left"><code>cmd.Long</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>usage</code></td>
+<td style="text-align:left"><code>string,omitempty</code></td>
+<td style="text-align:left"><code>cmd.UseLine()</code> (only if <code>cmd.Runnable()</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>options</code></td>
+<td style="text-align:left"><code>[]cmdOption,omitempty</code></td>
+<td style="text-align:left"><code>cmd.NonInheritedFlags()</code> (<code>name</code>, <code>shorthand</code>, <code>default_value</code>, <code>usage</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>inherited_options</code></td>
+<td style="text-align:left"><code>[]cmdOption,omitempty</code></td>
+<td style="text-align:left"><code>cmd.InheritedFlags()</code> (<code>name</code>, <code>shorthand</code>, <code>default_value</code>, <code>usage</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>example</code></td>
+<td style="text-align:left"><code>string,omitempty</code></td>
+<td style="text-align:left"><code>cmd.Example</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>see_also</code></td>
+<td style="text-align:left"><code>[]string,omitempty</code></td>
+<td style="text-align:left">Parent and sorted child entries formatted as <code>&quot;&lt;CommandPath&gt; - &lt;Short&gt;&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!NOTE]
+Even though <code>GenYamlCustom</code> and <code>GenYamlTreeCustom</code> accept a <code>linkHandler func(string) string</code> parameter for API symmetry with <code>GenMarkdown*</code>, the internal implementation in <code>doc/yaml_docs.go</code> populates <code>see_also</code> directly as <code>&quot;&lt;CommandPath&gt; - &lt;Short&gt;&quot;</code> and does not emit an auto-gen footer tag.</p>
+</blockquote>
+<hr />
+<h2 id="genyamltree-func-genyamltreecustom" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">GenYamlTree &amp; func GenYamlTreeCustom </span><span class="catalog-sig-params">(doc/yaml_docs.go)</span></code><a class="header-anchor" href="#genyamltree-func-genyamltreecustom" aria-label="Permalink to GenYamlTree &amp; func GenYamlTreeCustom()">#</a></h2>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">GenYamlTree</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GenYamlTreeCustom</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">dir</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>Recursively writes <code>&lt;cmd_path_underscored&gt;.yaml</code> files into <code>dir</code> for <code>cmd</code> and all available subcommands, optionally prepending <code>filePrepender(filename)</code> to each file.</p>
+<hr />
+<h2 id="command-disableautogentag" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-const">config</span><code class="catalog-sig"><span class="catalog-sig-name">Command.DisableAutoGenTag </span><span class="catalog-sig-params">(command.go)</span></code><a class="header-anchor" href="#command-disableautogentag" aria-label="Permalink to Command.DisableAutoGenTag (command.go)">#</a></h2>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">Command</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// DisableAutoGenTag, if true, stops the documentation generator from</span>
+<span class="w">	</span><span class="c1">// adding a trailing "Auto generated by spf13/cobra..." tag to the document.</span>
+<span class="w">	</span><span class="nx">DisableAutoGenTag</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">	</span><span class="c1">// ...</span>
+<span class="p">}</span>
+</code></pre>
+<p>When <code>cmd.DisableAutoGenTag = false</code> (the default), <code>GenMarkdown*</code>, <code>GenMan*</code>, and <code>GenReST*</code> append an auto-generation timestamp footer containing <code>time.Now().Format(&quot;2-Jan-2006&quot;)</code>:</p>
+<ul>
+<li><strong>Markdown</strong>: <code>###### Auto generated by spf13/cobra on 2-Jan-2006</code></li>
+<li><strong>Man Pages</strong>: <code>.SH HISTORY\n2-Jan-2006 Auto generated by spf13/cobra</code></li>
+<li><strong>ReST</strong>: <code>:Auto generated by spf13/cobra on 2-Jan-2006:</code></li>
+</ul>
+<p>Setting <code>rootCmd.DisableAutoGenTag = true</code> on the root command suppresses this footer across the <strong>entire command tree</strong> (because <code>hasSeeAlso</code> / <code>genMarkdown</code> / <code>genMan</code> / <code>genReST</code> propagate <code>c.DisableAutoGenTag = cmd.DisableAutoGenTag</code> to every child command during traversal). This prevents noisy daily Git diffs when checking generated documentation into version control.</p>
+<hr />
+<h2 id="cross-references" class="catalog-section-heading"><span>Cross-References</span><a class="header-anchor" href="#cross-references" aria-label="Permalink to Cross-References">#</a></h2>
+<ul>
+<li><strong><a href="01_command_struct.html">01. Command Struct &amp; Configuration Fields</a></strong> — <code>Command</code> metadata fields (<code>Use</code>, <code>Short</code>, <code>Long</code>, <code>Example</code>, <code>Hidden</code>, <code>DisableAutoGenTag</code>) consumed by <code>cobra/doc</code>.</li>
+<li><strong><a href="02_lifecycle_and_execution.html">02. Execution Engine &amp; Lifecycle Hooks</a></strong> — <code>CommandPath()</code>, <code>IsAvailableCommand()</code>, and <code>IsAdditionalHelpTopicCommand()</code> used during recursive tree generation.</li>
+<li><strong><a href="03_flags_and_flag_groups.html">03. Flags, FlagSets &amp; Relational Groups</a></strong> — <code>NonInheritedFlags()</code> and <code>InheritedFlags()</code> rendered into documentation option tables.</li>
+<li><strong><a href="07_help_usage_and_templates.html">07. Help, Usage, Templates &amp; Global Configuration</a></strong> — <code>InitDefaultHelpCmd()</code> and <code>InitDefaultHelpFlag()</code> invoked automatically by <code>cobra/doc</code> generators.</li>
+</ul>
+
+
+                
+                <nav class="catalog-pager" aria-label="Catalog Page Navigation">
+                    
+                    <a href="07_help_usage_and_templates.html" class="catalog-pager-card is-prev">
+                        <span class="catalog-pager-dir">&larr; Previous</span>
+                        <span class="catalog-pager-title">07. Help, Usage, Templates &amp; Global Configuration</span>
+                    </a>
+                    
+                    
+                    <div></div>
+                    
+                </nav>
+                
+            </main>
+
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial API reference — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var toggleBtn = document.getElementById('theme-toggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    var current = document.documentElement.getAttribute('data-theme');
+                    if (!current) {
+                        current = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                    }
+                    var next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    try { localStorage.setItem('drawlib-theme', next); } catch (e) {}
+                });
+            }
+
+            var menuBtn = document.getElementById('menu-toggle');
+            var sidebar = document.getElementById('catalog-sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            function closeMenu() {
+                if (sidebar) sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-open');
+            }
+            if (menuBtn && sidebar && backdrop) {
+                menuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('is-open');
+                    backdrop.classList.toggle('is-open');
+                });
+                backdrop.addEventListener('click', closeMenu);
+            }
+
+            document.querySelectorAll('.catalog-nav-cat-link').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            if (sidebar) {
+                try {
+                    var savedScroll = sessionStorage.getItem('drawlib-catalog-sidebar-scroll');
+                    if (savedScroll !== null) {
+                        sidebar.scrollTop = parseInt(savedScroll, 10) || 0;
+                    }
+                    sidebar.addEventListener('scroll', function() {
+                        try { sessionStorage.setItem('drawlib-catalog-sidebar-scroll', String(sidebar.scrollTop)); } catch (e) {}
+                    }, { passive: true });
+                } catch (e) {}
+            }
+
+            var groups = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-group'));
+            var expandBtn = document.getElementById('catalog-expand-toggle');
+            function updateExpandBtnLabel() {
+                if (!expandBtn || groups.length === 0) return;
+                var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                var expandText = expandBtn.getAttribute('data-expand-label') || 'Expand All';
+                var collapseText = expandBtn.getAttribute('data-collapse-label') || 'Collapse All';
+                expandBtn.textContent = allOpen ? collapseText : expandText;
+            }
+            if (expandBtn) {
+                updateExpandBtnLabel();
+                expandBtn.addEventListener('click', function() {
+                    var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                    var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                    visibleGroups.forEach(function(g) { g.open = !allOpen; });
+                    updateExpandBtnLabel();
+                });
+                groups.forEach(function(g) {
+                    g.addEventListener('toggle', updateExpandBtnLabel);
+                });
+            }
+
+            var filterInput = document.getElementById('catalog-filter-input');
+            var emptyNotice = document.getElementById('catalog-nav-empty');
+            var savedOpenState = null;
+
+            if (filterInput) {
+                filterInput.addEventListener('input', function() {
+                    var q = filterInput.value.trim().toLowerCase();
+                    if (q && !savedOpenState) {
+                        savedOpenState = groups.map(function(g) { return g.open; });
+                    }
+                    var anyMatch = false;
+                    groups.forEach(function(g, idx) {
+                        var catText = (g.getAttribute('data-cat') || '').toLowerCase();
+                        var catMatches = q !== '' && catText.indexOf(q) !== -1;
+                        var items = Array.prototype.slice.call(g.querySelectorAll('.catalog-nav-subitem'));
+                        var visibleCount = 0;
+
+                        items.forEach(function(li) {
+                            var symText = (li.getAttribute('data-sym') || '').toLowerCase();
+                            var show = (q === '') || catMatches || symText.indexOf(q) !== -1;
+                            li.hidden = !show;
+                            if (show) visibleCount += 1;
+                        });
+
+                        if (q === '') {
+                            g.hidden = false;
+                            if (savedOpenState && typeof savedOpenState[idx] === 'boolean') {
+                                g.open = savedOpenState[idx];
+                            }
+                            anyMatch = true;
+                        } else if (catMatches || visibleCount > 0) {
+                            g.hidden = false;
+                            g.open = true;
+                            anyMatch = true;
+                        } else {
+                            g.hidden = true;
+                        }
+                    });
+
+                    if (q === '') {
+                        savedOpenState = null;
+                    }
+                    if (emptyNotice) {
+                        emptyNotice.hidden = anyMatch;
+                    }
+                    updateExpandBtnLabel();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === '/' && document.activeElement !== filterInput) {
+                        var tag = document.activeElement ? document.activeElement.tagName : '';
+                        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                            e.preventDefault();
+                            filterInput.focus();
+                        }
+                    } else if (e.key === 'Escape' && document.activeElement === filterInput) {
+                        filterInput.value = '';
+                        filterInput.dispatchEvent(new Event('input'));
+                        filterInput.blur();
+                    }
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                document.querySelectorAll('.lang-dropdown[open]').forEach(function(dd) {
+                    if (!dd.contains(e.target)) {
+                        dd.removeAttribute('open');
+                    }
+                });
+            });
+
+            var activeLinks = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-sublink[data-target]'));
+            if (activeLinks.length > 0 && 'IntersectionObserver' in window) {
+                var linkBySlug = {};
+                var headings = [];
+                activeLinks.forEach(function(a) {
+                    var slug = a.getAttribute('data-target');
+                    var el = slug ? document.getElementById(slug) : null;
+                    if (slug && el) {
+                        linkBySlug[slug] = a;
+                        headings.push(el);
+                    }
+                    a.addEventListener('click', closeMenu);
+                });
+
+                function setActiveSlug(slug) {
+                    activeLinks.forEach(function(a) {
+                        if (a.getAttribute('data-target') === slug) {
+                            a.classList.add('is-active');
+                        } else {
+                            a.classList.remove('is-active');
+                        }
+                    });
+                }
+
+                if (window.location.hash) {
+                    var initSlug = decodeURIComponent(window.location.hash.slice(1));
+                    if (linkBySlug[initSlug]) setActiveSlug(initSlug);
+                } else if (headings.length > 0) {
+                    setActiveSlug(headings[0].id);
+                }
+
+                var visibleIds = {};
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        visibleIds[entry.target.id] = entry.isIntersecting;
+                    });
+                    for (var i = 0; i < headings.length; i++) {
+                        if (visibleIds[headings[i].id]) {
+                            setActiveSlug(headings[i].id);
+                            break;
+                        }
+                    }
+                }, { rootMargin: '-90px 0px -65% 0px', threshold: [0, 1] });
+
+                headings.forEach(function(h) { observer.observe(h); });
+            }
+        })();
+    </script>
+</body>
+</html>

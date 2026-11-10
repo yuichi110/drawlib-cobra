@@ -1,0 +1,64 @@
+id: pni501
+category: audit
+name: Cobra v1.10.2 Engineering & Architecture Diagnostic (PNI501)
+description: Deterministic Go AST, package dependency DAG, library hygiene, hermetic container runtime, and supply-chain diagnostic of spf13/cobra v1.10.2, compiled into HTML and A4 PDF under docs/reports/pni501/.
+
+targets:
+  root: "."
+  source:
+    - "."
+    - "doc"
+  tests:
+    - "."
+    - "doc"
+  docs:
+    - "README.md"
+  exclude:
+    - "reports/**"
+    - "reports_src/**"
+    - "docs/**"
+    - "docs_src/**"
+    - "api_src/**"
+    - "architecture_src/**"
+
+steps:
+  - id: repo_and_deps
+    uses: repo_structure_audit
+
+  - id: ast_and_quality
+    uses: go_ast_audit
+
+  - id: arch_recording
+    uses: architecture_analysis
+
+  - id: library_hygiene
+    uses: library_hygiene_audit
+
+  - id: test_health
+    uses: go_test_audit
+
+  - id: runtime_verification
+    uses: container_runtime_audit
+    with:
+      test_timeout_sec: 300
+
+  - id: security_audit
+    uses: security_vulnerability_audit
+
+  - id: output_score
+    uses: emit_score
+    with:
+      target: "pni501"
+      save_file: false
+
+  - id: create_report
+    uses: write_drawlib_report
+    with:
+      target: "pni501"
+      src_dir: "reports_src"
+      output_dir: "docs/reports/pni501"
+      formats:
+        - "pdf"
+        - "html"
+      lang: "en"
+      style: "google"

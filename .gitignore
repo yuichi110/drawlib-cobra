@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Drawlib & PNI501 caches
+.drawlib/
+.pni/cache/
+

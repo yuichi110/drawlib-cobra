@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/01_package_and_tree/command_tree_topology.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/06_doc_synthesis/ast_free_doc_generators.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/01_package_and_tree/command_tree_topology.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/01_package_and_tree/command_tree_topology.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/03_execution_engine/executec_and_hook_chain.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/04_flag_groups_and_args/relational_flag_engine.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/05_completion_v2_engine/complete_protocol_and_shells.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html" />
+  </url>
+  <url>
+    <loc>https://cobra.drawlib.com/architecture/ja/06_doc_synthesis/ast_free_doc_generators.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/06_doc_synthesis/ast_free_doc_generators.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html" />
+  </url>
+</urlset>

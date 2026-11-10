@@ -1,0 +1,791 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composite `Command` Tree &amp; `FlagSet` Lazy Allocation Internals — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/01_package_and_tree/command_tree_topology.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html">
+    
+    
+    
+    <meta name="description" content="Cobra models an entire CLI application—its root binary, nested subcommand hierarchies, help topics, and flag scopes—using a single self-referential struct…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra Architecture">
+    <meta property="og:title" content="Composite Command Tree &amp; FlagSet Lazy Allocation Internals — Cobra Architecture">
+    <meta property="og:description" content="Cobra models an entire CLI application—its root binary, nested subcommand hierarchies, help topics, and flag scopes—using a single self-referential struct…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Composite Command Tree &amp; FlagSet Lazy Allocation Internals — Cobra Architecture">
+    <meta name="twitter:description" content="Cobra models an entire CLI application—its root binary, nested subcommand hierarchies, help topics, and flag scopes—using a single self-referential struct…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra Architecture">
+                    
+                    Cobra Architecture
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Architecture Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Package &amp; Composite Tree</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="command_tree_topology.html" >Command Tree &amp; FlagSet Topology</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Parser &amp; Command Dispatch</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html" >Find, Traverse &amp; stripFlags Parser</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Lifecycle Execution Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC, execute() &amp; Hook Chain</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Flag Groups &amp; PositionalArgs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation Flag Groups &amp; Validators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete Protocol &amp; Shell Scripts</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Reference Doc Synthesis</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >AST-Free cobra/doc Generators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra User Guide<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Composite `Command` Tree &amp; `FlagSet` Lazy Allocation Internals</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="command_tree_topology.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/01_package_and_tree/command_tree_topology.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Composite <code>Command</code> Tree &amp; <code>FlagSet</code> Lazy Allocation Internals</h1>
+<p>Cobra models an entire CLI application—its root binary, nested subcommand hierarchies, help topics, and flag scopes—using a single self-referential struct: <code>cobra.Command</code> (<code>command.go:54–260</code>). Rather than splitting &quot;RootApp&quot;, &quot;CommandGroup&quot;, and &quot;LeafAction&quot; into separate Go types, <code>Command</code> implements the <strong>Gang of Four (GoF) Composite Pattern</strong>, paired with <strong>five lazily allocated <code>*pflag.FlagSet</code> pointers</strong> and a <strong>reflection-free default help/usage renderer</strong> that preserves Go linker deadcode elimination (<code>TestDeadcodeElimination</code>).</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_package_and_tree/command_tree_topology/command_tree_and_flagsets.png" alt="command_tree_topology_1" />
+  <figcaption class="drawlib-caption">Figure 1: Composite Command Tree Pointers & The Five Lazy *pflag.FlagSet Scopes (command.go:155–166, 1898–1923)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span><span class="p">,</span> <span class="n">lines</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">106</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">101.5</span><span class="p">),</span>
+    <span class="s2">"Composite Command Tree &amp; 5-Pointer Lazy FlagSet Propagation"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: GoF Composite Tree Topology</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"GoF Composite Tree"</span><span class="p">,</span>
+    <span class="s2">"command.go:220-228"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">87</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">45</span><span class="p">,</span> <span class="mi">76</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">66</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Root *Command (parent == nil)</span><span class="se">\n</span><span class="s2">commands []*Command</span><span class="se">\n</span><span class="s2">MaxUse/Path/NameLen caches"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">((</span><span class="mi">16</span><span class="p">,</span> <span class="mi">76</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">45</span><span class="p">,</span> <span class="mi">49</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">66</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Parent *Command (e.g. 'remote')</span><span class="se">\n</span><span class="s2">parent -&gt; Root | commands -&gt; [Child]</span><span class="se">\n</span><span class="s2">commandsAreSorted: bool"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">45</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">66</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Leaf *Command (e.g. 'add')</span><span class="se">\n</span><span class="s2">parent -&gt; Parent | commands: nil</span><span class="se">\n</span><span class="s2">CalledAs() &amp; GroupID"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Bidirectional parent / commands pointers</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">38</span><span class="p">,</span> <span class="mf">56.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">25</span><span class="p">,</span> <span class="mf">62.5</span><span class="p">),</span> <span class="s2">"commands[i]"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">52</span><span class="p">,</span> <span class="mf">56.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">64</span><span class="p">,</span> <span class="mf">62.5</span><span class="p">),</span> <span class="s2">"parent"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">41.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">38</span><span class="p">,</span> <span class="mf">29.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">25</span><span class="p">,</span> <span class="mf">35.5</span><span class="p">),</span> <span class="s2">"commands[i]"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">52</span><span class="p">,</span> <span class="mf">29.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mf">41.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">64</span><span class="p">,</span> <span class="mf">35.5</span><span class="p">),</span> <span class="s2">"parent"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="c1"># Right Panel: 5 Lazy *pflag.FlagSet Pointers &amp; mergePersistentFlags()</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"5 Lazy *pflag.FlagSet Fields"</span><span class="p">,</span>
+    <span class="s2">"mergePersistentFlags"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">90</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">87</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">134</span><span class="p">,</span> <span class="mi">79</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. pflags (*FlagSet) — PersistentFlags()</span><span class="se">\n</span><span class="s2">Flags declared on c inherited by descendants"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">134</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. parentsPflags (*FlagSet) — updateParentsPflags()</span><span class="se">\n</span><span class="s2">VisitParents() + Root().AddFlagSet(flag.CommandLine)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">134</span><span class="p">,</span> <span class="mi">47</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. flags (*FlagSet) — Flags() [Full Active Set]</span><span class="se">\n</span><span class="s2">c.Flags().AddFlagSet(pflags) + AddFlagSet(parentsPflags)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">114.5</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">38</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. lflags (*FlagSet)</span><span class="se">\n</span><span class="s2">LocalFlags() cache</span><span class="se">\n</span><span class="s2">(excludes non-shadowed</span><span class="se">\n</span><span class="s2">parentsPflags)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">153.5</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">38</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"5. iflags (*FlagSet)</span><span class="se">\n</span><span class="s2">InheritedFlags() cache</span><span class="se">\n</span><span class="s2">(parentsPflags minus</span><span class="se">\n</span><span class="s2">shadowed local flags)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">134</span><span class="p">,</span> <span class="mf">73.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">134</span><span class="p">,</span> <span class="mi">70</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">134</span><span class="p">,</span> <span class="mf">58.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">134</span><span class="p">,</span> <span class="mf">53.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">114.5</span><span class="p">,</span> <span class="mf">40.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">114.5</span><span class="p">,</span> <span class="mf">30.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">153.5</span><span class="p">,</span> <span class="mf">40.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">153.5</span><span class="p">,</span> <span class="mf">30.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">)</span>
+<span class="n">lines</span><span class="p">([(</span><span class="mi">78</span><span class="p">,</span> <span class="mi">76</span><span class="p">),</span> <span class="p">(</span><span class="mi">86</span><span class="p">,</span> <span class="mi">76</span><span class="p">),</span> <span class="p">(</span><span class="mi">86</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">64</span><span class="p">)],</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. GoF Composite Pattern in <code>cobra.Command</code></h2>
+<p>In <code>command.go:220–228</code>, every <code>Command</code> instance embeds both upward and downward tree pointers alongside precomputed column-width caches:</p>
+<pre><code class="language-go"><span class="c1">// command.go:210-228</span>
+<span class="nx">commandsAreSorted</span><span class="w"> </span><span class="kt">bool</span>
+<span class="nx">commandCalledAs</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">name</span><span class="w">   </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">called</span><span class="w"> </span><span class="kt">bool</span>
+<span class="p">}</span>
+<span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span>
+
+<span class="nx">commands</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">Command</span><span class="w"> </span><span class="c1">// Child subcommands</span>
+<span class="nx">parent</span><span class="w">   </span><span class="o">*</span><span class="nx">Command</span><span class="w">   </span><span class="c1">// Upward parent pointer (nil on Root)</span>
+<span class="nx">commandsMaxUseLen</span><span class="w">         </span><span class="kt">int</span>
+<span class="nx">commandsMaxCommandPathLen</span><span class="w"> </span><span class="kt">int</span>
+<span class="nx">commandsMaxNameLen</span><span class="w">        </span><span class="kt">int</span>
+</code></pre>
+<h3>1.1 Tree Mutation Invariants (<code>AddCommand</code>, <code>RemoveCommand</code>, <code>ResetCommands</code>)</h3>
+<p>When subcommands are attached via <code>c.AddCommand(cmds ...*Command)</code> (<code>command.go:1342–1368</code>), Cobra enforces four structural invariants:</p>
+<ol>
+<li><strong>Self-Insertion Cycle Guard (<code>command.go:1344–1346</code>)</strong>:
+<ul>
+<li>Checks <code>if cmds[i] == c { panic(&quot;Command can't be a child of itself&quot;) }</code> before mutating pointers, preventing trivial 1-cycle infinite recursion in <code>Root()</code> or <code>VisitParents()</code>.</li>
+</ul>
+</li>
+<li><strong>Upward Link &amp; Padding Cache Update (<code>command.go:1347–1360</code>)</strong>:
+<ul>
+<li>Sets <code>cmds[i].parent = c</code> and eagerly updates three high-water-mark integers on the parent <code>c</code>:
+<ul>
+<li><code>commandsMaxUseLen = max(commandsMaxUseLen, len(x.Use))</code></li>
+<li><code>commandsMaxCommandPathLen = max(commandsMaxCommandPathLen, len(x.CommandPath()))</code></li>
+<li><code>commandsMaxNameLen = max(commandsMaxNameLen, len(x.Name()))</code></li>
+</ul>
+</li>
+<li>Note that <code>x.CommandPath()</code> (<code>command.go:1465–1470</code>) recursively walks <code>c.Parent().CommandPath() + &quot; &quot; + c.Name()</code> up to <code>DisplayName()</code> on the root node, so calling <code>AddCommand</code> after <code>cmds[i].parent = c</code> computes the full path length in a single pass.</li>
+<li>During help rendering, <code>UsagePadding()</code>, <code>CommandPathPadding()</code>, and <code>NamePadding()</code> (<code>command.go:560–588</code>) clamp these parent caches against minimum column widths (<code>minUsagePadding = 25</code>, <code>minCommandPathPadding = 11</code>, <code>minNamePadding = 11</code>) and pass them to <code>rpad(s, padding)</code> (<code>cobra.go:174–177</code>).</li>
+</ul>
+</li>
+<li><strong>Global Normalization Function Cascade (<code>command.go:1362–1364</code>)</strong>:
+<ul>
+<li>If the parent has <code>c.globNormFunc != nil</code>, <code>AddCommand</code> immediately propagates <code>x.SetGlobalNormalizationFunc(c.globNormFunc)</code> (<code>command.go:382–390</code>) down the newly attached subtree.</li>
+</ul>
+</li>
+<li><strong>Deferred Lexicographical Sorting (<code>command.go:1332–1339, 1366</code>)</strong>:
+<ul>
+<li><code>AddCommand</code> appends <code>x</code> to <code>c.commands</code> and marks <code>c.commandsAreSorted = false</code>.</li>
+<li>Sorting is deferred until <code>c.Commands()</code> is called (e.g., during help generation, completion, or <code>cobra/doc</code> traversal). If <code>EnableCommandSorting</code> (<code>cobra.go:59</code>, <code>true</code> by default) is enabled and <code>!c.commandsAreSorted</code>, <code>c.Commands()</code> sorts <code>c.commands</code> in-place via <code>sort.Sort(commandSorterByName(c.commands))</code> (<code>command.go:1325–1337</code>) and flips <code>c.commandsAreSorted = true</code>.</li>
+</ul>
+</li>
+</ol>
+<p>Conversely, <code>c.RemoveCommand(cmds ...*Command)</code> (<code>command.go:1401–1432</code>) clears <code>command.parent = nil</code> on removed children, rebuilds the <code>c.commands</code> slice, and recomputes <code>commandsMaxUseLen</code>, <code>commandsMaxCommandPathLen</code>, and <code>commandsMaxNameLen</code> from scratch over the remaining children.</p>
+<h3>1.2 Upward Tree Walkers &amp; Stream Inheritance</h3>
+<p>Because only the root <code>Command</code> typically configures I/O streams, templates, or error callbacks, upward lookup methods walk the <code>parent</code> chain until a non-nil override is found or fall back to root defaults:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Accessor / Walker</th>
+<th style="text-align:left">Source Location</th>
+<th style="text-align:left">Traversal Direction &amp; Fallback Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>c.Root()</code></td>
+<td style="text-align:left"><code>command.go:892–897</code></td>
+<td style="text-align:left">Recursive <code>c.Parent().Root()</code> until <code>!c.HasParent()</code>; returns highest ancestor.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.VisitParents(fn)</code></td>
+<td style="text-align:left"><code>command.go:884–889</code></td>
+<td style="text-align:left">Calls <code>fn(c.Parent())</code> then recurses <code>c.Parent().VisitParents(fn)</code> upward to root.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.CommandPath()</code></td>
+<td style="text-align:left"><code>command.go:1465–1470</code></td>
+<td style="text-align:left">Recursively prefixes <code>c.Parent().CommandPath() + &quot; &quot; + c.Name()</code>; root uses <code>c.DisplayName()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.getOut(def)</code> / <code>getErr</code> / <code>getIn</code></td>
+<td style="text-align:left"><code>command.go:412–440</code></td>
+<td style="text-align:left">Returns <code>c.outWriter</code> (<code>errWriter</code>, <code>inReader</code>) if non-nil, else recurses to <code>c.parent</code>, falling back to <code>os.Stdout</code> / <code>os.Stderr</code> / <code>os.Stdin</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.UsageFunc()</code> / <code>HelpFunc()</code> / <code>FlagErrorFunc()</code></td>
+<td style="text-align:left"><code>command.go:444–558</code></td>
+<td style="text-align:left">Checks <code>c.usageFunc</code> (<code>helpFunc</code>, <code>flagErrorFunc</code>), else delegates to <code>c.Parent()</code>, falling back to <code>defaultUsageFunc</code> / <code>defaultHelpFunc</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>c.ErrPrefix()</code></td>
+<td style="text-align:left"><code>command.go:643–652</code></td>
+<td style="text-align:left">Returns <code>c.errPrefix</code> if non-empty, else walks <code>c.parent.ErrPrefix()</code>, defaulting to <code>&quot;Error:&quot;</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. The Five Lazy <code>*pflag.FlagSet</code> Pointers</h2>
+<p>A <code>Command</code> node does <strong>not</strong> allocate any <code>pflag.FlagSet</code> when instantiated as <code>&amp;cobra.Command{Use: &quot;...&quot;}</code>. Instead, <code>Command</code> holds five <code>*flag.FlagSet</code> fields (<code>command.go:155–166</code>) plus a shared <code>flagErrorBuf *bytes.Buffer</code> (<code>command.go:154</code>):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Field</th>
+<th style="text-align:left">Public Accessor</th>
+<th style="text-align:left">Allocation &amp; Population Mechanics (<code>command.go:1688–1923</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>flags</code></td>
+<td style="text-align:left"><code>c.Flags()</code> (<code>L1688–1698</code>)</td>
+<td style="text-align:left">The <strong>complete active <code>FlagSet</code></strong> parsed during <code>c.ParseFlags(args)</code>. Lazily allocated via <code>flag.NewFlagSet(c.DisplayName(), flag.ContinueOnError)</code> with output piped to <code>c.flagErrorBuf</code>. After <code>mergePersistentFlags()</code>, contains local flags + <code>pflags</code> + <code>parentsPflags</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>pflags</code></td>
+<td style="text-align:left"><code>c.PersistentFlags()</code> (<code>L1775–1784</code>)</td>
+<td style="text-align:left">Persistent flags declared directly on <code>c</code>. Lazily allocated on first call to <code>c.PersistentFlags()</code>. Propagated to <code>c</code> and all descendants.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>parentsPflags</code></td>
+<td style="text-align:left"><em>(internal)</em> <code>c.updateParentsPflags()</code> (<code>L1907–1923</code>)</td>
+<td style="text-align:left">Accumulator for all ancestor persistent flags. Lazily allocated with <code>SortFlags = false</code>; populated by copying <code>flag.CommandLine</code> into <code>c.Root().PersistentFlags()</code> and walking <code>c.VisitParents</code> to add each ancestor's <code>PersistentFlags()</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>lflags</code></td>
+<td style="text-align:left"><code>c.LocalFlags()</code> / <code>c.NonInheritedFlags()</code> (<code>L1716–1740, 1770</code>)</td>
+<td style="text-align:left"><strong>Read-only view cache</strong> of flags defined locally on <code>c</code> (both local-only and persistent flags declared on <code>c</code>). Calls <code>c.mergePersistentFlags()</code>, then visits <code>c.Flags()</code> and <code>c.PersistentFlags()</code>, adding <code>f</code> to <code>c.lflags</code> only if <code>f != c.parentsPflags.Lookup(f.Name)</code> (which preserves local flags that <strong>shadow</strong> a parent persistent flag of the same name!).</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>iflags</code></td>
+<td style="text-align:left"><code>c.InheritedFlags()</code> (<code>L1744–1766</code>)</td>
+<td style="text-align:left"><strong>Read-only view cache</strong> of flags inherited from ancestors. Calls <code>c.mergePersistentFlags()</code>, computes <code>local := c.LocalFlags()</code>, and visits <code>c.parentsPflags</code>, adding <code>f</code> to <code>c.iflags</code> only if <code>local.Lookup(f.Name) == nil</code> (excluding shadowed flags).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Six Distinct FlagSet Methods (<code>LocalFlags</code> vs <code>LocalNonPersistentFlags</code>)</strong>:
+While <code>c.LocalFlags()</code> (and its alias <code>c.NonInheritedFlags()</code>) includes persistent flags declared directly on <code>c</code>, <code>c.LocalNonPersistentFlags()</code> (<code>command.go:1702–1712</code>) allocates a fresh <code>FlagSet</code> and filters <code>c.LocalFlags()</code> to exclude any flag present in <code>c.PersistentFlags()</code>. The Completion V2 engine (<code>completions.go:504</code>) relies on <code>LocalNonPersistentFlags()</code> to detect whether a non-persistent local flag was already typed on a parent command when <code>TraverseChildren</code> is <code>false</code>.</p>
+</blockquote>
+<h3>2.1 How <code>mergePersistentFlags()</code> Works Without Eager Tree Walks</h3>
+<p>When a user defines <code>rootCmd.PersistentFlags().StringP(&quot;config&quot;, &quot;c&quot;, &quot;&quot;, &quot;...&quot;)</code> in <code>init()</code>, Cobra does <strong>not</strong> push that flag down to child commands immediately—in fact, child commands might not even be attached via <code>AddCommand</code> yet. Instead, Cobra pulls persistent flags lazily via <code>c.mergePersistentFlags()</code> (<code>command.go:1898–1923</code>):</p>
+<pre><code class="language-go"><span class="c1">// command.go:1898-1923</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">mergePersistentFlags</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">updateParentsPflags</span><span class="p">()</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">AddFlagSet</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">PersistentFlags</span><span class="p">())</span>
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">AddFlagSet</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">updateParentsPflags</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">NewFlagSet</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">DisplayName</span><span class="p">(),</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">ContinueOnError</span><span class="p">)</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="p">.</span><span class="nx">SetOutput</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">flagErrorBuf</span><span class="p">)</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="p">.</span><span class="nx">SortFlags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">globNormFunc</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="p">.</span><span class="nx">SetNormalizeFunc</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">globNormFunc</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">Root</span><span class="p">().</span><span class="nx">PersistentFlags</span><span class="p">().</span><span class="nx">AddFlagSet</span><span class="p">(</span><span class="nx">flag</span><span class="p">.</span><span class="nx">CommandLine</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">c</span><span class="p">.</span><span class="nx">VisitParents</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">c</span><span class="p">.</span><span class="nx">parentsPflags</span><span class="p">.</span><span class="nx">AddFlagSet</span><span class="p">(</span><span class="nx">parent</span><span class="p">.</span><span class="nx">PersistentFlags</span><span class="p">())</span>
+<span class="w">	</span><span class="p">})</span>
+<span class="p">}</span>
+</code></pre>
+<p>Because <code>pflag.FlagSet.AddFlagSet()</code> ignores flags whose <code>Name</code> is already registered in the destination <code>FlagSet</code>, calling <code>c.Flags().AddFlagSet(c.PersistentFlags())</code> followed by <code>c.Flags().AddFlagSet(c.parentsPflags)</code> guarantees a strict <strong>3-tier precedence order</strong>:</p>
+<ol>
+<li><strong>Local flags</strong> registered directly on <code>c.Flags()</code> win first.</li>
+<li><strong>Self-persistent flags</strong> on <code>c.PersistentFlags()</code> win second.</li>
+<li><strong>Nearest-ancestor persistent flags</strong> win over distant ancestors because <code>c.VisitParents()</code> walks upward from <code>c.Parent()</code> to <code>c.Root()</code> (including standard library <code>pflag.CommandLine</code> flags bridged at <code>L1918</code>).</li>
+</ol>
+<hr />
+<h2>3. Preserving Go Linker Deadcode Elimination (<code>TestDeadcodeElimination</code>)</h2>
+<p>One of the most subtle architectural designs in <code>command.go</code> and <code>cobra.go</code> is how Cobra supports customizable <code>text/template</code> strings (<code>SetUsageTemplate</code>, <code>SetHelpTemplate</code>, <code>SetVersionTemplate</code>) <strong>without</strong> breaking the Go compiler linker's deadcode elimination pass for standard CLI binaries.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_package_and_tree/command_tree_topology/deadcode_elimination_path.png" alt="command_tree_topology_2" />
+  <figcaption class="drawlib-caption">Figure 2: How Cobra Isolates text/template Reflection to Preserve Go Linker Deadcode Elimination (cobra_test.go:245–301)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">86</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mi">81</span><span class="p">),</span>
+    <span class="s2">"Go Linker Deadcode Elimination (DCE): Default vs Custom Template Path"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: Default Fast Path (DCE Preserved)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Default Path (DCE Active)"</span><span class="p">,</span>
+    <span class="s2">"command.go:1974-2072"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">83</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">66</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">57</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"usageTemplate == nil &amp;&amp; helpTemplate == nil</span><span class="se">\n</span><span class="s2">getUsageTemplateFunc() / getHelpTemplateFunc()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">39</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"defaultUsageFunc / defaultHelpFunc</span><span class="se">\n</span><span class="s2">Direct fmt.Fprintf(w, ...) calls"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SuccessNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"go tool nm: Zero MethodByName symbol!</span><span class="se">\n</span><span class="s2">Go Linker strips all unused exported methods"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">((</span><span class="mi">14</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Success</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">47.5</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">33</span><span class="p">),</span> <span class="p">(</span><span class="mf">47.5</span><span class="p">,</span> <span class="mi">26</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: Custom Template Path (Reflection Linked)</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Custom Template Path"</span><span class="p">,</span>
+    <span class="s2">"cobra.go:179-189"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">95</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">83</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">66</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">57</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"SetUsageTemplate(s) / SetHelpTemplate(s)</span><span class="se">\n</span><span class="s2">Calls tmpl(s) -&gt; &amp;tmplFunc{tmpl, fn}"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">39</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"template.New('top').Funcs(templateFuncs)</span><span class="se">\n</span><span class="s2">Links text/template + Gt/Eq reflect helpers"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">73</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WarningNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"reflect.Value.MethodByName reachable</span><span class="se">\n</span><span class="s2">Linker retains exported methods for templates"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.8</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">warning</span><span class="p">((</span><span class="mi">103</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Warning</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">136.5</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">33</span><span class="p">),</span> <span class="p">(</span><span class="mf">136.5</span><span class="p">,</span> <span class="mi">26</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>3.1 Why <code>text/template</code> Disables Linker Deadcode Elimination</h3>
+<p>In Go's toolchain (<code>cmd/link</code>), the linker performs reachability analysis starting from <code>main.main()</code> to discard unreferenced functions and struct methods. However, if <strong>any</strong> reachable function in the call graph invokes <code>reflect.Value.MethodByName</code> or <code>reflect.Value.Method</code>, the linker cannot statically prove which exported struct methods might be called dynamically by name at runtime, forcing it to retain exported methods on reachable types across the binary.</p>
+<p>Because Go's standard <code>text/template</code> package evaluates expressions like <code>{{.UseLine}}</code> or <code>{{.LocalFlags.FlagUsages}}</code> using <code>reflect.Value.MethodByName</code>, calling <code>template.New(...).Execute(...)</code> inside Cobra's default <code>--help</code> path would force <code>MethodByName</code> into every Cobra CLI binary (<code>kubectl</code>, <code>hugo</code>, <code>gh</code>, <code>docker</code>).</p>
+<h3>3.2 The <code>tmplFunc</code> Wrapper &amp; <code>defaultUsageFunc</code> Sync Pattern</h3>
+<p>To prevent <code>text/template</code> from being reachable by default (<code>PR #1956</code>, verified by <code>TestDeadcodeElimination</code> in <code>cobra_test.go:245–301</code>), Cobra uses a two-part indirection:</p>
+<ol>
+<li><strong><code>tmplFunc</code> Closure Wrapper (<code>command.go:1937–1940</code>, <code>cobra.go:179–189</code>)</strong>:
+<ul>
+<li>Instead of storing a <code>*template.Template</code> on <code>Command</code>, <code>usageTemplate</code>, <code>helpTemplate</code>, and <code>versionTemplate</code> have type <code>*tmplFunc</code>:<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">tmplFunc</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">tmpl</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">fn</span><span class="w">   </span><span class="kd">func</span><span class="p">(</span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="kd">interface</span><span class="p">{})</span><span class="w"> </span><span class="kt">error</span>
+<span class="p">}</span>
+</code></pre>
+</li>
+<li>The <code>tmpl(text string) *tmplFunc</code> constructor (<code>cobra.go:179–189</code>) that actually calls <code>template.New(&quot;top&quot;).Funcs(templateFuncs)</code> and <code>t.Execute(w, data)</code> is <strong>only</strong> invoked inside <code>SetUsageTemplate</code>, <code>SetHelpTemplate</code>, and <code>SetVersionTemplate</code> (<code>command.go:318–373</code>).</li>
+</ul>
+</li>
+<li><strong>Reflection-Free Default Functions (<code>command.go:1974–2072</code>)</strong>:
+<ul>
+<li>When <code>c.usageTemplate == nil</code>, <code>c.getUsageTemplateFunc()</code> (<code>command.go:464–473</code>) returns <code>defaultUsageFunc</code> (<code>command.go:1974–2040</code>), which is a pure Go function using <code>fmt.Fprint</code> / <code>fmt.Fprintf</code> that produces output byte-for-byte identical to <code>defaultUsageTemplate</code> (<code>command.go:1942–1971</code>).</li>
+<li>Similarly, <code>getHelpTemplateFunc()</code> returns <code>defaultHelpFunc</code> (<code>command.go:2047–2062</code>) and <code>getVersionTemplateFunc()</code> returns <code>defaultVersionFunc</code> (<code>command.go:2068–2072</code>).</li>
+<li><code>TestDeadcodeElimination</code> (<code>cobra_test.go:245–301</code>) compiles a minimal Cobra program with <code>go build</code> and runs <code>go tool nm</code> on the resulting binary, failing the test suite if <code>&quot;MethodByName&quot;</code> appears anywhere in the symbol table.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>Next Steps</h2>
+<ul>
+<li>Continue to <strong><a href="../02_parser_and_dispatch/find_traverse_and_stripflags.html">Chapter 2 — Find, Traverse &amp; stripFlags Parser</a></strong> to see how Cobra resolves subcommands from raw <code>os.Args[1:]</code> tokens without mutating <code>FlagSet</code> state.</li>
+<li>Return to the <strong><a href="../index.html">Architecture Overview</a></strong>.</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial internal architecture guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

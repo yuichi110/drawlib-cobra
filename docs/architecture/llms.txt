@@ -1,0 +1,36 @@
+# Cobra Internal Architecture Guide (Unofficial)
+
+> Source-level internal architecture guide to spf13/cobra v1.10.2: composite Command tree, Find/Traverse & stripFlags parser, ExecuteC hook chain, relational flag group engine, complete V2 protocol, and AST-free cobra/doc synthesis.
+
+## Overview
+
+- [Architecture Overview](https://cobra.drawlib.com/architecture/en/): Welcome to the source-level internal architecture reference for spf13/cobra v1.10.2. This guide dissects the 19 non-test Go source files (4,888 LOC) across…
+
+## 1. Package & Composite Tree
+
+- [Command Tree & FlagSet Topology](https://cobra.drawlib.com/architecture/en/01_package_and_tree/command_tree_topology.html): Cobra models an entire CLI application—its root binary, nested subcommand hierarchies, help topics, and flag scopes—using a single self-referential struct…
+
+## 2. Parser & Command Dispatch
+
+- [Find, Traverse & stripFlags Parser](https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html): Before Cobra can execute a command's lifecycle hooks or validate its flags, it must resolve which *Command node in the tree owns the invocation. Unlike…
+
+## 3. Lifecycle Execution Engine
+
+- [ExecuteC, execute() & Hook Chain](https://cobra.drawlib.com/architecture/en/03_execution_engine/executec_and_hook_chain.html): Once a Cobra CLI is constructed, execution enters through one of four public methods on *Command—Execute(), ExecuteC(), ExecuteContext(ctx), or…
+
+## 4. Flag Groups & PositionalArgs
+
+- [Annotation Flag Groups & Validators](https://cobra.drawlib.com/architecture/en/04_flag_groups_and_args/relational_flag_engine.html): While Chapter 1 examined how Command manages five lazy *pflag.FlagSet instances (flags, pflags, lflags, iflags, and parentsPflags) and Chapter 3 traced the…
+
+## 5. Shell Completion V2 Engine
+
+- [__complete Protocol & Shell Scripts](https://cobra.drawlib.com/architecture/en/05_completion_v2_engine/complete_protocol_and_shells.html): While legacy completion generators (bash_completions.go, 649 LOC) attempted to compile static command trees and flag lists into massive shell scripts…
+
+## 6. Reference Doc Synthesis
+
+- [AST-Free cobra/doc Generators](https://cobra.drawlib.com/architecture/en/06_doc_synthesis/ast_free_doc_generators.html): While the root github.com/spf13/cobra package handles live CLI flag parsing, lifecycle execution, and runtime shell completion, offline reference…
+
+## Locales
+
+- [English (en)](https://cobra.drawlib.com/architecture/en/): Source-level internal architecture guide to spf13/cobra v1.10.2: composite Command tree, Find/Traverse & stripFlags parser, ExecuteC hook chain, relational…
+- [日本語 (ja)](https://cobra.drawlib.com/architecture/ja/): spf13/cobra v1.10.2 の内部アーキテクチャ解説（非公式）：複合 Command ツリー構造、Find/Traverse・stripFlags パーサー、ExecuteC フック実行エンジン、関係フラググループ検証、complete V2 プロトコル、cobra/doc ドキュメント合成の仕組み。

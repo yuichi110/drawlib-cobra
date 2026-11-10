@@ -1,0 +1,33 @@
+[project]
+name = "api"
+type = "catalog"
+title = "Cobra API Reference"
+description = "Complete bilingual API reference for github.com/spf13/cobra v1.10.2 — Command struct, lifecycle hooks, pflag & relational flag groups, PositionalArgs combinators, Shell Completion V2, ActiveHelp, and cobra/doc generators."
+style = "default"
+
+[i18n]
+default_lang = "en"
+langs = ["en", "ja"]
+
+[i18n.labels]
+en = "English"
+ja = "日本語"
+
+[i18n.descriptions]
+en = "Complete bilingual API reference for github.com/spf13/cobra v1.10.2 — Command struct, lifecycle hooks, pflag & relational flag groups, PositionalArgs combinators, Shell Completion V2, ActiveHelp, and cobra/doc generators."
+ja = "github.com/spf13/cobra v1.10.2 の完全 API リファレンス（非公式）：Command 構造体、ライフサイクルフック、pflag・フラググループ制約、PositionalArgs 検証関数、Shell Completion V2・ActiveHelp、cobra/doc 生成関数を網羅。"
+
+[catalog]
+sidebar_expanded = true
+breadcrumb_root = { en = "API Reference", ja = "API リファレンス" }
+badge_text = { en = "API Reference · v1.10.2", ja = "API リファレンス · v1.10.2" }
+badge_url = "index.html"
+repo_url = "https://github.com/spf13/cobra"
+
+[seo]
+site_url = "https://cobra.drawlib.com/api"
+og_image = "_assets/ogp.png"
+twitter_card = "summary_large_image"
+sitemap = true
+robots = true
+llms_txt = true

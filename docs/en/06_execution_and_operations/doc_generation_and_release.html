@@ -1,0 +1,680 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doc Generation (MD/Man/YAML) &amp; Releases — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/en/06_execution_and_operations/doc_generation_and_release.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/ja/06_execution_and_operations/doc_generation_and_release.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/en/06_execution_and_operations/doc_generation_and_release.html">
+    
+    
+    
+    <meta name="description" content="Because a cobra.Command tree already declares every subcommand path, synopsis, flag type, default value, and usage example in structured Go fields, your code…">
+    <link rel="canonical" href="https://cobra.drawlib.com/en/06_execution_and_operations/doc_generation_and_release.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Doc Generation (MD/Man/YAML) &amp; Releases — Cobra User Guide">
+    <meta property="og:description" content="Because a cobra.Command tree already declares every subcommand path, synopsis, flag type, default value, and usage example in structured Go fields, your code…">
+    <meta property="og:url" content="https://cobra.drawlib.com/en/06_execution_and_operations/doc_generation_and_release.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Doc Generation (MD/Man/YAML) &amp; Releases — Cobra User Guide">
+    <meta name="twitter:description" content="Because a cobra.Command tree already declares every subcommand path, synopsis, flag type, default value, and usage example in structured Go fields, your code…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">UNOFFICIAL GUIDE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Community User Guide for <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item active">
+                                <a href="doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Doc Generation (MD/Man/YAML) &amp; Releases</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="doc_generation_and_release.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/06_execution_and_operations/doc_generation_and_release.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Doc Generation (MD/Man/YAML) &amp; Releases</h1>
+<p>Because a <code>cobra.Command</code> tree already declares every subcommand path, synopsis, flag type, default value, and usage example in structured Go fields, your code can serve as the <strong>Single Source of Truth</strong> for both online documentation portals and offline UNIX <code>man</code> pages. The <strong><code>github.com/spf13/cobra/doc</code></strong> subpackage exports your command tree into four standard formats, which can be bundled directly alongside shell completions in CI/GoReleaser pipelines.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_execution_and_operations/doc_generation_and_release/ug_doc_generation_hero.png" alt="doc_generation_and_release_1" />
+  <figcaption class="drawlib-caption">Single-Source-of-Truth Documentation & Release Artifact Pipeline (cobra/doc & GoReleaser)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+    <span class="s2">"Automated CLI Documentation &amp; Release Packaging Pipeline (cobra/doc)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left: Root Command AST Source of Truth</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">36.0</span><span class="p">),</span> <span class="s2">"NewRootCommand()"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">30.5</span><span class="p">),</span> <span class="s2">"DisableAutoGenTag: true"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">25.0</span><span class="p">),</span> <span class="s2">"Use / Short / Long / Example"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">),</span> <span class="s2">"Local &amp; Persistent FlagSets"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">),</span> <span class="s2">"cmd/gendocs/main.go"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="c1"># Right: 4 Output Formats via CardList</span>
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outputs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Markdown Tree (GenMarkdownTreeCustom)"</span><span class="p">,</span>
+    <span class="s2">"Static site portals (Drawlib / Hugo / Docusaurus) with frontmatter"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"MD"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">outputs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"ROFF Man Pages (GenManTree)"</span><span class="p">,</span>
+    <span class="s2">"UNIX man1 pages (mycli-*.1.gz) + SOURCE_DATE_EPOCH"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"MAN"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">outputs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"YAML Catalogs (GenYamlTree)"</span><span class="p">,</span>
+    <span class="s2">"Machine-readable CLI schema for governance &amp; SDK doc indices"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"YML"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outputs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"ReStructuredText (GenReSTTree)"</span><span class="p">,</span>
+    <span class="s2">"Sphinx / ReadTheDocs Python ecosystem documentation trees"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"RST"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outputs</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">46</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. The Four <code>cobra/doc</code> Generators</h2>
+<p>The <code>github.com/spf13/cobra/doc</code> package walks your <code>cobra.Command</code> tree recursively (skipping hidden and deprecated commands) and writes one reference file per command:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Output Format</th>
+<th style="text-align:left">Single-Command Writer (<code>io.Writer</code>)</th>
+<th style="text-align:left">Full-Tree Directory Generator</th>
+<th style="text-align:left">Custom Frontmatter / Link Hook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Markdown (<code>.md</code>)</strong></td>
+<td style="text-align:left"><code>doc.GenMarkdown(cmd, w)</code></td>
+<td style="text-align:left"><code>doc.GenMarkdownTree(cmd, dir)</code></td>
+<td style="text-align:left"><code>doc.GenMarkdownTreeCustom(cmd, dir, prepender, linkHandler)</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Man Pages (<code>.1</code>)</strong></td>
+<td style="text-align:left"><code>doc.GenMan(cmd, hdr, w)</code></td>
+<td style="text-align:left"><code>doc.GenManTree(cmd, hdr, dir)</code></td>
+<td style="text-align:left"><code>doc.GenManTreeFromOpts(cmd, GenManTreeOptions{...})</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>YAML (<code>.yaml</code>)</strong></td>
+<td style="text-align:left"><code>doc.GenYaml(cmd, w)</code></td>
+<td style="text-align:left"><code>doc.GenYamlTree(cmd, dir)</code></td>
+<td style="text-align:left"><code>doc.GenYamlTreeCustom(cmd, dir, prepender, linkHandler)</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>ReST (<code>.rst</code>)</strong></td>
+<td style="text-align:left"><code>doc.GenReST(cmd, w)</code></td>
+<td style="text-align:left"><code>doc.GenReSTTree(cmd, dir)</code></td>
+<td style="text-align:left"><code>doc.GenReSTTreeCustom(cmd, dir, prepender, linkHandler)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Eliminating Git Diff Churn with <code>DisableAutoGenTag: true</code></h3>
+<p>By default, every generator appends a date-stamped footer such as:</p>
+<pre><code class="language-markdown"><span class="gu">###### Auto generated by spf13/cobra on 10-Nov-2026</span>
+</code></pre>
+<p>In CI pipelines that verify documentation freshness (<code>git diff --exit-code docs/</code>), this date stamp causes every daily build to fail or pollute Git history even when no flags changed. Always set <strong><code>rootCmd.DisableAutoGenTag = true</code></strong> on your root command:</p>
+<ul>
+<li><code>cobra/doc</code> automatically propagates <code>DisableAutoGenTag: true</code> from parent commands down to all descendants during tree traversal (<code>doc/md_docs.go:91-95</code>).</li>
+<li>For <code>GenManTree</code>, <code>doc/man_docs.go:127</code> also honors the standard <strong><code>SOURCE_DATE_EPOCH</code></strong> environment variable for reproducible Debian/RPM/Homebrew builds.</li>
+</ul>
+<h3>Complete Standalone Generator (<code>cmd/gendocs/main.go</code>)</h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"log"</span>
+<span class="w">	</span><span class="s">"os"</span>
+<span class="w">	</span><span class="s">"path/filepath"</span>
+<span class="w">	</span><span class="s">"strings"</span>
+<span class="w">	</span><span class="s">"time"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra/doc"</span>
+<span class="w">	</span><span class="s">"example.com/mycli/internal/cli"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cli</span><span class="p">.</span><span class="nx">NewRootCommand</span><span class="p">()</span>
+<span class="w">	</span><span class="c1">// Suppress volatile timestamps so generated files are 100% deterministic in Git</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">DisableAutoGenTag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="w">	</span><span class="c1">// 1. Generate Markdown pages with custom YAML frontmatter</span>
+<span class="w">	</span><span class="nx">mdDir</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">"./dist/docs/markdown"</span>
+<span class="w">	</span><span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">MkdirAll</span><span class="p">(</span><span class="nx">mdDir</span><span class="p">,</span><span class="w"> </span><span class="mo">0o755</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">filePrepender</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">filename</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Base</span><span class="p">(</span><span class="nx">filename</span><span class="p">)</span>
+<span class="w">		</span><span class="nx">base</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">TrimSuffix</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Ext</span><span class="p">(</span><span class="nx">name</span><span class="p">))</span>
+<span class="w">		</span><span class="nx">title</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">ReplaceAll</span><span class="p">(</span><span class="nx">base</span><span class="p">,</span><span class="w"> </span><span class="s">"_"</span><span class="p">,</span><span class="w"> </span><span class="s">" "</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Sprintf</span><span class="p">(</span><span class="s">"---\ntitle: %q\nslug: %q\n---\n\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="p">,</span><span class="w"> </span><span class="nx">base</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="nx">linkHandler</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">ToLower</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenMarkdownTreeCustom</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">mdDir</span><span class="p">,</span><span class="w"> </span><span class="nx">filePrepender</span><span class="p">,</span><span class="w"> </span><span class="nx">linkHandler</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"markdown generation failed: %v"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// 2. Generate Section 1 UNIX Man Pages</span>
+<span class="w">	</span><span class="nx">manDir</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">"./dist/docs/man1"</span>
+<span class="w">	</span><span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">MkdirAll</span><span class="p">(</span><span class="nx">manDir</span><span class="p">,</span><span class="w"> </span><span class="mo">0o755</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">fixedDate</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Date</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">UTC</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">header</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenManHeader</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Title</span><span class="p">:</span><span class="w">   </span><span class="s">"MYCLI"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Section</span><span class="p">:</span><span class="w"> </span><span class="s">"1"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Date</span><span class="p">:</span><span class="w">    </span><span class="o">&amp;</span><span class="nx">fixedDate</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Source</span><span class="p">:</span><span class="w">  </span><span class="s">"MyCLI Enterprise"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Manual</span><span class="p">:</span><span class="w">  </span><span class="s">"MyCLI User Manuals"</span><span class="p">,</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenManTree</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">header</span><span class="p">,</span><span class="w"> </span><span class="nx">manDir</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"manpage generation failed: %v"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// 3. Generate YAML CLI schema catalog</span>
+<span class="w">	</span><span class="nx">yamlDir</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">"./dist/docs/yaml"</span>
+<span class="w">	</span><span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">MkdirAll</span><span class="p">(</span><span class="nx">yamlDir</span><span class="p">,</span><span class="w"> </span><span class="mo">0o755</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">doc</span><span class="p">.</span><span class="nx">GenYamlTree</span><span class="p">(</span><span class="nx">rootCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">yamlDir</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"yaml generation failed: %v"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>2. Go Linker Dead-Code Elimination &amp; Binary Size Hygiene</h2>
+<p>When shipping a production CLI binary downloaded jutaan times in CI containers, binary size and cold-start latency matter. Understanding how Go's linker (<code>cmd/link</code>) interacts with reflection and <code>cobra/doc</code> helps keep your release binaries lean:</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/06_execution_and_operations/doc_generation_and_release/ug_binary_packaging_arch.png" alt="doc_generation_and_release_2" />
+  <figcaption class="drawlib-caption">Separating Build-Time Doc/Completion Generators from Lean Production Release Binaries</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">56</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">51</span><span class="p">),</span>
+    <span class="s2">"Build-Time Artifact Generation vs. Lean Production Binary Packaging"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Shared core package</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">25</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">34</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">36.0</span><span class="p">),</span> <span class="s2">"internal/cli"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">),</span> <span class="s2">"NewRootCommand()"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">24.0</span><span class="p">),</span> <span class="s2">"Pure command tree"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">19.0</span><span class="p">),</span> <span class="s2">"No cobra/doc import!"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mf">13.5</span><span class="p">),</span> <span class="s2">"No runtime reflect"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="c1"># Top Right: Production Binary</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">39.5</span><span class="p">),</span> <span class="s2">"cmd/mycli/main.go (Production Binary)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">33.0</span><span class="p">),</span> <span class="s2">"go build -trimpath -ldflags=</span><span class="se">\"</span><span class="s2">-s -w</span><span class="se">\"</span><span class="s2"> -&gt; Fast, minimal binary"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="c1"># Bottom Right: Build-Time Generator</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">19.0</span><span class="p">),</span> <span class="s2">"cmd/gendocs/main.go (CI / GoReleaser Hook)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">13.5</span><span class="p">),</span> <span class="s2">"Links cobra/doc + go-md2man + yaml.v3 only at build time"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">),</span> <span class="s2">"Emits man1/*.1.gz, completions/*, and docs/*.md"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">49</span><span class="p">,</span> <span class="mi">19</span><span class="p">),</span> <span class="p">(</span><span class="mi">66</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>Three Rules for Minimal CLI Binaries</h3>
+<ol>
+<li><strong>Isolate <code>cobra/doc</code> into <code>cmd/gendocs/main.go</code></strong>:
+<ul>
+<li><code>github.com/spf13/cobra/doc</code> imports <code>github.com/cpuguy83/go-md2man/v2</code>, <code>russross/blackfriday/v2</code>, and <code>gopkg.in/yaml.v3</code>. By calling <code>doc.GenManTree</code> and <code>doc.GenMarkdownTree</code> from a separate <code>cmd/gendocs/main.go</code> entry point (rather than linking <code>cobra/doc</code> into your main binary), your shipped <code>mycli</code> executable never links the Markdown-to-ROFF parser or YAML serializer.</li>
+</ul>
+</li>
+<li><strong>Understand <code>text/template</code> and <code>reflect.Value.MethodByName</code></strong>:
+<ul>
+<li>Go's linker (<code>cmd/link</code>) performs aggressive <strong>Dead-Code Elimination (DCE)</strong>, stripping unused functions and struct methods. However, if any reachable code invokes <code>reflect.Value.MethodByName</code> or <code>reflect.Type.MethodByName</code> (which standard <code>text/template</code> does to evaluate <code>{{ .Method }}</code> expressions), the linker must conservatively retain exported methods across all reachable types.</li>
+<li>Avoid adding extra <code>text/template</code> or <code>html/template</code> pipelines in your CLI packages when <code>fmt.Fprintf</code> or <code>SetHelpFunc</code> suffices.</li>
+</ul>
+</li>
+<li><strong>Strip DWARF &amp; Symbol Tables in Release Builds</strong>:
+<ul>
+<li>Build release binaries with <code>CGO_ENABLED=0 go build -trimpath -ldflags=&quot;-s -w&quot;</code>, which strips the symbol table (<code>-s</code>), DWARF debugging headers (<code>-w</code>), and local filesystem build paths (<code>-trimpath</code>).</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>3. Packaging Completions &amp; Man Pages in GoReleaser</h2>
+<p>To give users instant <code>&lt;Tab&gt;</code> completions and <code>man mycli</code> support upon running <code>brew install mycli</code> or <code>apt install mycli</code>, generate both shell completions and compressed man pages during your CI release hook:</p>
+<pre><code class="language-go"><span class="c1">// Generate all 4 shell completion scripts programmatically in cmd/gendocs/main.go:</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">GenBashCompletionV2</span><span class="p">(</span><span class="nx">bashFile</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">GenZshCompletion</span><span class="p">(</span><span class="nx">zshFile</span><span class="p">)</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">GenFishCompletion</span><span class="p">(</span><span class="nx">fishFile</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">GenPowerShellCompletionWithDesc</span><span class="p">(</span><span class="nx">pwshFile</span><span class="p">)</span>
+</code></pre>
+<p>Then reference the generated artifacts in <code>.goreleaser.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">before</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hooks</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">go run ./cmd/gendocs</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sh -c "gzip -9 -f ./dist/docs/man1/*.1"</span>
+
+<span class="nt">builds</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycli</span>
+<span class="w">    </span><span class="nt">main</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./cmd/mycli</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CGO_ENABLED=0</span>
+<span class="w">    </span><span class="nt">flags</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-trimpath</span>
+<span class="w">    </span><span class="nt">ldflags</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-s -w -X example.com/mycli/internal/cli.version={{.Version}}</span>
+
+<span class="nt">archives</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="w">    </span><span class="nt">files</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LICENSE*</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">README*</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/docs/man1/*.1.gz</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/completions/*</span>
+
+<span class="nt">brews</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycli</span>
+<span class="w">    </span><span class="nt">install</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">      </span><span class="no">bin.install "mycli"</span>
+<span class="w">      </span><span class="no">man1.install Dir["dist/docs/man1/*.1.gz"]</span>
+<span class="w">      </span><span class="no">bash_completion.install "dist/completions/mycli.bash" =&gt; "mycli"</span>
+<span class="w">      </span><span class="no">zsh_completion.install "dist/completions/mycli.zsh" =&gt; "_mycli"</span>
+<span class="w">      </span><span class="no">fish_completion.install "dist/completions/mycli.fish"</span>
+</code></pre>
+<hr />
+<h2>Related Guides</h2>
+<ul>
+<li><a href="../05_completions_and_ux/shell_completions_v2.html">Shell Completion V2 &amp; Directives</a></li>
+<li><a href="../05_completions_and_ux/active_help_and_suggestions.html">ActiveHelp, Suggestions &amp; Help Templates</a></li>
+<li><a href="lifecycle_hooks_and_context.html">Lifecycle Hooks, Errors &amp; Context Signals</a></li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

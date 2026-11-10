@@ -1,0 +1,1716 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>05. 動的シェル補完・ディレクティブ・ActiveHelp — Cobra API Reference (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('drawlib-theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    
+    <link rel="icon" href="../_assets/favicon.png">
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/api/ja/05_completions_and_directives.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/api/en/05_completions_and_directives.html">
+    
+    
+    
+    <meta name="description" content="github.com/spf13/cobra の動的補完エンジン（completions.go および active_help.go）は、CLI アプリケーションがコンテキストに応じたタブ補完候補とインラインの操作ヒント（ActiveHelp）をすべて Go…">
+    <link rel="canonical" href="https://cobra.drawlib.com/api/ja/05_completions_and_directives.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra API Reference">
+    <meta property="og:title" content="05. 動的シェル補完・ディレクティブ・ActiveHelp — Cobra API Reference">
+    <meta property="og:description" content="github.com/spf13/cobra の動的補完エンジン（completions.go および active_help.go）は、CLI アプリケーションがコンテキストに応じたタブ補完候補とインラインの操作ヒント（ActiveHelp）をすべて Go…">
+    <meta property="og:url" content="https://cobra.drawlib.com/api/ja/05_completions_and_directives.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="05. 動的シェル補完・ディレクティブ・ActiveHelp — Cobra API Reference">
+    <meta name="twitter:description" content="github.com/spf13/cobra の動的補完エンジン（completions.go および active_help.go）は、CLI アプリケーションがコンテキストに応じたタブ補完候補とインラインの操作ヒント（ActiveHelp）をすべて Go…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/api/_assets/ogp.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">API REFERENCE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）API・CLI リファレンス（非公式）
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">API Reference</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/architecture/">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar" id="catalog-sidebar">
+            <div class="sidebar-header has-subbar">
+                <a href="index.html" class="site-title">
+                    Cobra API リファレンス
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle color theme" title="Toggle light/dark mode">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation menu">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-subbar">
+                
+                
+                <a href="index.html" class="sidebar-version-badge">
+                    <span class="sidebar-version-dot"></span>
+                    <span>API リファレンス · v1.10.2</span>
+                </a>
+                
+                
+                
+                <a href="https://github.com/spf13/cobra" target="_blank" rel="noopener noreferrer" class="sidebar-github-link" aria-label="Repository" title="View Upstream Cobra Repository">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </a>
+                
+            </div>
+            
+
+            <div class="sidebar-menu">
+                <div class="catalog-sidebar-toolbar">
+                    <div class="catalog-filter-box">
+                        <svg class="catalog-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input id="catalog-filter-input" type="search" class="catalog-filter-input" placeholder="項目を絞り込み..." autocomplete="off" spellcheck="false" aria-label="項目を絞り込み...">
+                        <kbd class="catalog-filter-kbd">/</kbd>
+                    </div>
+                    <div class="catalog-toolbar-meta">
+                        <span class="catalog-toolbar-label">カテゴリ &amp; 項目</span>
+                        <button type="button" id="catalog-expand-toggle" class="catalog-expand-btn" data-expand-label="すべて展開" data-collapse-label="すべて折りたたむ">すべて折りたたむ</button>
+                    </div>
+                </div>
+
+                <nav class="catalog-sidebar-nav" id="catalog-sidebar-nav" aria-label="Catalog Navigation">
+                    
+                    
+                    
+                    <details class="catalog-nav-group" data-cat="Cobra API リファレンス概要" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="00_overview.html" class="catalog-nav-cat-link is-prose-cat">Cobra API リファレンス概要</a>
+                            
+                            <span class="catalog-nav-count">8</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="package github.com/spf13/cobra">
+                                <a href="00_overview.html#github-com-spf13-cobra" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">package</span>
+                                    
+                                    <span class="catalog-nav-sym-text">github.com/spf13/cobra</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="var パッケージレベル設定変数 (cobra.go)">
+                                <a href="00_overview.html#var-パッケージレベル設定変数-cobra-go" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">var パッケージレベル設定変数 (cobra.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const エクスポート済みアノテーション・補完定数">
+                                <a href="00_overview.html#エクスポート済みアノテーション-補完定数" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">エクスポート済みアノテーション・補完定数</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnInitialize()">
+                                <a href="00_overview.html#cobra-oninitialize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnInitialize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.OnFinalize()">
+                                <a href="00_overview.html#cobra-onfinalize" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.OnFinalize()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs">
+                                <a href="00_overview.html#cobra-addtemplatefunc-cobra-addtemplatefuncs" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.AddTemplateFunc &amp; cobra.AddTemplateFuncs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.CheckErr &amp; cobra.WriteStringAndCheck">
+                                <a href="00_overview.html#cobra-checkerr-cobra-writestringandcheck" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.CheckErr &amp; cobra.WriteStringAndCheck</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func cobra.Gt &amp; cobra.Eq">
+                                <a href="00_overview.html#cobra-gt-cobra-eq" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Gt &amp; cobra.Eq</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="Command 構造体・ツリートポロジ・コマンドグループ" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="01_command_struct.html" class="catalog-nav-cat-link is-prose-cat">Command 構造体・ツリートポロジ・コマンドグループ</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Command">
+                                <a href="01_command_struct.html#cobra-command" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Command</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct cobra.Group &amp; type cobra.FParseErrWhitelist">
+                                <a href="01_command_struct.html#cobra-group-type-cobra-fparseerrwhitelist" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.Group &amp; type cobra.FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method ツリー構築・走査メソッド">
+                                <a href="01_command_struct.html#ツリー構築-走査メソッド" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ツリー構築・走査メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method ツリー状態・利用可否判定メソッド">
+                                <a href="01_command_struct.html#ツリー状態-利用可否判定メソッド" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ツリー状態・利用可否判定メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method コマンド名・パス・エイリアス・パディング取得メソッド">
+                                <a href="01_command_struct.html#コマンド名-パス-エイリアス-パディング取得メソッド" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">コマンド名・パス・エイリアス・パディング取得メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method コマンドグループ管理メソッド">
+                                <a href="01_command_struct.html#コマンドグループ管理メソッド" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">コマンドグループ管理メソッド</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="コマンド実行・解決アルゴリズム・I/O ストリーム" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="02_lifecycle_and_execution.html" class="catalog-nav-cat-link is-prose-cat">コマンド実行・解決アルゴリズム・I/O ストリーム</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method 実行エントリポイントと context.Context">
+                                <a href="02_lifecycle_and_execution.html#実行エントリポイントと-context-context" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">実行エントリポイントと context.Context</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method コマンド解決と -- 境界()">
+                                <a href="02_lifecycle_and_execution.html#コマンド解決と-境界" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">コマンド解決と -- 境界()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func グローバルライフサイクルコールバックとフック継承制御">
+                                <a href="02_lifecycle_and_execution.html#グローバルライフサイクルコールバックとフック継承制御" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">グローバルライフサイクルコールバックとフック継承制御</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method I/O ストリーム・引数注入・エラー接頭辞メソッド">
+                                <a href="02_lifecycle_and_execution.html#i-o-ストリーム-引数注入-エラー接頭辞メソッド" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">I/O ストリーム・引数注入・エラー接頭辞メソッド</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="pflag.FlagSet アクセサ・アノテーション・フラググループ" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="03_flags_and_flag_groups.html" class="catalog-nav-cat-link">pflag.FlagSet アクセサ・アノテーション・フラググループ</a>
+                            
+                            <span class="catalog-nav-count">4</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method pflag.FlagSet アクセサ・フラグ解析メソッド">
+                                <a href="03_flags_and_flag_groups.html#pflag-flagset-アクセサ-フラグ解析メソッド" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">pflag.FlagSet アクセサ・フラグ解析メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method FlagSet の有無・可視性判定メソッド">
+                                <a href="03_flags_and_flag_groups.html#flagset-の有無-可視性判定メソッド" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">FlagSet の有無・可視性判定メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method 相関フラググループ API()">
+                                <a href="03_flags_and_flag_groups.html#相関フラググループ-api" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">相関フラググループ API()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func 単一フラグ必須化とファイル・ディレクトリ補完アノテーション()">
+                                <a href="03_flags_and_flag_groups.html#単一フラグ必須化とファイル-ディレクトリ補完アノテーション" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">単一フラグ必須化とファイル・ディレクトリ補完アノテーション()</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="PositionalArgs 型と組み込み位置引数バリデータ" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="04_positional_args.html" class="catalog-nav-cat-link is-prose-cat">PositionalArgs 型と組み込み位置引数バリデータ</a>
+                            
+                            <span class="catalog-nav-count">3</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type cobra.PositionalArgs &amp; method (*Command).ValidateArgs">
+                                <a href="04_positional_args.html#cobra-positionalargs-method" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">cobra.PositionalArgs &amp; method (*Command).ValidateArgs</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func 位置引数バリデータ・コンビネータ全一覧()">
+                                <a href="04_positional_args.html#位置引数バリデータ-コンビネータ全一覧" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">位置引数バリデータ・コンビネータ全一覧()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func 詳細仕様と実装上の注意点">
+                                <a href="04_positional_args.html#詳細仕様と実装上の注意点" class="catalog-nav-sublink is-prose-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">詳細仕様と実装上の注意点</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group is-current-page" data-cat="05. 動的シェル補完・ディレクティブ・ActiveHelp" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="05_completions_and_directives.html" class="catalog-nav-cat-link">05. 動的シェル補完・ディレクティブ・ActiveHelp</a>
+                            
+                            <span class="catalog-nav-count">9</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="type Completion &amp; CompletionFunc">
+                                <a href="#completion-completionfunc" class="catalog-nav-sublink" data-target="completion-completionfunc">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Completion &amp; CompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompletionWithDesc, NoFileCompletions &amp; FixedCompletions">
+                                <a href="#completionwithdesc-nofilecompletions-fixedcompletions" class="catalog-nav-sublink" data-target="completionwithdesc-nofilecompletions-fixedcompletions">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionWithDesc, NoFileCompletions &amp; FixedCompletions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="type ShellCompDirective &amp; ビットマスク定数">
+                                <a href="#shellcompdirective-ビットマスク定数" class="catalog-nav-sublink" data-target="shellcompdirective-ビットマスク定数">
+                                    
+                                    <span class="catalog-badge catalog-badge-type">type</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompDirective &amp; ビットマスク定数</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct CompletionOptions">
+                                <a href="#completionoptions" class="catalog-nav-sublink" data-target="completionoptions">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompletionOptions</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc">
+                                <a href="#command-registerflagcompletionfunc-getflagcompletionfunc" class="catalog-nav-sublink" data-target="command-registerflagcompletionfunc-getflagcompletionfunc">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="const ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd">
+                                <a href="#shellcomprequestcmd-shellcompnodescrequestcmd" class="catalog-nav-sublink" data-target="shellcomprequestcmd-shellcompnodescrequestcmd">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">const</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func CompDebug, CompDebugln, CompError &amp; CompErrorln">
+                                <a href="#compdebug-compdebugln-comperror-comperrorln" class="catalog-nav-sublink" data-target="compdebug-compdebugln-comperror-comperrorln">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">CompDebug, CompDebugln, CompError &amp; CompErrorln</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func AppendActiveHelp &amp; GetActiveHelpConfig">
+                                <a href="#appendactivehelp-getactivehelpconfig" class="catalog-nav-sublink" data-target="appendactivehelp-getactivehelpconfig">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">AppendActiveHelp &amp; GetActiveHelpConfig</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="関連リファレンス">
+                                <a href="#関連リファレンス" class="catalog-nav-sublink" data-target="関連リファレンス">
+                                    
+                                    <span class="catalog-nav-sym-text">関連リファレンス</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="06. シェル補完スクリプト生成関数" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="06_shell_script_generators.html" class="catalog-nav-cat-link">06. シェル補完スクリプト生成関数</a>
+                            
+                            <span class="catalog-nav-count">7</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID">
+                                <a href="06_shell_script_generators.html#command-initdefaultcompletioncmd-setcompletioncommandgroupid" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.InitDefaultCompletionCmd &amp; SetCompletionCommandGroupID</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Bash 補完ジェネレータ（V2 &amp; レガシー V1）">
+                                <a href="06_shell_script_generators.html#bash-補完ジェネレータ-v2-レガシー-v1" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Bash 補完ジェネレータ（V2 &amp; レガシー V1）</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Zsh 補完ジェネレータ">
+                                <a href="06_shell_script_generators.html#zsh-補完ジェネレータ" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Zsh 補完ジェネレータ</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Fish 補完ジェネレータ">
+                                <a href="06_shell_script_generators.html#fish-補完ジェネレータ" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Fish 補完ジェネレータ</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method PowerShell 補完ジェネレータ">
+                                <a href="06_shell_script_generators.html#powershell-補完ジェネレータ" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">PowerShell 補完ジェネレータ</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func 宣言的フラグ補完ヘルパー（shell_completions.go）">
+                                <a href="06_shell_script_generators.html#宣言的フラグ補完ヘルパー-shell-completions-go" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">宣言的フラグ補完ヘルパー（shell_completions.go）</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="関連リファレンス">
+                                <a href="06_shell_script_generators.html#関連リファレンス" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">関連リファレンス</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="07. ヘルプ・Usage・テンプレート・グローバル設定" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="07_help_usage_and_templates.html" class="catalog-nav-cat-link">07. ヘルプ・Usage・テンプレート・グローバル設定</a>
+                            
+                            <span class="catalog-nav-count">6</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="method ヘルプ制御メソッド（Help, HelpFunc, SetHelp, InitDefaultHelp）">
+                                <a href="07_help_usage_and_templates.html#ヘルプ制御メソッド-help-helpfunc-sethelp-initdefaulthelp" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">ヘルプ制御メソッド（Help, HelpFunc, SetHelp, InitDefaultHelp）</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method Usage・Version・パディング計算メソッド">
+                                <a href="07_help_usage_and_templates.html#usage-version-パディング計算メソッド" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Usage・Version・パディング計算メソッド</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func テンプレート関数登録（AddTemplateFunc, AddTemplateFuncs, Gt, Eq）">
+                                <a href="07_help_usage_and_templates.html#テンプレート関数登録-addtemplatefunc-addtemplatefuncs-gt-eq" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">テンプレート関数登録（AddTemplateFunc, AddTemplateFuncs, Gt, Eq）</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="method タイポサジェスト・フラグエラー処理・FParseErrWhitelist">
+                                <a href="07_help_usage_and_templates.html#タイポサジェスト-フラグエラー処理-fparseerrwhitelist" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-method">method</span>
+                                    
+                                    <span class="catalog-nav-sym-text">タイポサジェスト・フラグエラー処理・FParseErrWhitelist</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config パッケージレベル設定変数（cobra.go）">
+                                <a href="07_help_usage_and_templates.html#パッケージレベル設定変数-cobra-go" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">パッケージレベル設定変数（cobra.go）</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="関連リファレンス">
+                                <a href="07_help_usage_and_templates.html#関連リファレンス" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">関連リファレンス</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    <details class="catalog-nav-group" data-cat="08. ドキュメント自動生成 (cobra/doc)" open>
+                        <summary class="catalog-nav-summary">
+                            <svg class="catalog-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <a href="08_doc_generation.html" class="catalog-nav-cat-link">08. ドキュメント自動生成 (cobra/doc)</a>
+                            
+                            <span class="catalog-nav-count">15</span>
+                            
+                        </summary>
+                        
+                        <ul class="catalog-nav-sublist">
+                            
+                            <li class="catalog-nav-subitem" data-sym="フォーマット別ジェネレータ比較マトリクス">
+                                <a href="08_doc_generation.html#フォーマット別ジェネレータ比較マトリクス" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">フォーマット別ジェネレータ比較マトリクス</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdown()">
+                                <a href="08_doc_generation.html#genmarkdown" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdown()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownCustom()">
+                                <a href="08_doc_generation.html#genmarkdowncustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTree()">
+                                <a href="08_doc_generation.html#genmarkdowntree" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTree()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMarkdownTreeCustom()">
+                                <a href="08_doc_generation.html#genmarkdowntreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMarkdownTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManHeader (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmanheader" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManHeader (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="struct GenManTreeOptions (doc/man_docs.go)">
+                                <a href="08_doc_generation.html#genmantreeoptions" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-class">struct</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTreeOptions (doc/man_docs.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenMan()">
+                                <a href="08_doc_generation.html#genman" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenMan()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenManTree &amp; func GenManTreeFromOpts()">
+                                <a href="08_doc_generation.html#genmantree-func-genmantreefromopts" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenManTree &amp; func GenManTreeFromOpts()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReST &amp; func GenReSTCustom()">
+                                <a href="08_doc_generation.html#genrest-func-genrestcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReST &amp; func GenReSTCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenReSTTree &amp; func GenReSTTreeCustom()">
+                                <a href="08_doc_generation.html#genresttree-func-genresttreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenReSTTree &amp; func GenReSTTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYaml &amp; func GenYamlCustom()">
+                                <a href="08_doc_generation.html#genyaml-func-genyamlcustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYaml &amp; func GenYamlCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="func GenYamlTree &amp; func GenYamlTreeCustom()">
+                                <a href="08_doc_generation.html#genyamltree-func-genyamltreecustom" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-def">func</span>
+                                    
+                                    <span class="catalog-nav-sym-text">GenYamlTree &amp; func GenYamlTreeCustom()</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="config Command.DisableAutoGenTag (command.go)">
+                                <a href="08_doc_generation.html#command-disableautogentag" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-badge catalog-badge-const">config</span>
+                                    
+                                    <span class="catalog-nav-sym-text">Command.DisableAutoGenTag (command.go)</span>
+                                </a>
+                            </li>
+                            
+                            <li class="catalog-nav-subitem" data-sym="関連リファレンス">
+                                <a href="08_doc_generation.html#関連リファレンス" class="catalog-nav-sublink">
+                                    
+                                    <span class="catalog-nav-sym-text">関連リファレンス</span>
+                                </a>
+                            </li>
+                            
+                        </ul>
+                        
+                    </details>
+                    
+                    
+                    <div id="catalog-nav-empty" class="catalog-nav-empty" hidden>一致する項目が見つかりません。</div>
+                </nav>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <div class="content-wrapper">
+            <div class="top-bar">
+                <div class="breadcrumbs">
+                    <a href="index.html" class="crumb">API リファレンス</a>
+                    <span class="crumb-separator">/</span>
+                    <span class="crumb active">05. 動的シェル補完・ディレクティブ・ActiveHelp</span>
+                </div>
+                
+                <div class="top-bar-right">
+                    
+                    
+                    <div class="lang-switcher" aria-label="Language switcher">
+                        <details class="lang-dropdown">
+                            <summary class="lang-dropdown-btn" aria-haspopup="listbox">
+                                <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                <span class="lang-current-label">日本語</span>
+                                <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </summary>
+                            <div class="lang-dropdown-menu" role="listbox">
+                                
+                                
+                                <a href="../en/05_completions_and_directives.html" class="lang-option" role="option" hreflang="">
+                                    <span>English</span>
+                                </a>
+                                
+                                
+                                
+                                <span class="lang-option active" role="option" aria-selected="true">
+                                    <span>日本語</span>
+                                    <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </span>
+                                
+                                
+                            </div>
+                        </details>
+                    </div>
+                    
+                </div>
+                
+            </div>
+
+            <main class="main-content catalog-main-content">
+                <h1 class="catalog-page-title is-module">05. 動的シェル補完・ディレクティブ・ActiveHelp</h1>
+<p><code>github.com/spf13/cobra</code> の動的補完エンジン（<code>completions.go</code> および <code>active_help.go</code>）は、CLI アプリケーションがコンテキストに応じたタブ補完候補とインラインの操作ヒント（<code>ActiveHelp</code>）をすべて Go コードだけで動的に計算できるようにする仕組みです。Shell Completion V2 では、静的なフラグ一覧やサブコマンド表をシェルスクリプト側にハードコードするのではなく、実行時に隠し内部コマンド（<code>__complete</code> および <code>__completeNoDesc</code>）へ補完評価を委譲し、<code>ShellCompDirective</code> ビットマスクを通じて補完後のシェルの振る舞いをきめ細かく制御します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/05_completions_and_directives/api_completions_protocol_ja.png" alt="05_completions_and_directives_1" />
+  <figcaption class="drawlib-caption">Cobra Shell Completion V2 ワイヤプロトコルと補完評価パイプライン</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">58</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="c1"># 1. Left Panel: Shell Hook</span>
+<span class="n">p1</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. シェルフック"</span><span class="p">,</span>
+    <span class="s2">"TAB"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p1</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">ix1</span><span class="p">,</span> <span class="n">iw1</span><span class="p">,</span> <span class="n">ih1</span> <span class="o">=</span> <span class="n">p1</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl1</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ユーザーが &lt;TAB&gt; 押下"</span><span class="p">,</span> <span class="s2">"入力語群とカーソル位置を取得"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"1"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"隠しコマンドを起動"</span><span class="p">,</span> <span class="s2">"prog __complete [args] ''"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"2"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ディレクティブ適用"</span><span class="p">,</span> <span class="s2">":&lt;int&gt; を解析し候補を描画"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"3"</span><span class="p">)</span>
+<span class="n">cl1</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih1</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">45.5</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="p">(</span><span class="mf">51.5</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># 2. Middle Panel: Go Runtime Engine</span>
+<span class="n">p2</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. Go 補完エンジン"</span><span class="p">,</span>
+    <span class="s2">"Cobra"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">cpu</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p2</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">ix2</span><span class="p">,</span> <span class="n">iw2</span><span class="p">,</span> <span class="n">ih2</span> <span class="o">=</span> <span class="n">p2</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">52</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl2</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"Find / Traverse 解決"</span><span class="p">,</span> <span class="s2">"対象 *Command とフラグを特定"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"フラググループ制約"</span><span class="p">,</span> <span class="s2">"必須・排他フラグの事前反映"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"CompletionFunc 実行"</span><span class="p">,</span> <span class="s2">"フラグ補完 / ValidArgsFunction"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"C"</span><span class="p">)</span>
+<span class="n">cl2</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix2</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw2</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih2</span><span class="p">)</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mf">96.5</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="p">(</span><span class="mf">102.5</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># 3. Right Panel: Wire Stream Output</span>
+<span class="n">p3</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"3. ワイヤ出力"</span><span class="p">,</span>
+    <span class="s2">"stdio"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">arrows_left_right</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">p3</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">103</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">ix3</span><span class="p">,</span> <span class="n">iw3</span><span class="p">,</span> <span class="n">ih3</span> <span class="o">=</span> <span class="n">p3</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">103</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cl3</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"補完候補ストリーム"</span><span class="p">,</span> <span class="s2">"choice</span><span class="se">\\</span><span class="s2">tdescription (stdout)"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"OUT"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ActiveHelp 行"</span><span class="p">,</span> <span class="s2">"_activeHelp_ ヒント (stdout)"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"HLP"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ディレクティブ末尾"</span><span class="p">,</span> <span class="s2">":4 (stdout) / 診断 (stderr)"</span><span class="p">,</span> <span class="n">badge_text</span><span class="o">=</span><span class="s2">"DIR"</span><span class="p">)</span>
+<span class="n">cl3</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">ix3</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">iw3</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">ih3</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2 id="completion-completionfunc" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-type">type</span><code class="catalog-sig"><span class="catalog-sig-name">Completion &amp; CompletionFunc</span></code><a class="header-anchor" href="#completion-completionfunc" aria-label="Permalink to Completion &amp; CompletionFunc">#</a></h2>
+<p><code>completions.go</code> で定義されている <code>Completion</code> と <code>CompletionFunc</code> は、Cobra v1.10.2 における静的補完（<code>Command.ValidArgs</code>）および動的補完（<code>Command.ValidArgsFunction</code>、<code>Command.RegisterFlagCompletionFunc</code>）の基盤となる型エイリアスです。</p>
+<h3 id="go-シグネチャ">Go シグネチャ<a class="header-anchor" href="#go-シグネチャ" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// Completion is a string that can be used for completions.</span>
+<span class="c1">// Two formats are supported:</span>
+<span class="c1">//   - the completion choice</span>
+<span class="c1">//   - the completion choice with a textual description (separated by a TAB).</span>
+<span class="c1">// Note: Go type alias is used to provide a more descriptive name in the documentation,</span>
+<span class="c1">// but any string can be used.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Completion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">string</span>
+
+<span class="c1">// CompletionFunc is a function that provides completion results.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">CompletionFunc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="p">)</span>
+</code></pre>
+<h3 id="パラメータと戻り値の仕様">パラメータと戻り値の仕様<a class="header-anchor" href="#パラメータと戻り値の仕様" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">パラメータ / 戻り値</th>
+<th style="text-align:left">型</th>
+<th style="text-align:left">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>cmd</code></td>
+<td style="text-align:left"><code>*Command</code></td>
+<td style="text-align:left">補完リクエストの対象として解決されたコマンド。パース済みのフラグ状態や <code>cmd.Context()</code> を保持します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>args</code></td>
+<td style="text-align:left"><code>[]string</code></td>
+<td style="text-align:left">コマンドライン上で既に入力完了している位置引数のスライス（<code>DisableFlagParsing</code> が <code>false</code> の場合はフラグ類を除き、入力途中の <code>toComplete</code> も除いたもの）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>toComplete</code></td>
+<td style="text-align:left"><code>string</code></td>
+<td style="text-align:left">カーソル位置で現在入力途中のプレフィックス文字列（末尾がスペースの直後の場合は <code>&quot;&quot;</code>）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>[]Completion</code></td>
+<td style="text-align:left"><code>[]string</code></td>
+<td style="text-align:left">補完候補文字列（<code>&quot;値&quot;</code> または <code>&quot;値\t説明&quot;</code>）のスライス。必要に応じて <code>_activeHelp_ </code> プレフィックス付きの行を含めることができます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>ShellCompDirective</code></td>
+<td style="text-align:left"><code>int</code>（ビットマスク）</td>
+<td style="text-align:left">呼び出し元のシェルスクリプトに後処理の挙動を指示するビットマスク（例：<code>ShellCompDirectiveNoFileComp</code>）。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!NOTE]
+<code>type Completion = string</code> および <code>type CompletionFunc = func(...)</code> は <strong>Go の型エイリアス（<code>=</code>）</strong> として宣言されているため、従来の <code>[]string</code> や <code>func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)</code> を直接渡す既存コードとも型変換なしで 100% 互換性を保ちます。</p>
+</blockquote>
+<hr />
+<h2 id="completionwithdesc-nofilecompletions-fixedcompletions" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">CompletionWithDesc, NoFileCompletions &amp; FixedCompletions</span></code><a class="header-anchor" href="#completionwithdesc-nofilecompletions-fixedcompletions" aria-label="Permalink to CompletionWithDesc, NoFileCompletions &amp; FixedCompletions">#</a></h2>
+<p>Cobra は <code>completions.go</code> において、説明付き補完候補の組み立てや定型的な <code>CompletionFunc</code> コールバックを簡潔に記述するための 3 つのヘルパー関数を提供しています。</p>
+<h3 id="go-シグネチャ-2">Go シグネチャ<a class="header-anchor" href="#go-シグネチャ-2" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// CompletionWithDesc returns a Completion with a description by using the TAB delimited format.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="nx">choice</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">description</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="nx">Completion</span>
+
+<span class="c1">// NoFileCompletions can be used to disable file completion for commands that should</span>
+<span class="c1">// not trigger file completions. This method satisfies CompletionFunc.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NoFileCompletions</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="p">)</span>
+
+<span class="c1">// FixedCompletions can be used to create a completion function which always</span>
+<span class="c1">// returns the same results. This method returns a function that satisfies CompletionFunc.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">FixedCompletions</span><span class="p">(</span><span class="nx">choices</span><span class="w"> </span><span class="p">[]</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">directive</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="p">)</span><span class="w"> </span><span class="nx">CompletionFunc</span>
+</code></pre>
+<h3 id="ヘルパー関数一覧と役割">ヘルパー関数一覧と役割<a class="header-anchor" href="#ヘルパー関数一覧と役割" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">関数名</th>
+<th style="text-align:left">シグネチャ / 役割</th>
+<th style="text-align:left">戻り値</th>
+<th style="text-align:left">主なユースケース</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>CompletionWithDesc</code></td>
+<td style="text-align:left"><code>(choice, description string) Completion</code></td>
+<td style="text-align:left"><code>choice + &quot;\t&quot; + description</code></td>
+<td style="text-align:left"><code>ValidArgs</code>、<code>FixedCompletions</code>、または独自の <code>CompletionFunc</code> 内で説明付き候補を生成します。複数行の説明文は出力時に最初の <code>\n</code> で切り詰められます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>NoFileCompletions</code></td>
+<td style="text-align:left"><code>CompletionFunc</code></td>
+<td style="text-align:left"><code>nil, ShellCompDirectiveNoFileComp</code></td>
+<td style="text-align:left">ファイル引数を一切受け取らないコマンド（<code>completion</code> や <code>version</code> など）で <code>cmd.ValidArgsFunction = cobra.NoFileCompletions</code> として直接代入します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>FixedCompletions</code></td>
+<td style="text-align:left"><code>(choices []Completion, directive ShellCompDirective) CompletionFunc</code></td>
+<td style="text-align:left"><code>(choices, directive)</code> を返すクロージャ</td>
+<td style="text-align:left">フラグの固定選択肢（<code>cmd.RegisterFlagCompletionFunc(&quot;output&quot;, cobra.FixedCompletions(...))</code>）や固定の位置引数候補を登録します。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="使用例">使用例<a class="header-anchor" href="#使用例" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"strings"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">newDeployCmd</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">env</span><span class="w"> </span><span class="kt">string</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"deploy [service]"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"指定したサービスをターゲット環境へデプロイします"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">ValidArgsFunction</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirective</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">NoFileCompletions</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="nx">candidates</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">{</span>
+<span class="w">				</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"api-gateway"</span><span class="p">,</span><span class="w"> </span><span class="s">"公開 HTTP/gRPC イングレスプロキシ"</span><span class="p">),</span>
+<span class="w">				</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"auth-worker"</span><span class="p">,</span><span class="w"> </span><span class="s">"OAuth2 &amp; OIDC トークン発行ワーカー"</span><span class="p">),</span>
+<span class="w">				</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"billing-svc"</span><span class="p">,</span><span class="w"> </span><span class="s">"決済・台帳照合マイクロサービス"</span><span class="p">),</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="kd">var</span><span class="w"> </span><span class="nx">filtered</span><span class="w"> </span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span>
+<span class="w">			</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">candidates</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">if</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">					</span><span class="nx">filtered</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">filtered</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span>
+<span class="w">				</span><span class="p">}</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">filtered</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">StringVarP</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">env</span><span class="p">,</span><span class="w"> </span><span class="s">"env"</span><span class="p">,</span><span class="w"> </span><span class="s">"e"</span><span class="p">,</span><span class="w"> </span><span class="s">"staging"</span><span class="p">,</span><span class="w"> </span><span class="s">"デプロイ先の環境名"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">RegisterFlagCompletionFunc</span><span class="p">(</span><span class="s">"env"</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">FixedCompletions</span><span class="p">([]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"dev"</span><span class="p">,</span><span class="w"> </span><span class="s">"開発用エフェメラルクラスタ"</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"staging"</span><span class="p">,</span><span class="w"> </span><span class="s">"ステージング検証クラスタ"</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"prod"</span><span class="p">,</span><span class="w"> </span><span class="s">"本番マルチリージョンクラスタ"</span><span class="p">),</span>
+<span class="w">	</span><span class="p">},</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span><span class="o">|</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveKeepOrder</span><span class="p">))</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2 id="shellcompdirective-ビットマスク定数" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-type">type</span><code class="catalog-sig"><span class="catalog-sig-name">ShellCompDirective &amp; ビットマスク定数</span></code><a class="header-anchor" href="#shellcompdirective-ビットマスク定数" aria-label="Permalink to ShellCompDirective &amp; ビットマスク定数">#</a></h2>
+<p><code>ShellCompDirective</code>（<code>completions.go</code>）は、<code>__complete</code> の標準出力の最終行（<code>:&lt;directive&gt;\n</code>）に出力される整数ビットマスクであり、返却された補完候補をシェル側でどのように後処理するかを指示します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../images/05_completions_and_directives/api_shell_comp_directives_ja.png" alt="05_completions_and_directives_2" />
+  <figcaption class="drawlib-caption">ShellCompDirective ビットマスク定数と各シェル対応マトリクス</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mi">58</span><span class="p">),</span>
+    <span class="s2">"ShellCompDirective ビットマスク一覧 (completions.go)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"定数名"</span><span class="p">,</span> <span class="s2">"ビット / 値"</span><span class="p">,</span> <span class="s2">"シェル側の後処理の挙動"</span><span class="p">,</span> <span class="s2">"Bash V2"</span><span class="p">,</span> <span class="s2">"Zsh"</span><span class="p">,</span> <span class="s2">"Fish"</span><span class="p">,</span> <span class="s2">"PowerShell"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveDefault"</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">,</span> <span class="s2">"標準挙動（候補が空ならファイル補完）"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveError"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 0 (1)"</span><span class="p">,</span> <span class="s2">"エラー発生として補完候補を破棄"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveNoSpace"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 1 (2)"</span><span class="p">,</span> <span class="s2">"単一候補確定時に末尾スペースを付与しない"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveNoFileComp"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 2 (4)"</span><span class="p">,</span> <span class="s2">"候補が空でもファイル補完を抑止"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveFilterFileExt"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 3 (8)"</span><span class="p">,</span> <span class="s2">"返却文字列を拡張子フィルタに利用"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"通常補完*"</span><span class="p">,</span> <span class="s2">"無効*"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveFilterDirs"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 4 (16)"</span><span class="p">,</span> <span class="s2">"ディレクトリ名のみを補完（subdir[0] 指定可）"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"通常補完*"</span><span class="p">,</span> <span class="s2">"無効*"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ShellCompDirectiveKeepOrder"</span><span class="p">,</span> <span class="s2">"1 &lt;&lt; 5 (32)"</span><span class="p">,</span> <span class="s2">"Go スライスの順序を保持（辞書順ソート抑止）"</span><span class="p">,</span> <span class="s2">"4.4+"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">,</span> <span class="s2">"対応"</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_evenodd</span><span class="p">(</span>
+    <span class="n">even_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">even_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">odd_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">odd_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_header</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Primary</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">rows</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">54</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mi">39</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">13</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3 id="go-定義">Go 定義<a class="header-anchor" href="#go-定義" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// ShellCompDirective is a bit map representing the different behaviors the shell</span>
+<span class="c1">// can be instructed to have once completions have been provided.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="w"> </span><span class="kt">int</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="c1">// ShellCompDirectiveError indicates an error occurred and completions should be ignored.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveError</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="kc">iota</span><span class="w"> </span><span class="c1">// 1</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveNoSpace indicates that the shell should not add a space</span>
+<span class="w">	</span><span class="c1">// after the completion even if there is a single completion provided.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveNoSpace</span><span class="w"> </span><span class="c1">// 2</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveNoFileComp indicates that the shell should not provide</span>
+<span class="w">	</span><span class="c1">// file completion even when no completion is provided.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveNoFileComp</span><span class="w"> </span><span class="c1">// 4</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveFilterFileExt indicates that the provided completions</span>
+<span class="w">	</span><span class="c1">// should be used as file extension filters.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveFilterFileExt</span><span class="w"> </span><span class="c1">// 8</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveFilterDirs indicates that only directory names should</span>
+<span class="w">	</span><span class="c1">// be provided in file completion.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveFilterDirs</span><span class="w"> </span><span class="c1">// 16</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveKeepOrder indicates that the shell should preserve the order</span>
+<span class="w">	</span><span class="c1">// in which the completions are provided.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveKeepOrder</span><span class="w"> </span><span class="c1">// 32</span>
+
+<span class="w">	</span><span class="c1">// ShellCompDirectiveDefault indicates to let the shell perform its default</span>
+<span class="w">	</span><span class="c1">// behavior after completions have been provided.</span>
+<span class="w">	</span><span class="nx">ShellCompDirectiveDefault</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="p">)</span>
+</code></pre>
+<h3 id="各ディレクティブの詳細セマンティクス">各ディレクティブの詳細セマンティクス<a class="header-anchor" href="#各ディレクティブの詳細セマンティクス" aria-label="Permalink">#</a></h3>
+<ul>
+<li><strong><code>ShellCompDirectiveDefault</code> (<code>0</code>)</strong>: シェルに標準の補完後処理を行わせます。候補が 0 件だった場合、シェルはローカルファイル名の補完にフォールバックします。コマンド階層ごとの既定値は <code>Command.CompletionOptions.DefaultShellCompDirective</code> で変更可能です。</li>
+<li><strong><code>ShellCompDirectiveError</code> (<code>1</code>)</strong>: 補完計算中にエラーが発生したことを示し、返却されたすべての候補を無視して補完を中断します。</li>
+<li><strong><code>ShellCompDirectiveNoSpace</code> (<code>2</code>)</strong>: 候補が 1 件に絞られて自動挿入された際、末尾に空白スペースを自動追加しないようシェルに指示します（<code>namespace/</code> や <code>key=</code> など、続けて文字を入力させるプレフィックス補完で有用です）。</li>
+<li><strong><code>ShellCompDirectiveNoFileComp</code> (<code>4</code>)</strong>: 一致する候補が 0 件であっても、ローカルファイルシステム上のファイル・ディレクトリ補完へのフォールバックを禁止します。</li>
+<li><strong><code>ShellCompDirectiveFilterFileExt</code> (<code>8</code>)</strong>: 返却された <code>[]Completion</code> の各要素をファイル拡張子フィルタ（先頭のドットなし、例：<code>[]string{&quot;yaml&quot;, &quot;yml&quot;, &quot;json&quot;}</code>）として扱います。Bash（<code>_filedir</code>）および Zsh（<code>_files -g</code>）でネイティブ動作し、Fish では通常のファイル補完へフォールバック、PowerShell では拡張子文字列自体の誤補完を防ぐため何も返さず終了します。</li>
+<li><strong><code>ShellCompDirectiveFilterDirs</code> (<code>16</code>)</strong>: ディレクトリ名のみを補完対象に制限します（Bash の <code>_filedir -d</code>、Zsh の <code>_files -/</code>）。<code>[]Completion{&quot;subdir&quot;}</code> のように要素を 1 つ返した場合、その <code>subdir</code> 配下のサブディレクトリ一覧を補完します。</li>
+<li><strong><code>ShellCompDirectiveKeepOrder</code> (<code>32</code>)</strong>: シェルによるアルファベット順ソートを抑止し、Go のスライス順をそのまま維持します（Bash 4.4 以降の <code>compopt -o nosort</code>、Zsh の <code>_describe -V</code>、Fish の <code>complete -k</code>、PowerShell の <code>Sort-Object</code> スキップに対応）。</li>
+</ul>
+<hr />
+<h2 id="completionoptions" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-class">struct</span><code class="catalog-sig"><span class="catalog-sig-name">CompletionOptions</span></code><a class="header-anchor" href="#completionoptions" aria-label="Permalink to CompletionOptions">#</a></h2>
+<p><code>Command.CompletionOptions</code> フィールドに埋め込まれる <code>CompletionOptions</code>（<code>completions.go</code>）は、デフォルトの <code>completion</code> サブコマンド生成や補完説明文の有無、デフォルトディレクティブを制御します。</p>
+<h3 id="go-定義-2">Go 定義<a class="header-anchor" href="#go-定義-2" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// CompletionOptions are the options to control shell completion</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">CompletionOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// DisableDefaultCmd prevents Cobra from creating a default 'completion' command</span>
+<span class="w">	</span><span class="nx">DisableDefaultCmd</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">	</span><span class="c1">// DisableNoDescFlag prevents Cobra from creating the '--no-descriptions' flag</span>
+<span class="w">	</span><span class="c1">// for shells that support completion descriptions</span>
+<span class="w">	</span><span class="nx">DisableNoDescFlag</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">	</span><span class="c1">// DisableDescriptions turns off all completion descriptions for shells</span>
+<span class="w">	</span><span class="c1">// that support them</span>
+<span class="w">	</span><span class="nx">DisableDescriptions</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">	</span><span class="c1">// HiddenDefaultCmd makes the default 'completion' command hidden</span>
+<span class="w">	</span><span class="nx">HiddenDefaultCmd</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">	</span><span class="c1">// DefaultShellCompDirective sets the ShellCompDirective that is returned</span>
+<span class="w">	</span><span class="c1">// if no special directive can be determined</span>
+<span class="w">	</span><span class="nx">DefaultShellCompDirective</span><span class="w"> </span><span class="o">*</span><span class="nx">ShellCompDirective</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">receiver</span><span class="w"> </span><span class="o">*</span><span class="nx">CompletionOptions</span><span class="p">)</span><span class="w"> </span><span class="nx">SetDefaultShellCompDirective</span><span class="p">(</span><span class="nx">directive</span><span class="w"> </span><span class="nx">ShellCompDirective</span><span class="p">)</span>
+</code></pre>
+<h3 id="フィールドおよびメソッド仕様">フィールドおよびメソッド仕様<a class="header-anchor" href="#フィールドおよびメソッド仕様" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">フィールド / メソッド</th>
+<th style="text-align:left">型</th>
+<th style="text-align:left">説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>DisableDefaultCmd</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">ルートコマンドで <code>true</code> に設定すると、<code>InitDefaultCompletionCmd</code> は何も行わず、組み込みの <code>completion</code> サブコマンドを追加しません。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableNoDescFlag</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left"><code>completion bash|zsh|fish|powershell</code> サブコマンドに <code>--no-descriptions</code> フラグを自動追加しないようにします。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DisableDescriptions</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">生成されるスクリプトで補完説明文を既定で無効化し（<code>__completeNoDesc</code> を呼び出すようになり）、<code>--no-descriptions</code> フラグも省略します。実行時に環境変数 <code>&lt;PROGRAM&gt;_COMPLETION_DESCRIPTIONS=false</code> または <code>COBRA_COMPLETION_DESCRIPTIONS=false</code> でも切り替え可能です。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>HiddenDefaultCmd</code></td>
+<td style="text-align:left"><code>bool</code></td>
+<td style="text-align:left">自動生成される <code>completion</code> サブコマンドに <code>Hidden: true</code> を設定し、ヘルプ一覧から隠しつつ実行可能な状態にします。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>DefaultShellCompDirective</code></td>
+<td style="text-align:left"><code>*ShellCompDirective</code></td>
+<td style="text-align:left">特別なディレクティブが決定されなかった場合に <code>ShellCompDirectiveDefault</code> (<code>0</code>) の代わりに使用するフォールバックディレクティブへのポインタ。</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>SetDefaultShellCompDirective(directive)</code></td>
+<td style="text-align:left"><code>method</code></td>
+<td style="text-align:left"><code>ShellCompDirective</code> 値を受け取り、そのポインタ <code>&amp;directive</code> を <code>DefaultShellCompDirective</code> に設定するヘルパーメソッドです。補完実行時、Cobra は対象コマンドから親コマンドへ遡り、最初に見つかった非 <code>nil</code> の <code>DefaultShellCompDirective</code> を適用します。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="command-registerflagcompletionfunc-getflagcompletionfunc" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-method">method</span><code class="catalog-sig"><span class="catalog-sig-name">Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc</span></code><a class="header-anchor" href="#command-registerflagcompletionfunc-getflagcompletionfunc" aria-label="Permalink to Command.RegisterFlagCompletionFunc &amp; GetFlagCompletionFunc">#</a></h2>
+<p>フラグ値の動的補完関数は、パッケージ内部の <code>sync.RWMutex</code>（<code>flagCompletionMutex</code>）で保護されたグローバルマップ <code>map[*pflag.Flag]CompletionFunc</code> に保持されます。</p>
+<h3 id="go-シグネチャ-3">Go シグネチャ<a class="header-anchor" href="#go-シグネチャ-3" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// RegisterFlagCompletionFunc should be called to register a function to provide completion for a flag.</span>
+<span class="c1">// You can use pre-defined completion functions such as FixedCompletions or NoFileCompletions,</span>
+<span class="c1">// or you can define your own.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">RegisterFlagCompletionFunc</span><span class="p">(</span><span class="nx">flagName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="nx">CompletionFunc</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="c1">// GetFlagCompletionFunc returns the completion function for the given flag of the command, if available.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">GetFlagCompletionFunc</span><span class="p">(</span><span class="nx">flagName</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">CompletionFunc</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+
+<span class="c1">// SliceValue is a reduced version of pflag.SliceValue. It is used to detect</span>
+<span class="c1">// flags that accept multiple values and therefore can provide completion multiple times.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">SliceValue</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">GetSlice</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre>
+<h3 id="動作上の重要ポイント">動作上の重要ポイント<a class="header-anchor" href="#動作上の重要ポイント" aria-label="Permalink">#</a></h3>
+<ol>
+<li><strong>フラグ探索スコープ</strong>: <code>RegisterFlagCompletionFunc</code> と <code>GetFlagCompletionFunc</code> はどちらも <code>c.Flag(flagName)</code> を呼び出して対象フラグを検索するため、ローカルフラグだけでなく親コマンドから継承された永続フラグ（<code>PersistentFlags</code>）に対しても登録・取得が可能です。</li>
+<li><strong>エラー条件</strong>: <code>RegisterFlagCompletionFunc</code> は以下の場合にエラーを返します。
+<ul>
+<li>指定した <code>flagName</code> が対象コマンドおよび親階層に存在しない場合（<code>RegisterFlagCompletionFunc: flag '&lt;name&gt;' does not exist</code>）。</li>
+<li>同一の <code>*pflag.Flag</code> に対して既に補完関数が登録されている場合（<code>RegisterFlagCompletionFunc: flag '&lt;name&gt;' already registered</code>）。</li>
+</ul>
+</li>
+<li><strong>複数回指定可能なフラグ（<code>SliceValue</code>）</strong>: フラグ名補完（<code>--&lt;TAB&gt;</code>）の際、Cobra は通常、既にコマンドラインで指定済みのフラグ（<code>flag.Changed == true</code>）を候補から除外します。ただし、<code>flag.Value</code> が <code>cobra.SliceValue</code> を実装している場合、または <code>flag.Value.Type()</code> に <code>&quot;Slice&quot;</code>、<code>&quot;Array&quot;</code> が含まれるか <code>&quot;stringTo&quot;</code> で始まる場合は、複数回指定可能なフラグとみなして何度でも補完候補に提示します。</li>
+<li><strong>フラググループと必須フラグの連携</strong>: フラグ名補完を行う直前に <code>enforceFlagGroupsForCompletion()</code>（<code>flag_groups.go</code>）が呼び出され、相互排他グループ（<code>MarkFlagsMutuallyExclusive</code>）の競合フラグを隠したり、同時必須グループ（<code>MarkFlagsRequiredTogether</code>）の片方が指定された際に残りのフラグを必須化したりする処理が自動で行われます。</li>
+</ol>
+<hr />
+<h2 id="shellcomprequestcmd-shellcompnodescrequestcmd" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-const">const</span><code class="catalog-sig"><span class="catalog-sig-name">ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd</span></code><a class="header-anchor" href="#shellcomprequestcmd-shellcompnodescrequestcmd" aria-label="Permalink to ShellCompRequestCmd &amp; ShellCompNoDescRequestCmd">#</a></h2>
+<p>これら 2 つのエクスポート定数（<code>completions.go</code>）は、ユーザーが <code>&lt;TAB&gt;</code> キーを押した際に各シェルの補完スクリプトから呼び出される隠しサブコマンド名を定義します。</p>
+<h3 id="go-定義-3">Go 定義<a class="header-anchor" href="#go-定義-3" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="c1">// ShellCompRequestCmd is the name of the hidden command that is used to request</span>
+<span class="w">	</span><span class="c1">// completion results from the program. It is used by the shell completion scripts.</span>
+<span class="w">	</span><span class="nx">ShellCompRequestCmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"__complete"</span>
+
+<span class="w">	</span><span class="c1">// ShellCompNoDescRequestCmd is the name of the hidden command that is used to request</span>
+<span class="w">	</span><span class="c1">// completion results without their description. It is used by the shell completion scripts.</span>
+<span class="w">	</span><span class="nx">ShellCompNoDescRequestCmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"__completeNoDesc"</span>
+<span class="p">)</span>
+</code></pre>
+<h3 id="ワイヤプロトコルの実行ライフサイクル-initcompletecmd">ワイヤプロトコルの実行ライフサイクル（<code>initCompleteCmd</code>）<a class="header-anchor" href="#ワイヤプロトコルの実行ライフサイクル-initcompletecmd" aria-label="Permalink">#</a></h3>
+<ul>
+<li><code>ExecuteC()</code> の冒頭で <code>c.initCompleteCmd(args)</code> が呼ばれ、隠しコマンド <code>__complete</code>（エイリアス <code>__completeNoDesc</code>、<code>DisableFlagParsing: true</code>、<code>Args: MinimumNArgs(1)</code>）が一時的にルートへ追加されます。</li>
+<li><code>c.Find(args)</code> の結果、呼び出し先が <code>__complete</code>（または <code>__completeNoDesc</code>）でなければ、即座に <code>c.RemoveCommand(completeCmd)</code> で削除されるため、サブコマンドを持たない単一コマンド CLI の挙動に副作用を与えません。</li>
+<li><code>&lt;prog&gt; __complete &lt;args...&gt; &lt;toComplete&gt;</code> として実行された場合：
+<ol>
+<li>各補完候補が整形され（<code>__completeNoDesc</code> または <code>COBRA_COMPLETION_DESCRIPTIONS=false</code> の場合は <code>\t</code> 以降の説明文を除去、最初の <code>\n</code> 以降を切り詰め、<code>strings.TrimSpace</code> を適用）、<code>finalCmd.OutOrStdout()</code> に 1 行ずつ出力されます。</li>
+<li><code>stdout</code> の最終行に <code>:&lt;directive&gt;\n</code>（例：<code>:4</code>）が出力されます。</li>
+<li><code>finalCmd.ErrOrStderr()</code> には開発者向けの診断メッセージ <code>Completion ended with directive: &lt;names&gt;\n</code> が出力されます（シェルスクリプト実行時は <code>/dev/null</code> に破棄されますが、ターミナルから手動で <code>&lt;prog&gt; __complete ...</code> を叩いた際に確認できます）。</li>
+</ol>
+</li>
+</ul>
+<hr />
+<h2 id="compdebug-compdebugln-comperror-comperrorln" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">CompDebug, CompDebugln, CompError &amp; CompErrorln</span></code><a class="header-anchor" href="#compdebug-compdebugln-comperror-comperrorln" aria-label="Permalink to CompDebug, CompDebugln, CompError &amp; CompErrorln">#</a></h2>
+<p>シェル補完スクリプトはプログラムの標準出力（<code>stdout</code>）をそのまま補完候補リストとしてパースするため、<strong><code>ValidArgsFunction</code> や <code>RegisterFlagCompletionFunc</code> の中で <code>fmt.Println</code> 等を使って <code>stdout</code> にデバッグ出力を行うと補完が壊れます</strong>。Cobra は <code>completions.go</code> において、トレースログを安全に <code>BASH_COMP_DEBUG_FILE</code> や <code>os.Stderr</code> へ出力する 4 つの診断用関数を提供しています。</p>
+<h3 id="go-シグネチャ-4">Go シグネチャ<a class="header-anchor" href="#go-シグネチャ-4" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// CompDebug prints the specified string to the same file as where the</span>
+<span class="c1">// completion script prints its logs.</span>
+<span class="c1">// Note that completion printouts should never be on stdout as they would</span>
+<span class="c1">// be wrongly interpreted as actual completion choices by the completion script.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">CompDebug</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">printToStdErr</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+
+<span class="c1">// CompDebugln prints the specified string with a newline at the end</span>
+<span class="c1">// to the same file as where the completion script prints its logs.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">CompDebugln</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">printToStdErr</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+
+<span class="c1">// CompError prints the specified completion message to stderr.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">CompError</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+
+<span class="c1">// CompErrorln prints the specified completion message to stderr with a newline at the end.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">CompErrorln</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+</code></pre>
+<h3 id="診断ログ出力先マトリクス">診断ログ出力先マトリクス<a class="header-anchor" href="#診断ログ出力先マトリクス" aria-label="Permalink">#</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">関数名</th>
+<th style="text-align:left">付与されるプレフィックス</th>
+<th style="text-align:left"><code>BASH_COMP_DEBUG_FILE</code> への追記</th>
+<th style="text-align:left"><code>os.Stderr</code> への出力</th>
+<th style="text-align:left">末尾 <code>\n</code> 付与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>CompDebug(msg, printToStdErr)</code></td>
+<td style="text-align:left"><code>&quot;[Debug] &quot;</code></td>
+<td style="text-align:left">あり（<code>O_APPEND|O_CREATE|O_WRONLY</code>, <code>0644</code>）</td>
+<td style="text-align:left"><code>printToStdErr == true</code> の場合のみ</td>
+<td style="text-align:left">なし</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CompDebugln(msg, printToStdErr)</code></td>
+<td style="text-align:left"><code>&quot;[Debug] &quot;</code></td>
+<td style="text-align:left">あり</td>
+<td style="text-align:left"><code>printToStdErr == true</code> の場合のみ</td>
+<td style="text-align:left">あり</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CompError(msg)</code></td>
+<td style="text-align:left"><code>&quot;[Debug] [Error] &quot;</code></td>
+<td style="text-align:left">あり</td>
+<td style="text-align:left">常にあり（<code>true</code>）</td>
+<td style="text-align:left">なし</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>CompErrorln(msg)</code></td>
+<td style="text-align:left"><code>&quot;[Debug] [Error] &quot;</code></td>
+<td style="text-align:left">あり</td>
+<td style="text-align:left">常にあり（<code>true</code>）</td>
+<td style="text-align:left">あり</td>
+</tr>
+</tbody>
+</table>
+<h3 id="デバッグ手順の例">デバッグ手順の例<a class="header-anchor" href="#デバッグ手順の例" aria-label="Permalink">#</a></h3>
+<pre><code class="language-bash"><span class="c1"># 別ターミナルでログファイルを tail しながら、メインのシェルで &lt;TAB&gt; を押してトレースを確認：</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">BASH_COMP_DEBUG_FILE</span><span class="o">=</span>/tmp/cobra_comp.log
+tail<span class="w"> </span>-f<span class="w"> </span>/tmp/cobra_comp.log
+</code></pre>
+<hr />
+<h2 id="appendactivehelp-getactivehelpconfig" class="catalog-symbol-heading"><span class="catalog-badge catalog-badge-def">func</span><code class="catalog-sig"><span class="catalog-sig-name">AppendActiveHelp &amp; GetActiveHelpConfig</span></code><a class="header-anchor" href="#appendactivehelp-getactivehelpconfig" aria-label="Permalink to AppendActiveHelp &amp; GetActiveHelpConfig">#</a></h2>
+<p><code>active_help.go</code> で定義されている <strong>ActiveHelp</strong> は、ユーザーがコマンドラインを入力している最中にインラインで操作ヒント・注意事項・引数ガイドを表示する機能です（<strong>Bash V2</strong> および <strong>Zsh</strong> でサポートされ、<strong>Fish</strong> と <strong>PowerShell</strong> の生成スクリプトでは自動的に無効化されます）。</p>
+<h3 id="go-シグネチャ-5">Go シグネチャ<a class="header-anchor" href="#go-シグネチャ-5" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="c1">// AppendActiveHelp adds the specified string to the specified array to be used as ActiveHelp.</span>
+<span class="c1">// Such strings will be processed by the completion script and will be shown as ActiveHelp</span>
+<span class="c1">// to the user.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">AppendActiveHelp</span><span class="p">(</span><span class="nx">compArray</span><span class="w"> </span><span class="p">[]</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">activeHelpStr</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">Completion</span>
+
+<span class="c1">// GetActiveHelpConfig returns the value of the ActiveHelp environment variable</span>
+<span class="c1">// &lt;PROGRAM&gt;_ACTIVE_HELP where &lt;PROGRAM&gt; is the name of the root command in upper</span>
+<span class="c1">// case, with all non-ASCII-alphanumeric characters replaced by `_`.</span>
+<span class="c1">// It will always return "0" if the global environment variable COBRA_ACTIVE_HELP</span>
+<span class="c1">// is set to "0".</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">GetActiveHelpConfig</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</code></pre>
+<h3 id="activehelp-のワイヤ表現と環境変数による制御">ActiveHelp のワイヤ表現と環境変数による制御<a class="header-anchor" href="#activehelp-のワイヤ表現と環境変数による制御" aria-label="Permalink">#</a></h3>
+<ol>
+<li><strong>ワイヤマーカー（<code>_activeHelp_ </code>）</strong>: <code>AppendActiveHelp(comps, text)</code> は <code>[]Completion</code> スライスに <code>&quot;_activeHelp_ &quot; + text</code> を追加して返します。複数回呼び出すことで複数行のヒントを順番に表示できます。</li>
+<li><strong>環境変数の優先順位（<code>GetActiveHelpConfig</code>）</strong>:
+<ul>
+<li>まずグローバル環境変数 <code>COBRA_ACTIVE_HELP</code> を確認します。値が <code>&quot;0&quot;</code> の場合、ActiveHelp は全体で無効化されます（<code>GetActiveHelpConfig</code> は常に <code>&quot;0&quot;</code> を返し、<code>__complete</code> も出力時にすべての <code>_activeHelp_ </code> 行を除外します）。</li>
+<li><code>&quot;0&quot;</code> でない場合は、プログラム固有の環境変数 <code>&lt;PROGRAM&gt;_ACTIVE_HELP</code> の値を返します。ここで <code>&lt;PROGRAM&gt;</code> は <code>cmd.Root().Name()</code> を大文字化し、ASCII 英数字と <code>_</code> 以外の文字（ハイフンなど）をすべて <code>_</code> に置換した名前です（例：<code>my-cli</code> → <code>MY_CLI_ACTIVE_HELP</code>）。</li>
+<li>アプリケーション開発者は <code>ValidArgsFunction</code> 内で <code>cobra.GetActiveHelpConfig(cmd)</code> の返却値を調べることで、独自のヒント詳細度（<code>&quot;short&quot;</code>、<code>&quot;full&quot;</code>、<code>&quot;0&quot;</code> など）を実装できます。</li>
+</ul>
+</li>
+</ol>
+<h3 id="使用例-2">使用例<a class="header-anchor" href="#使用例-2" aria-label="Permalink">#</a></h3>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="p">.</span><span class="nx">ValidArgsFunction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirective</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">comps</span><span class="w"> </span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span>
+<span class="w">	</span><span class="nx">cfg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">GetActiveHelpConfig</span><span class="p">(</span><span class="nx">cmd</span><span class="p">)</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">cfg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"0"</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">comps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">AppendActiveHelp</span><span class="p">(</span><span class="nx">comps</span><span class="p">,</span><span class="w"> </span><span class="s">"デプロイ対象のクラスタリージョンを指定してください (例: us-central1, asia-northeast1)"</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="nx">comps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">comps</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"us-central1"</span><span class="p">,</span><span class="w"> </span><span class="s">"アイオワ（北米リージョン）"</span><span class="p">),</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"europe-west1"</span><span class="p">,</span><span class="w"> </span><span class="s">"ベルギー（欧州リージョン）"</span><span class="p">),</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"asia-northeast1"</span><span class="p">,</span><span class="w"> </span><span class="s">"東京（アジア北東リージョン）"</span><span class="p">),</span>
+<span class="w">		</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">comps</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">NoFileCompletions</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2 id="関連リファレンス" class="catalog-section-heading"><span>関連リファレンス</span><a class="header-anchor" href="#関連リファレンス" aria-label="Permalink to 関連リファレンス">#</a></h2>
+<ul>
+<li><strong><a href="03_flags_and_flag_groups.html">03. フラグ・FlagSet・フラググループ制約</a></strong> — <code>MarkFlagRequired</code>、<code>MarkFlagFilename</code>、<code>MarkFlagDirname</code>、<code>MarkFlagCustom</code>、およびフラググループ制約の補完連動。</li>
+<li><strong><a href="04_positional_args.html">04. PositionalArgs と位置引数バリデータ</a></strong> — 静的な <code>ValidArgs</code>、<code>ArgAliases</code>、および <code>PositionalArgs</code> 検証関数。</li>
+<li><strong><a href="06_shell_script_generators.html">06. シェル補完スクリプト生成関数</a></strong> — <code>InitDefaultCompletionCmd</code>、Bash V2/V1、Zsh、Fish、PowerShell 向けスクリプト生成 API。</li>
+</ul>
+
+
+                
+                <nav class="catalog-pager" aria-label="Catalog Page Navigation">
+                    
+                    <a href="04_positional_args.html" class="catalog-pager-card is-prev">
+                        <span class="catalog-pager-dir">&larr; 前へ</span>
+                        <span class="catalog-pager-title">PositionalArgs 型と組み込み位置引数バリデータ</span>
+                    </a>
+                    
+                    
+                    <a href="06_shell_script_generators.html" class="catalog-pager-card is-next">
+                        <span class="catalog-pager-dir">次へ &rarr;</span>
+                        <span class="catalog-pager-title">06. シェル補完スクリプト生成関数</span>
+                    </a>
+                    
+                </nav>
+                
+            </main>
+
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式 API リファレンスであり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var toggleBtn = document.getElementById('theme-toggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    var current = document.documentElement.getAttribute('data-theme');
+                    if (!current) {
+                        current = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                    }
+                    var next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    try { localStorage.setItem('drawlib-theme', next); } catch (e) {}
+                });
+            }
+
+            var menuBtn = document.getElementById('menu-toggle');
+            var sidebar = document.getElementById('catalog-sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            function closeMenu() {
+                if (sidebar) sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-open');
+            }
+            if (menuBtn && sidebar && backdrop) {
+                menuBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('is-open');
+                    backdrop.classList.toggle('is-open');
+                });
+                backdrop.addEventListener('click', closeMenu);
+            }
+
+            document.querySelectorAll('.catalog-nav-cat-link').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            if (sidebar) {
+                try {
+                    var savedScroll = sessionStorage.getItem('drawlib-catalog-sidebar-scroll');
+                    if (savedScroll !== null) {
+                        sidebar.scrollTop = parseInt(savedScroll, 10) || 0;
+                    }
+                    sidebar.addEventListener('scroll', function() {
+                        try { sessionStorage.setItem('drawlib-catalog-sidebar-scroll', String(sidebar.scrollTop)); } catch (e) {}
+                    }, { passive: true });
+                } catch (e) {}
+            }
+
+            var groups = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-group'));
+            var expandBtn = document.getElementById('catalog-expand-toggle');
+            function updateExpandBtnLabel() {
+                if (!expandBtn || groups.length === 0) return;
+                var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                var expandText = expandBtn.getAttribute('data-expand-label') || 'Expand All';
+                var collapseText = expandBtn.getAttribute('data-collapse-label') || 'Collapse All';
+                expandBtn.textContent = allOpen ? collapseText : expandText;
+            }
+            if (expandBtn) {
+                updateExpandBtnLabel();
+                expandBtn.addEventListener('click', function() {
+                    var visibleGroups = groups.filter(function(g) { return !g.hidden; });
+                    var allOpen = visibleGroups.length > 0 && visibleGroups.every(function(g) { return g.open; });
+                    visibleGroups.forEach(function(g) { g.open = !allOpen; });
+                    updateExpandBtnLabel();
+                });
+                groups.forEach(function(g) {
+                    g.addEventListener('toggle', updateExpandBtnLabel);
+                });
+            }
+
+            var filterInput = document.getElementById('catalog-filter-input');
+            var emptyNotice = document.getElementById('catalog-nav-empty');
+            var savedOpenState = null;
+
+            if (filterInput) {
+                filterInput.addEventListener('input', function() {
+                    var q = filterInput.value.trim().toLowerCase();
+                    if (q && !savedOpenState) {
+                        savedOpenState = groups.map(function(g) { return g.open; });
+                    }
+                    var anyMatch = false;
+                    groups.forEach(function(g, idx) {
+                        var catText = (g.getAttribute('data-cat') || '').toLowerCase();
+                        var catMatches = q !== '' && catText.indexOf(q) !== -1;
+                        var items = Array.prototype.slice.call(g.querySelectorAll('.catalog-nav-subitem'));
+                        var visibleCount = 0;
+
+                        items.forEach(function(li) {
+                            var symText = (li.getAttribute('data-sym') || '').toLowerCase();
+                            var show = (q === '') || catMatches || symText.indexOf(q) !== -1;
+                            li.hidden = !show;
+                            if (show) visibleCount += 1;
+                        });
+
+                        if (q === '') {
+                            g.hidden = false;
+                            if (savedOpenState && typeof savedOpenState[idx] === 'boolean') {
+                                g.open = savedOpenState[idx];
+                            }
+                            anyMatch = true;
+                        } else if (catMatches || visibleCount > 0) {
+                            g.hidden = false;
+                            g.open = true;
+                            anyMatch = true;
+                        } else {
+                            g.hidden = true;
+                        }
+                    });
+
+                    if (q === '') {
+                        savedOpenState = null;
+                    }
+                    if (emptyNotice) {
+                        emptyNotice.hidden = anyMatch;
+                    }
+                    updateExpandBtnLabel();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === '/' && document.activeElement !== filterInput) {
+                        var tag = document.activeElement ? document.activeElement.tagName : '';
+                        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                            e.preventDefault();
+                            filterInput.focus();
+                        }
+                    } else if (e.key === 'Escape' && document.activeElement === filterInput) {
+                        filterInput.value = '';
+                        filterInput.dispatchEvent(new Event('input'));
+                        filterInput.blur();
+                    }
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                document.querySelectorAll('.lang-dropdown[open]').forEach(function(dd) {
+                    if (!dd.contains(e.target)) {
+                        dd.removeAttribute('open');
+                    }
+                });
+            });
+
+            var activeLinks = Array.prototype.slice.call(document.querySelectorAll('.catalog-nav-sublink[data-target]'));
+            if (activeLinks.length > 0 && 'IntersectionObserver' in window) {
+                var linkBySlug = {};
+                var headings = [];
+                activeLinks.forEach(function(a) {
+                    var slug = a.getAttribute('data-target');
+                    var el = slug ? document.getElementById(slug) : null;
+                    if (slug && el) {
+                        linkBySlug[slug] = a;
+                        headings.push(el);
+                    }
+                    a.addEventListener('click', closeMenu);
+                });
+
+                function setActiveSlug(slug) {
+                    activeLinks.forEach(function(a) {
+                        if (a.getAttribute('data-target') === slug) {
+                            a.classList.add('is-active');
+                        } else {
+                            a.classList.remove('is-active');
+                        }
+                    });
+                }
+
+                if (window.location.hash) {
+                    var initSlug = decodeURIComponent(window.location.hash.slice(1));
+                    if (linkBySlug[initSlug]) setActiveSlug(initSlug);
+                } else if (headings.length > 0) {
+                    setActiveSlug(headings[0].id);
+                }
+
+                var visibleIds = {};
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        visibleIds[entry.target.id] = entry.isIntersecting;
+                    });
+                    for (var i = 0; i < headings.length; i++) {
+                        if (visibleIds[headings[i].id]) {
+                            setActiveSlug(headings[i].id);
+                            break;
+                        }
+                    }
+                }, { rootMargin: '-90px 0px -65% 0px', threshold: [0, 1] });
+
+                headings.forEach(function(h) { observer.observe(h); });
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,895 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command Resolution &amp; Flag Stripping Parser (`Find`, `Traverse`, and `stripFlags`) — Cobra Architecture Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/architecture/ja/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    
+    
+    
+    <meta name="description" content="Before Cobra can execute a command&#x27;s lifecycle hooks or validate its flags, it must resolve which *Command node in the tree owns the invocation. Unlike…">
+    <link rel="canonical" href="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra Architecture">
+    <meta property="og:title" content="Command Resolution &amp; Flag Stripping Parser (Find, Traverse, and stripFlags) — Cobra Architecture">
+    <meta property="og:description" content="Before Cobra can execute a command&#x27;s lifecycle hooks or validate its flags, it must resolve which *Command node in the tree owns the invocation. Unlike…">
+    <meta property="og:url" content="https://cobra.drawlib.com/architecture/en/02_parser_and_dispatch/find_traverse_and_stripflags.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Command Resolution &amp; Flag Stripping Parser (Find, Traverse, and stripFlags) — Cobra Architecture">
+    <meta name="twitter:description" content="Before Cobra can execute a command&#x27;s lifecycle hooks or validate its flags, it must resolve which *Command node in the tree owns the invocation. Unlike…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/architecture/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+            </span>
+            <span class="demo-banner-links">
+                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">Architecture</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra Architecture">
+                    
+                    Cobra Architecture
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Architecture Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Package &amp; Composite Tree</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_package_and_tree/command_tree_topology.html" >Command Tree &amp; FlagSet Topology</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Parser &amp; Command Dispatch</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="find_traverse_and_stripflags.html" >Find, Traverse &amp; stripFlags Parser</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Lifecycle Execution Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_execution_engine/executec_and_hook_chain.html" >ExecuteC, execute() &amp; Hook Chain</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Flag Groups &amp; PositionalArgs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_flag_groups_and_args/relational_flag_engine.html" >Annotation Flag Groups &amp; Validators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completion V2 Engine</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completion_v2_engine/complete_protocol_and_shells.html" >__complete Protocol &amp; Shell Scripts</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Reference Doc Synthesis</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_doc_synthesis/ast_free_doc_generators.html" >AST-Free cobra/doc Generators</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">Cobra User Guide<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/reports/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Architecture</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Command Resolution &amp; Flag Stripping Parser (`Find`, `Traverse`, and `stripFlags`)</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="find_traverse_and_stripflags.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/02_parser_and_dispatch/find_traverse_and_stripflags.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Command Resolution &amp; Flag Stripping Parser (<code>Find</code>, <code>Traverse</code>, and <code>stripFlags</code>)</h1>
+<p>Before Cobra can execute a command's lifecycle hooks or validate its flags, it must resolve which <code>*Command</code> node in the tree owns the invocation. Unlike simple CLI routers that assume <code>os.Args[1]</code> is always a subcommand name, POSIX/GNU CLIs allow root persistent flags (along with space-separated flag values) to appear <strong>before, between, or after</strong> subcommand tokens—for example: <code>app --config prod.yaml -v server --port 8080 start</code>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_parser_and_dispatch/find_traverse_and_stripflags/find_vs_traverse_flow.png" alt="find_traverse_and_stripflags_1" />
+  <figcaption class="drawlib-caption">Figure 1: Stateless Find() Resolution vs. Stateful Per-Level Traverse() Resolution (command.go:757–860)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">108</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">103.5</span><span class="p">),</span>
+    <span class="s2">"Command Tree Dispatch: Find(args) vs. Traverse(args)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Top Dispatch Router</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"ExecuteC() Resolution Switch (command.go:1120–1124)</span><span class="se">\n</span><span class="s2">if c.TraverseChildren { c.Traverse(args) } else { c.Find(args) }"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">((</span><span class="mi">48</span><span class="p">,</span> <span class="mf">91.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">4.6</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">)</span>
+
+<span class="c1"># Left Panel: Find(args) Default Mode</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Find(args) — Default Mode"</span><span class="p">,</span>
+    <span class="s2">"Stateless Walk"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">76</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. stripFlags(innerArgs, c) (L761)</span><span class="se">\n</span><span class="s2">Scan NoOptDefVal; skip flags without Parse()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. cmd := c.findNext(argsWOflags[0]) (L767)</span><span class="se">\n</span><span class="s2">Match child Name / Alias / Prefix"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. c.argsMinusFirstX(innerArgs, sub) (L769)</span><span class="se">\n</span><span class="s2">Remove 1st subcmd token; keep parent flags"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. Leaf Return + legacyArgs() (L774–778)</span><span class="se">\n</span><span class="s2">Single c.ParseFlags(a) inside leaf execute()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">43.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">47</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">20.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="c1"># Right Panel: Traverse(args) Mode</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Traverse(args) — Opt-In"</span><span class="p">,</span>
+    <span class="s2">"Per-Level Parse"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">76</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">65.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. Scan args[i] + inFlag State (L825–847)</span><span class="se">\n</span><span class="s2">Accumulate local &amp; persistent flags[] slice"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">49.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. cmd := c.findNext(arg) (L849)</span><span class="se">\n</span><span class="s2">Trigger on first non-flag token at index i"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">32.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. c.ParseFlags(flags) Immediately (L854)</span><span class="se">\n</span><span class="s2">Mutate parent FlagSet state at each level"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. Tail-Call cmd.Traverse(args[i+1:]) (L857)</span><span class="se">\n</span><span class="s2">Leaf parses remaining slice in execute()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">54.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">43.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">137</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">20.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Top Router to Left &amp; Right Panels</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">68</span><span class="p">,</span> <span class="mf">86.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">47</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">116</span><span class="p">,</span> <span class="mf">86.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">137</span><span class="p">,</span> <span class="mf">81.0</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Two Resolution Strategies: <code>Find</code> vs. <code>Traverse</code></h2>
+<p>In <code>ExecuteC()</code> (<code>command.go:1120–1124</code>), Cobra selects between two command-tree walkers based on the root command's <code>TraverseChildren</code> boolean field (<code>command.go:230</code>):</p>
+<pre><code class="language-go"><span class="kd">var</span><span class="w"> </span><span class="nx">flags</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">TraverseChildren</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+<h3>1.1 <code>Find(args []string)</code> — Stateless Descent (<code>command.go:757–779</code>)</h3>
+<p>By default (<code>TraverseChildren == false</code>), Cobra resolves the target leaf command <strong>without calling <code>ParseFlags</code> on intermediate parent commands</strong>. Instead, <code>Find</code> uses a recursive closure <code>innerfind</code> (<code>command.go:760–772</code>) that strips flags on the fly to locate subcommand names while preserving all flag tokens in <code>innerArgs</code> so the leaf command can parse them in a single pass:</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Find</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">innerfind</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">innerfind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">argsWOflags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">stripFlags</span><span class="p">(</span><span class="nx">innerArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">argsWOflags</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="nx">nextSubCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">argsWOflags</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="w">		</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">findNext</span><span class="p">(</span><span class="nx">nextSubCmd</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">innerfind</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">argsMinusFirstX</span><span class="p">(</span><span class="nx">innerArgs</span><span class="p">,</span><span class="w"> </span><span class="nx">nextSubCmd</span><span class="p">))</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">innerArgs</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">innerfind</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">.</span><span class="nx">Args</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">legacyArgs</span><span class="p">(</span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">stripFlags</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">))</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">commandFound</span><span class="p">,</span><span class="w"> </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p>Key architectural invariants of <code>Find</code>:</p>
+<ol>
+<li><strong>Zero <code>FlagSet.Parse</code> Side Effects During Walk</strong>: <code>stripFlags(innerArgs, c)</code> calls <code>c.mergePersistentFlags()</code> (<code>command.go:678</code>) so <code>c.Flags()</code> knows all inherited persistent flag definitions, but it <strong>never mutates flag values</strong>.</li>
+<li><strong>Surgical Token Removal via <code>argsMinusFirstX</code></strong>: When <code>c.findNext(nextSubCmd)</code> matches a child command <code>cmd</code>, <code>innerfind</code> passes <code>c.argsMinusFirstX(innerArgs, nextSubCmd)</code> to the child. Any persistent flags passed before <code>nextSubCmd</code> (e.g., <code>root --kubeconfig ~/.kube/config get pods</code>) remain inside <code>innerArgs</code> and are handed down to <code>get</code>, where <code>get.execute(flags)</code> parses both <code>root</code>'s inherited persistent flags and <code>get</code>'s local flags together (<code>command.go:919</code>).</li>
+<li><strong>Why Non-Persistent Parent Flags Fail Under <code>Find</code></strong>: Because <code>Find</code> leaves parent flags in the slice passed to the child, any <strong>local</strong> (non-persistent) flag defined only on a parent command will trigger an <code>unknown flag</code> error when the child calls <code>c.ParseFlags(a)</code>.</li>
+<li><strong>Fallback <code>legacyArgs</code> Check (<code>command.go:775–777</code>, <code>args.go:28–39</code>)</strong>: If the resolved <code>commandFound</code> has <code>Args == nil</code>, <code>Find</code> immediately runs <code>legacyArgs(commandFound, stripFlags(a, commandFound))</code>. If <code>commandFound</code> is the root command (<code>!cmd.HasParent()</code>), has subcommands (<code>cmd.HasSubCommands()</code>), and still has unconsumed non-flag arguments (<code>len(args) &gt; 0</code>), <code>legacyArgs</code> returns:<pre><code class="language-go"><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"unknown command %q for %q%s"</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">CommandPath</span><span class="p">(),</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">findSuggestions</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</code></pre>
+</li>
+</ol>
+<h3>1.2 <code>Traverse(args []string)</code> — Incremental Per-Level Parsing (<code>command.go:821–860</code>)</h3>
+<p>When a CLI requires parent commands to accept <strong>local (non-persistent) flags</strong> on the same command line as a subcommand (e.g., <code>docker --tls -D container ls -a</code>), setting <code>TraverseChildren: true</code> on the root command switches dispatch to <code>Traverse</code>:</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">flags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{}</span>
+<span class="w">	</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="kc">false</span>
+
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">switch</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="c1">// A long flag with a space separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"--"</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"="</span><span class="p">):</span>
+<span class="w">			</span><span class="c1">// TODO: this isn't quite right, we should really check ahead for 'true' or 'false'</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="nx">hasNoOptDefVal</span><span class="p">(</span><span class="nx">arg</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">())</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// A short flag with a space separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"-"</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">arg</span><span class="p">,</span><span class="w"> </span><span class="s">"="</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">shortHasNoOptDefVal</span><span class="p">(</span><span class="nx">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Flags</span><span class="p">()):</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// The value for a flag</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">inFlag</span><span class="p">:</span>
+<span class="w">			</span><span class="nx">inFlag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="c1">// A flag without a value, or with an `=` separated value</span>
+<span class="w">		</span><span class="k">case</span><span class="w"> </span><span class="nx">isFlagArg</span><span class="p">(</span><span class="nx">arg</span><span class="p">):</span>
+<span class="w">			</span><span class="nx">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">flags</span><span class="p">,</span><span class="w"> </span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">			</span><span class="k">continue</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">findNext</span><span class="p">(</span><span class="nx">arg</span><span class="p">)</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">}</span>
+
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">ParseFlags</span><span class="p">(</span><span class="nx">flags</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Traverse</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:])</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<h3>1.3 Architectural Comparison: <code>Find</code> vs. <code>Traverse</code></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Dimension</th>
+<th style="text-align:left"><code>Find(args []string)</code> (<code>command.go:757–779</code>)</th>
+<th style="text-align:left"><code>Traverse(args []string)</code> (<code>command.go:821–860</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Activation Condition</strong></td>
+<td style="text-align:left">Default (<code>c.TraverseChildren == false</code>)</td>
+<td style="text-align:left">Opt-in (<code>c.TraverseChildren == true</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Parent Local Flags</strong></td>
+<td style="text-align:left"><strong>Rejected</strong> by child's <code>ParseFlags</code> unless declared on <code>PersistentFlags()</code></td>
+<td style="text-align:left"><strong>Supported</strong>; parsed at each parent level via <code>c.ParseFlags(flags)</code> (<code>L854</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>ParseFlags</code> Invocations</strong></td>
+<td style="text-align:left"><strong>Once</strong>, inside the resolved leaf's <code>c.execute(flags)</code> (<code>L919</code>)</td>
+<td style="text-align:left"><strong>Once per ancestor level</strong> (<code>L854</code>) + <strong>once on leaf</strong> (<code>L919</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Flag Slicing Strategy</strong></td>
+<td style="text-align:left"><code>c.argsMinusFirstX(innerArgs, nextSubCmd)</code> removes only the subcommand name</td>
+<td style="text-align:left">Slices tail <code>args[i+1:]</code> (<code>L857</code>), consuming <code>args[:i+1]</code> at parent <code>c</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Early Unknown-Subcommand Error</strong></td>
+<td style="text-align:left">Runs <code>legacyArgs()</code> inside <code>Find()</code> (<code>L776</code>) if <code>commandFound.Args == nil</code></td>
+<td style="text-align:left">Defers argument validation to <code>c.ValidateArgs(argWoFlags)</code> (<code>L968</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>--</code> Terminator Handling</strong></td>
+<td style="text-align:left">Explicit <code>case s == &quot;--&quot;: break Loop</code> in both <code>stripFlags</code> (<code>L688</code>) and <code>argsMinusFirstX</code> (<code>L726</code>)</td>
+<td style="text-align:left">Falls through <code>switch</code> (<code>isFlagArg(&quot;--&quot;)</code> is <code>false</code> at <code>L750</code>) into <code>c.findNext(&quot;--&quot;)</code> -&gt; <code>nil</code> -&gt; returns <code>c, args, nil</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. Token Scanning Internals: <code>stripFlags</code>, <code>NoOptDefVal</code>, and <code>argsMinusFirstX</code></h2>
+<p>The central parsing challenge in <code>stripFlags</code> (<code>command.go:674–710</code>) and <code>argsMinusFirstX</code> (<code>command.go:715–748</code>) is distinguishing a <strong>flag's space-separated value</strong> from a <strong>subcommand name</strong> without executing full <code>pflag</code> value parsing.</p>
+<p>For example, given <code>cmd -f admin</code> vs. <code>cmd -v admin</code>:</p>
+<ul>
+<li>If <code>-f</code> is a <code>--file string</code> flag, <code>admin</code> is the filename argument to <code>-f</code>, <strong>not</strong> the <code>admin</code> subcommand.</li>
+<li>If <code>-v</code> is a <code>--verbose bool</code> flag, <code>-v</code> takes no space-separated value, so <code>admin</code> <strong>is</strong> the <code>admin</code> subcommand.</li>
+</ul>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_parser_and_dispatch/find_traverse_and_stripflags/stripflags_state_machine.png" alt="find_traverse_and_stripflags_2" />
+  <figcaption class="drawlib-caption">Figure 2: stripFlags() Token Classifier and findNext() Subcommand Matching Precedence (command.go:654–881)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">98</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mf">93.5</span><span class="p">),</span>
+    <span class="s2">"stripFlags() Token Scanner &amp; findNext() Subcommand Resolution"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Left Panel: stripFlags() Token Scanner</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"stripFlags(args, c) Scanner"</span><span class="p">,</span>
+    <span class="s2">"command.go:674"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">81</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">71.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"c.mergePersistentFlags() -&gt; Pop s := args[0]; args = args[1:]"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">57.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Branch 1 (L688): s == </span><span class="se">\"</span><span class="s2">--</span><span class="se">\"\n</span><span class="s2">End of flags -&gt; break Loop (ignore remaining positional tokens)"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">44.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Branch 2 (L691): HasPrefix(</span><span class="se">\"</span><span class="s2">--</span><span class="se">\"</span><span class="s2">) &amp;&amp; !Contains(</span><span class="se">\"</span><span class="s2">=</span><span class="se">\"</span><span class="s2">) &amp;&amp; !hasNoOptDefVal</span><span class="se">\n</span><span class="s2">Long flag requiring value -&gt; fallthrough to skip next token"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">10.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Branch 3 (L695): HasPrefix(</span><span class="se">\"</span><span class="s2">-</span><span class="se">\"</span><span class="s2">) &amp;&amp; len(s)==2 &amp;&amp; !shortHasNoOptDefVal</span><span class="se">\n</span><span class="s2">Short flag value -&gt; if len(args)&lt;=1 break; else args = args[1:]"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">88</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">11.0</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"Branch 4 (L704): s != </span><span class="se">\"\"</span><span class="s2"> &amp;&amp; !strings.HasPrefix(s, </span><span class="se">\"</span><span class="s2">-</span><span class="se">\"</span><span class="s2">)</span><span class="se">\n</span><span class="s2">commands = append(commands, s) -&gt; Candidate for findNext()"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Right Panel: findNext() &amp; SuggestionsFor()</span>
+<span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"findNext(next) Precedence"</span><span class="p">,</span>
+    <span class="s2">"command.go:798"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mi">108</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">81</span><span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">68.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">AccentFlat</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"1. Exact Name or Alias (L801)</span><span class="se">\n</span><span class="s2">commandNameMatches() || HasAlias()</span><span class="se">\n</span><span class="s2">cmd.commandCalledAs.name = next"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">51.0</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"2. Unambiguous Prefix (L805)</span><span class="se">\n</span><span class="s2">EnablePrefixMatching == true</span><span class="se">\n</span><span class="s2">Return matches[0] iff len == 1"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">33.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"3. No Match -&gt; Return nil (L816)</span><span class="se">\n</span><span class="s2">Token treated as positional arg</span><span class="se">\n</span><span class="s2">Passed to ValidateArgs / legacyArgs"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rectangle</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">15.5</span><span class="p">),</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">62</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">"4. SuggestionsFor() (L863)</span><span class="se">\n</span><span class="s2">ld(typed, name, true) &lt;= 2</span><span class="se">\n</span><span class="s2">| Lower Prefix | cmd.SuggestFor"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">62.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">57.25</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">44.75</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">39.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">143</span><span class="p">,</span> <span class="mf">27.25</span><span class="p">),</span> <span class="p">(</span><span class="mi">143</span><span class="p">,</span> <span class="mf">21.75</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Secondary</span><span class="p">)</span>
+
+<span class="c1"># Cross-panel handoff arrow</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">102</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">108</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>2.1 <code>hasNoOptDefVal</code> and <code>shortHasNoOptDefVal</code> (<code>command.go:654–672</code>)</h3>
+<p>In <code>github.com/spf13/pflag</code>, every <code>*flag.Flag</code> struct carries a <code>NoOptDefVal string</code> field. When a flag is registered as a boolean (<code>Bool</code> / <code>BoolP</code>) or counter (<code>Count</code> / <code>CountP</code>), <code>pflag</code> sets <code>flag.NoOptDefVal = &quot;true&quot;</code> (or <code>&quot;+1&quot;</code>), indicating that passing the flag without <code>=value</code> supplies a default value and <strong>does not consume the next CLI token</strong>.</p>
+<p>Cobra inspects this field directly via two helper functions (<code>command.go:654–672</code>):</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">hasNoOptDefVal</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">flag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fs</span><span class="p">.</span><span class="nx">Lookup</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">flag</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">NoOptDefVal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">shortHasNoOptDefVal</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">flag</span><span class="p">.</span><span class="nx">FlagSet</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">flag</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fs</span><span class="p">.</span><span class="nx">ShorthandLookup</span><span class="p">(</span><span class="nx">name</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">flag</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">flag</span><span class="p">.</span><span class="nx">NoOptDefVal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span>
+<span class="p">}</span>
+</code></pre>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Unregistered Flag Behavior</strong>: If <code>fs.Lookup(name)</code> or <code>fs.ShorthandLookup(name[:1])</code> returns <code>nil</code> (for instance, an unknown flag or a child-local flag not yet visible on the parent), both functions return <code>false</code>. Consequently, <code>stripFlags</code> conservatively assumes an unknown <code>--flag</code> or <code>-f</code> (without <code>=</code>) <strong>consumes the following token</strong> as its value.</p>
+</blockquote>
+<h3>2.2 The 4-Way Switch in <code>stripFlags</code> (<code>command.go:674–710</code>)</h3>
+<p><code>stripFlags(args []string, c *Command) []string</code> first calls <code>c.mergePersistentFlags()</code> (<code>L678</code>) so inherited persistent flags are present in <code>flags := c.Flags()</code> (<code>L681</code>), then loops over <code>args</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Switch Case in <code>stripFlags</code> (<code>command.go:687–706</code>)</th>
+<th style="text-align:left">Condition Checked</th>
+<th style="text-align:left">Scanner Action</th>
+<th style="text-align:left">Example Token Sequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. Double-Dash Terminator</strong> (<code>L688</code>)</td>
+<td style="text-align:left"><code>s == &quot;--&quot;</code></td>
+<td style="text-align:left"><code>break Loop</code> immediately; tokens after <code>--</code> are positional arguments, never subcommands</td>
+<td style="text-align:left"><code>app -- server</code> -&gt; <code>commands = []</code> (<code>server</code> is positional arg to <code>app</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. Space-Valued Long Flag</strong> (<code>L691</code>)</td>
+<td style="text-align:left"><code>strings.HasPrefix(s, &quot;--&quot;) &amp;&amp; !strings.Contains(s, &quot;=&quot;) &amp;&amp; !hasNoOptDefVal(s[2:], flags)</code></td>
+<td style="text-align:left"><code>fallthrough</code> to Case 3 to consume the next element (<code>args = args[1:]</code>) as the flag's value</td>
+<td style="text-align:left"><code>app --config prod.yaml run</code> -&gt; skips <code>--config</code> and <code>prod.yaml</code>, collects <code>[&quot;run&quot;]</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Space-Valued Short Flag</strong> (<code>L695</code>)</td>
+<td style="text-align:left"><code>strings.HasPrefix(s, &quot;-&quot;) &amp;&amp; !strings.Contains(s, &quot;=&quot;) &amp;&amp; len(s) == 2 &amp;&amp; !shortHasNoOptDefVal(s[1:], flags)</code></td>
+<td style="text-align:left">If <code>len(args) &lt;= 1</code>, <code>break Loop</code>; otherwise <code>args = args[1:]; continue</code></td>
+<td style="text-align:left"><code>app -c prod.yaml run</code> -&gt; skips <code>-c</code> and <code>prod.yaml</code>, collects <code>[&quot;run&quot;]</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. Non-Flag Token</strong> (<code>L704</code>)</td>
+<td style="text-align:left"><code>s != &quot;&quot; &amp;&amp; !strings.HasPrefix(s, &quot;-&quot;)</code></td>
+<td style="text-align:left"><code>commands = append(commands, s)</code></td>
+<td style="text-align:left"><code>app -v --port=8080 run</code> -&gt; <code>-v</code> (<code>NoOptDefVal=&quot;true&quot;</code>) and <code>--port=8080</code> (<code>Contains(&quot;=&quot;)</code>) are ignored; collects <code>[&quot;run&quot;]</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!NOTE]
+<strong>Stacked Short Flags (<code>len(s) &gt; 2</code>)</strong>: Notice that Case 3 checks <code>len(s) == 2</code>. When a user groups short flags or attaches a short flag's value without a space (e.g., <code>-vvv</code> or <code>-fconfig.yaml</code> where <code>len(s) &gt; 2</code>), the token starts with <code>&quot;-&quot;</code> so it is ignored by Case 4, and because <code>len(s) != 2</code> it does not consume the following token in Case 3.</p>
+</blockquote>
+<h3>2.3 Why <code>argsMinusFirstX</code> Removes Only the First Non-Flag Match (<code>command.go:715–748</code>)</h3>
+<p>When <code>Find</code> descends from parent <code>c</code> into child <code>cmd = c.findNext(nextSubCmd)</code>, it must strip <code>nextSubCmd</code> from <code>innerArgs</code> before recursing (<code>command.go:769</code>). A naive filter that removes every occurrence of <code>nextSubCmd</code>—or removes the first string equal to <code>nextSubCmd</code> without checking flags—would corrupt real-world CLI invocations:</p>
+<ol>
+<li><strong>Duplicate Positional Arguments (<code>command.go:712–713</code>)</strong>: In <code>openshift admin policy add-role-to-user admin my-user</code>, the token <code>&quot;admin&quot;</code> appears twice: first at <code>args[0]</code> as the subcommand name, and again at <code>args[3]</code> as the RBAC role name to grant to <code>my-user</code>. <code>argsMinusFirstX</code> returns immediately after excising the <strong>first</strong> non-flag occurrence (<code>L740–743</code>):<pre><code class="language-go"><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">x</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">ret</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[:</span><span class="nx">pos</span><span class="p">]...)</span>
+<span class="w">	</span><span class="nx">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">ret</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="nx">pos</span><span class="o">+</span><span class="mi">1</span><span class="p">:]...)</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">ret</span>
+<span class="p">}</span>
+</code></pre>
+</li>
+<li><strong>Flag Value Collision Protection (<code>command.go:729–735</code>)</strong>: In <code>app --user admin admin status</code>, the first <code>&quot;admin&quot;</code> is the value of <code>--user</code>, while the second <code>&quot;admin&quot;</code> is the subcommand. Because <code>argsMinusFirstX</code> runs the identical <code>!hasNoOptDefVal</code> / <code>!shortHasNoOptDefVal</code> checks and executes <code>pos++</code> (<code>L734</code>) to step over space-separated flag values, it skips the <code>--user admin</code> pair and removes only the subcommand <code>&quot;admin&quot;</code> at index <code>2</code>.</li>
+<li><strong>Respecting <code>--</code> (<code>command.go:726–728</code>)</strong>: If <code>s == &quot;--&quot;</code>, <code>argsMinusFirstX</code> breaks out of <code>Loop</code> without removing anything after <code>--</code>.</li>
+</ol>
+<hr />
+<h2>3. Subcommand Matching Precedence &amp; Typo Suggestions</h2>
+<h3>3.1 <code>findNext(next string)</code> Matching Order (<code>command.go:798–817</code>)</h3>
+<p>Both <code>Find</code> (<code>L767</code>) and <code>Traverse</code> (<code>L849</code>) call <code>c.findNext(next)</code> to resolve a candidate token against <code>c.commands</code>:</p>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">)</span><span class="w"> </span><span class="nx">findNext</span><span class="p">(</span><span class="nx">next</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">matches</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">commands</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">commandNameMatches</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">(),</span><span class="w"> </span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">HasAlias</span><span class="p">(</span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">commandCalledAs</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">next</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">EnablePrefixMatching</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">hasNameOrAliasPrefix</span><span class="p">(</span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">matches</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">matches</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">matches</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="c1">// #nosec G602</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+<p>The resolution rules follow a strict two-pass priority within a single loop:</p>
+<ol>
+<li><strong>Priority 1 — Exact Name or Alias Match (<code>L801–804</code>)</strong>:
+<ul>
+<li><code>commandNameMatches(cmd.Name(), next)</code> (<code>command.go:1928–1934</code>) checks <code>strings.EqualFold(s, t)</code> if the package-level <code>cobra.EnableCaseInsensitive</code> variable (<code>cobra.go:62</code>, default <code>false</code>) is enabled, or <code>s == t</code> otherwise.</li>
+<li><code>cmd.HasAlias(next)</code> (<code>command.go:1550–1558</code>) iterates <code>cmd.Aliases</code> using the same <code>commandNameMatches</code> comparator.</li>
+<li>When matched, Cobra records <code>cmd.commandCalledAs.name = next</code> (later exposed via <code>cmd.CalledAs()</code> once <code>cmd.commandCalledAs.called = true</code> is set in <code>ExecuteC</code> at <code>L1137</code>) and returns <code>cmd</code> immediately.</li>
+</ul>
+</li>
+<li><strong>Priority 2 — Unambiguous Prefix Match (<code>L805–814</code>)</strong>:
+<ul>
+<li>Controlled by the global opt-in <code>cobra.EnablePrefixMatching</code> (<code>cobra.go:55</code>, default <code>false</code>).</li>
+<li><code>cmd.hasNameOrAliasPrefix(next)</code> (<code>command.go:1571–1583</code>) checks <code>strings.HasPrefix(c.Name(), prefix)</code> (setting <code>c.commandCalledAs.name = c.Name()</code>) or <code>strings.HasPrefix(alias, prefix)</code> (setting <code>c.commandCalledAs.name = alias</code>).</li>
+<li>Prefix matches are collected into <code>matches</code>; <code>findNext</code> returns <code>matches[0]</code> <strong>if and only if <code>len(matches) == 1</code></strong>. If two subcommands share the prefix (e.g., <code>status</code> and <code>start</code> for <code>st</code>), <code>len(matches) == 2</code>, so <code>findNext</code> returns <code>nil</code>.</li>
+</ul>
+</li>
+</ol>
+<h3>3.2 Levenshtein Distance (<code>ld</code>) and <code>SuggestionsFor</code> (<code>command.go:781–796, 863–881</code>, <code>cobra.go:192–223</code>)</h3>
+<p>When a user mistypes a subcommand on a command using <code>legacyArgs</code> (<code>args.go:36</code>) or <code>OnlyValidArgs</code> (<code>args.go:61</code>), Cobra invokes <code>c.findSuggestions(arg)</code> (<code>command.go:781–796</code>):</p>
+<ul>
+<li>If <code>c.DisableSuggestions</code> is <code>true</code>, returns <code>&quot;&quot;</code>.</li>
+<li>If <code>c.SuggestionsMinimumDistance &lt;= 0</code>, initializes <code>c.SuggestionsMinimumDistance = 2</code> (<code>L785–787</code>).</li>
+<li>Calls <code>c.SuggestionsFor(typedName)</code> (<code>command.go:863–881</code>), which iterates over every child <code>cmd</code> where <code>cmd.IsAvailableCommand()</code> is <code>true</code> (<code>!Deprecated &amp;&amp; !Hidden &amp;&amp; cmd != helpCommand &amp;&amp; (Runnable || HasAvailableSubCommands)</code>) and appends <code>cmd.Name()</code> if any of three conditions hold:
+<ol>
+<li><strong>Levenshtein Edit Distance (<code>L867–868</code>)</strong>: <code>ld(typedName, cmd.Name(), true) &lt;= c.SuggestionsMinimumDistance</code>. The helper <code>ld(s, t string, ignoreCase bool) int</code> (<code>cobra.go:192–223</code>) allocates a 2D slice <code>d</code> of dimensions <code>(len(s)+1) × (len(t)+1)</code> and computes standard insertion/deletion/substitution edit distance in $O(|s| \cdot |t|)$ time.</li>
+<li><strong>Case-Insensitive Prefix (<code>L869</code>)</strong>: <code>strings.HasPrefix(strings.ToLower(cmd.Name()), strings.ToLower(typedName))</code>.</li>
+<li><strong>Explicit <code>SuggestFor</code> Mapping (<code>L873–877</code>)</strong>: <code>strings.EqualFold(typedName, explicitSuggestion)</code> for any string in <code>cmd.SuggestFor</code> (allowing authors to suggest <code>remove</code> when a user types <code>delete</code> or <code>erase</code>, even though their Levenshtein distance exceeds <code>2</code>).</li>
+</ol>
+</li>
+</ul>
+<hr />
+<h2>Cross-References</h2>
+<ul>
+<li><strong>Previous Chapter</strong>: <a href="../01_package_and_tree/command_tree_topology.html">Chapter 1 — Command Tree &amp; FlagSet Topology</a></li>
+<li><strong>Next Chapter</strong>: <a href="../03_execution_engine/executec_and_hook_chain.html">Chapter 3 — ExecuteC, execute() &amp; Hook Chain</a></li>
+<li><strong>Related Chapters</strong>:
+<ul>
+<li><a href="../04_flag_groups_and_args/relational_flag_engine.html">Chapter 4 — Annotation Flag Groups &amp; PositionalArgs Validators</a></li>
+<li><a href="../05_completion_v2_engine/complete_protocol_and_shells.html">Chapter 5 — <code>__complete</code> Protocol &amp; Shell Script Generators</a></li>
+<li><a href="../index.html">Architecture Overview</a></li>
+</ul>
+</li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial internal architecture guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
