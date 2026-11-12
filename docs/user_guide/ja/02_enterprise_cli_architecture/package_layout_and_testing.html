@@ -1,0 +1,825 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マルチパッケージ構成とインメモリテスト — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/02_enterprise_cli_architecture/package_layout_and_testing.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/02_enterprise_cli_architecture/package_layout_and_testing.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/en/02_enterprise_cli_architecture/package_layout_and_testing.html">
+    
+    
+    
+    <meta name="description" content="サブコマンドの数が15〜20個を超えると、単一の cmd/ パッケージに全コマンドファイルを平置きする構成では名前空間が肥大化し、コマンド間で非公開フィールドを誤って参照する結合リスクが高まります。また、CLI のテストを毎回バイナリビルドと OS…">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/ja/02_enterprise_cli_architecture/package_layout_and_testing.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra ユーザーガイド">
+    <meta property="og:title" content="マルチパッケージ構成とインメモリテスト — Cobra ユーザーガイド">
+    <meta property="og:description" content="サブコマンドの数が15〜20個を超えると、単一の cmd/ パッケージに全コマンドファイルを平置きする構成では名前空間が肥大化し、コマンド間で非公開フィールドを誤って参照する結合リスクが高まります。また、CLI のテストを毎回バイナリビルドと OS…">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/ja/02_enterprise_cli_architecture/package_layout_and_testing.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="マルチパッケージ構成とインメモリテスト — Cobra ユーザーガイド">
+    <meta name="twitter:description" content="サブコマンドの数が15〜20個を超えると、単一の cmd/ パッケージに全コマンドファイルを平置きする構成では名前空間が肥大化し、コマンド間で非公開フィールドを誤って参照する結合リスクが高まります。また、CLI のテストを毎回バイナリビルドと OS…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a> で構築された <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）非公式ドキュメント
+            </span>
+            <span class="demo-banner-links">
+                <a href="../../../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../api/ja/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../architecture/ja/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra ユーザーガイド">
+                    
+                    Cobra ユーザーガイド
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >ガイド概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. イントロ &amp; クイックスタート</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Cobra の設計思想と CLI 哲学</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >クイックスタートとサブコマンド構築</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. 大規模 CLI アーキテクチャ設計</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="factory_pattern_and_di.html" >ファクトリ関数・Options・DI パターン</a>
+                            </li>
+                            
+                            <li class="nav-item active">
+                                <a href="package_layout_and_testing.html" >マルチパッケージ構成とインメモリテスト</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. コマンド・フラグ・引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent / Local フラグと継承機構</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >位置引数バリデータとフラググループ制約</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 設定管理と Viper 統合</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6階層の設定優先順位と Viper バインド</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. シェル補完 V2 と CLI UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 と Directive 制御</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp・タイポ提案・ヘルプテンプレート</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. 実行ライフサイクルとドキュメント生成</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >6段階フック・エラー設計・Context シグナル</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >ドキュメント自動生成（MD/Man/YAML）と配布</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">ポータル一覧（Showcase Hub）<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra 内部アーキテクチャ解説<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">マルチパッケージ構成とインメモリテスト</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/02_enterprise_cli_architecture/package_layout_and_testing.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="package_layout_and_testing.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>マルチパッケージ構成とインメモリテスト</h1>
+<p>サブコマンドの数が15〜20個を超えると、単一の <code>cmd/</code> パッケージに全コマンドファイルを平置きする構成では名前空間が肥大化し、コマンド間で非公開フィールドを誤って参照する結合リスクが高まります。また、CLI のテストを毎回バイナリビルドと OS サブプロセス起動（<code>os/exec.Command</code>）で行っていると、テストスイート全体の実行に数十秒〜数分を要してしまいます。本ページでは、<strong>循環参照（Circular Import）を起こさないドメイン別マルチパッケージ構成</strong> と、<code>SetArgs</code>・<code>SetOut</code>・<code>SetErr</code>・<code>SetIn</code>・<code>ExecuteC()</code> を駆使した <strong>サブミリ秒のインメモリ単体テスト手法</strong> を解説します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_enterprise_cli_architecture/package_layout_and_testing/ug_testing_package_layout_ja.png" alt="package_layout_and_testing_1" />
+  <figcaption class="drawlib-caption">ドメイン分割マルチパッケージ構成と非循環（DAG）インポート階層</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.preset_colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CssColors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span><span class="p">,</span> <span class="n">TreeNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">left_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. ドメイン別ディレクトリ構成"</span><span class="p">,</span>
+    <span class="s2">"internal/cli/ 階層"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">folder_open</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">left_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">82.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">)</span>
+
+<span class="n">TreeNode</span><span class="o">.</span><span class="n">register_drawing_item</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"pkg_dir"</span><span class="p">,</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"before"</span><span class="p">,</span>
+    <span class="n">padding_width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+    <span class="n">function</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">icon_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Primary</span><span class="p">),</span>
+    <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">TreeNode</span><span class="o">.</span><span class="n">register_drawing_item</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"pkg_go"</span><span class="p">,</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"before"</span><span class="p">,</span>
+    <span class="n">padding_width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+    <span class="n">function</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">file_code</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">icon_color</span><span class="o">=</span><span class="n">CssColors</span><span class="o">.</span><span class="n">ForestGreen</span><span class="p">),</span>
+    <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">},</span>
+<span class="p">)</span>
+
+<span class="n">tree</span> <span class="o">=</span> <span class="n">TreeNode</span><span class="p">(</span>
+    <span class="s2">"cloudctl-repo/"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">line_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">line_width</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">line_horizontal_margin</span><span class="o">=</span><span class="mf">2.8</span><span class="p">,</span>
+    <span class="n">line_horizontal_length</span><span class="o">=</span><span class="mf">2.8</span><span class="p">,</span>
+    <span class="n">line_vertical_margin</span><span class="o">=</span><span class="mf">4.6</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">TreeNode</span><span class="p">(</span>
+            <span class="s2">"cmd/cloudctl/"</span><span class="p">,</span>
+            <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">TreeNode</span><span class="p">(</span><span class="s2">"main.go"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">)],</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">),</span>
+        <span class="n">TreeNode</span><span class="p">(</span>
+            <span class="s2">"internal/cmdutil/"</span><span class="p">,</span>
+            <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">TreeNode</span><span class="p">(</span><span class="s2">"factory.go (Factory, IOStreams)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">)],</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">),</span>
+        <span class="n">TreeNode</span><span class="p">(</span>
+            <span class="s2">"internal/cli/"</span><span class="p">,</span>
+            <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"root.go (NewRootCmd)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">),</span>
+                <span class="n">TreeNode</span><span class="p">(</span>
+                    <span class="s2">"cluster/"</span><span class="p">,</span>
+                    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"cluster.go (NewClusterCmd)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">),</span>
+                        <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"create.go &amp; create_test.go"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">),</span>
+                    <span class="p">],</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">),</span>
+                <span class="n">TreeNode</span><span class="p">(</span>
+                    <span class="s2">"deploy/"</span><span class="p">,</span>
+                    <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">TreeNode</span><span class="p">(</span><span class="s2">"rollout.go &amp; rollout_test.go"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_go"</span><span class="p">)],</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">),</span>
+    <span class="p">],</span>
+<span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"pkg_dir"</span><span class="p">)</span>
+<span class="n">tree</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">66.0</span><span class="p">))</span>
+
+<span class="n">right_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 単方向インポート階層"</span><span class="p">,</span>
+    <span class="s2">"循環参照防止 DAG"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">git_merge</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">right_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">90.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">90.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">)</span>
+<span class="n">r_xy</span><span class="p">,</span> <span class="n">r_w</span><span class="p">,</span> <span class="n">r_h</span> <span class="o">=</span> <span class="n">right_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">90.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">90.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">layers</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.2</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Layer 1: cmd/cloudctl (main)"</span><span class="p">,</span>
+    <span class="s2">"cmdutil.Factory を生成し cli.NewRootCmd(f) を実行"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"L1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Layer 2: internal/cli (Root)"</span><span class="p">,</span>
+    <span class="s2">"各ドメインパッケージ (cluster, deploy) を AddCommand"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"L2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Layer 3: internal/cli/&lt;domain&gt;"</span><span class="p">,</span>
+    <span class="s2">"サブコマンド群を定義（上位の internal/cli は import しない）"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"L3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">cube</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Layer 4: internal/cmdutil"</span><span class="p">,</span>
+    <span class="s2">"共有 Factory インターフェース・IOStreams・共通ヘルパー"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"L4"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">wrench</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layers</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">r_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">r_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">r_h</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. 循環インポートを防ぐ4層マルチパッケージ設計</h2>
+<p>Go の仕様上、<code>NewRootCmd</code> を置く <code>internal/cli</code> パッケージが <code>internal/cli/cluster</code> を <code>import</code> する場合、子パッケージである <code>internal/cli/cluster</code> から親の <code>internal/cli</code> を逆方向に <code>import</code> することはできません。</p>
+<p>GitHub CLI（<code>gh</code> の <code>pkg/cmd/...</code> + <code>pkg/cmdutil</code>）や <code>kubectl</code> で採用されている解決策は、依存方向を上から下へ厳密に固定する <strong>4層の有向非巡回グラフ（DAG）構造</strong> です。</p>
+<ol>
+<li><strong><code>internal/cmdutil</code>（第4層 — 共通基盤パッケージ）</strong>:
+<code>IOStreams</code>、<code>Factory</code> インターフェース、共通フラグヘルパーを定義します。<code>cobra</code> や <code>pflag</code> は <code>import</code> しますが、個別コマンドのパッケージは一切 <code>import</code> しません。</li>
+<li><strong><code>internal/cli/&lt;domain&gt;</code>（第3層 — ドメイン別サブコマンドパッケージ）</strong>:
+機能領域ごと（<code>cluster</code>, <code>deploy</code>, <code>auth</code>）にサブパッケージを切り、<code>NewCmd&lt;Group&gt;(f cmdutil.Factory) *cobra.Command</code> を公開します。同パッケージ内で <code>NewCmdClusterCreate(f)</code> や <code>NewCmdClusterDelete(f)</code> を組み立てます。</li>
+<li><strong><code>internal/cli</code>（第2層 — ルートアセンブラ）</strong>:
+<code>NewRootCmd(f cmdutil.Factory) *cobra.Command</code> を定義し、<code>rootCmd.AddCommand(cluster.NewCmdCluster(f), deploy.NewCmdDeploy(f))</code> で全ドメインツリーを統合します。</li>
+<li><strong><code>cmd/&lt;binary&gt;/main.go</code>（第1層 — バイナリエントリポイント）</strong>:
+本番用の <code>cmdutil.Factory</code>（<code>os.Stdin</code>, <code>os.Stdout</code>, <code>os.Stderr</code> を束ねた実装）を初期化し、<code>cli.NewRootCmd(f).ExecuteContext(ctx)</code> を呼び出します。</li>
+</ol>
+<pre><code class="language-go"><span class="c1">// internal/cli/cluster/cluster.go</span>
+<span class="kn">package</span><span class="w"> </span><span class="nx">cluster</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"example.com/cloudctl/internal/cmdutil"</span>
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// NewCmdCluster は "cloudctl cluster &lt;subcommand&gt;" サブツリーを構築します。</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewCmdCluster</span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="nx">cmdutil</span><span class="p">.</span><span class="nx">Factory</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"cluster"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Kubernetes クラスタの作成・削除・一覧管理"</span><span class="p">,</span>
+<span class="w">		</span><span class="c1">// グループ親コマンドでは Run/RunE を省略することで、引数なし実行時に自動でヘルプを表示させる</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span>
+<span class="w">		</span><span class="nx">NewCmdClusterCreate</span><span class="p">(</span><span class="nx">f</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">NewCmdClusterDelete</span><span class="p">(</span><span class="nx">f</span><span class="p">),</span>
+<span class="w">	</span><span class="p">)</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>2. <code>SetArgs</code>・<code>SetOut</code>・<code>ExecuteC</code> によるインメモリ単体テスト</h2>
+<p>Cobra の <code>*cobra.Command</code> は、OS のグローバルな <code>os.Args</code> や <code>os.Stdout</code> に一切触れずに、メモリ上のバッファだけで完結して実行できるように設計されています。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">メソッド</th>
+<th style="text-align:left">シグネチャ</th>
+<th style="text-align:left">未設定（<code>nil</code>）時のデフォルト</th>
+<th style="text-align:left">単体テストでの用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>cmd.SetArgs(a)</code></strong></td>
+<td style="text-align:left"><code>func (c *Command) SetArgs(a []string)</code></td>
+<td style="text-align:left"><code>os.Args[1:]</code></td>
+<td style="text-align:left">バイナリ名を除いた引数スライス（例: <code>[]string{&quot;cluster&quot;, &quot;create&quot;, &quot;prod&quot;, &quot;--nodes=3&quot;}</code>）を渡す。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>cmd.SetOut(newOut)</code></strong></td>
+<td style="text-align:left"><code>func (c *Command) SetOut(newOut io.Writer)</code></td>
+<td style="text-align:left"><code>os.Stdout</code></td>
+<td style="text-align:left"><code>*bytes.Buffer</code> を渡し、<code>cmd.Print*</code> や <code>--help</code>、<code>--version</code> の標準出力をキャプチャする。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>cmd.SetErr(newErr)</code></strong></td>
+<td style="text-align:left"><code>func (c *Command) SetErr(newErr io.Writer)</code></td>
+<td style="text-align:left"><code>os.Stderr</code></td>
+<td style="text-align:left"><code>*bytes.Buffer</code> を渡し、<code>cmd.PrintErr*</code> やエラー出力をキャプチャする。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>cmd.SetIn(newIn)</code></strong></td>
+<td style="text-align:left"><code>func (c *Command) SetIn(newIn io.Reader)</code></td>
+<td style="text-align:left"><code>os.Stdin</code></td>
+<td style="text-align:left"><code>strings.NewReader(&quot;yes\n&quot;)</code> 等を渡し、対話的プロンプトへの標準入力をシミュレートする。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>cmd.ExecuteC()</code></strong></td>
+<td style="text-align:left"><code>func (c *Command) ExecuteC() (*Command, error)</code></td>
+<td style="text-align:left"><code>c.Root()</code> 上で実行</td>
+<td style="text-align:left">ツリーを実行し、<strong>実際にディスパッチされた末端の <code>*cobra.Command</code></strong> と <strong><code>error</code></strong> の両方を返す。</td>
+</tr>
+</tbody>
+</table>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/02_enterprise_cli_architecture/package_layout_and_testing/ug_testing_hermetic_harness_ja.png" alt="package_layout_and_testing_2" />
+  <figcaption class="drawlib-caption">インメモリ・テストハーネスの構成とサブプロセス実行との速度比較</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.charts.bar</span><span class="w"> </span><span class="kn">import</span> <span class="n">BarChart</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">left_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. インメモリテスト手順"</span><span class="p">,</span>
+    <span class="s2">"OS I/O ゼロ設計"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">flask</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">left_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">88.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+<span class="n">l_xy</span><span class="p">,</span> <span class="n">l_w</span><span class="p">,</span> <span class="n">l_h</span> <span class="o">=</span> <span class="n">left_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">88.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">steps</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.2</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">steps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"1. バッファと FakeFactory の準備"</span><span class="p">,</span>
+    <span class="s2">"stdout, stderr := new(bytes.Buffer)"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"T1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">brackets_curly</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">steps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"2. 新規コマンドツリーの生成"</span><span class="p">,</span>
+    <span class="s2">"cmd := cli.NewRootCmd(fakeFactory)"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"T2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">steps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"3. SetArgs と入出力バッファの設定"</span><span class="p">,</span>
+    <span class="s2">"cmd.SetArgs(tt.args) // 必ず非 nil スライス！"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"T3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">steps</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. ExecuteC() 実行とアサーション"</span><span class="p">,</span>
+    <span class="s2">"execCmd, err := cmd.ExecuteC()"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"T4"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">check_circle</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">steps</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">l_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">l_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">l_h</span><span class="p">)</span>
+
+<span class="n">right_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 1テストあたりの実行時間"</span><span class="p">,</span>
+    <span class="s2">"Log10 スケール (ms)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">lightning</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">right_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">96.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">84.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+
+<span class="n">chart</span> <span class="o">=</span> <span class="n">BarChart</span><span class="p">(</span>
+    <span class="n">axis_line_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedDashed</span><span class="p">,</span>
+    <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="s2">"Options.Run()"</span><span class="p">,</span> <span class="s2">"cmd.ExecuteC()"</span><span class="p">,</span> <span class="s2">"exec.Command"</span><span class="p">],</span>
+    <span class="n">width</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
+    <span class="n">bar_width_ratio</span><span class="o">=</span><span class="mf">0.52</span><span class="p">,</span>
+    <span class="n">bar_r</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">axis_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">grid_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+    <span class="n">value_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">value_format</span><span class="o">=</span><span class="s2">"</span><span class="si">{:g}</span><span class="s2"> ms"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">chart</span><span class="o">.</span><span class="n">add_series</span><span class="p">(</span><span class="s2">"中央値レイテンシ"</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.04</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">420.0</span><span class="p">],</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">)</span>
+<span class="n">chart</span><span class="o">.</span><span class="n">configure_y_axis</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="s2">"log"</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"ms"</span><span class="p">)</span>
+<span class="n">chart</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">104.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>3. 実践テストヘルパー <code>executeCommandC</code> とテーブル駆動テスト</h2>
+<h3>落とし穴：<code>cmd.SetArgs(nil)</code> と <code>os.Args[1:]</code> フォールバック</h3>
+<p>Cobra の <code>command.go</code>（<code>1105〜1107</code> 行目）には以下の実装があります。</p>
+<pre><code class="language-go"><span class="c1">// command.go の (*Command).ExecuteC() 内部:</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">args</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Base</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"cobra.test"</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">args</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+<span class="p">}</span>
+</code></pre>
+<p><code>go test -v ./internal/cli/...</code> を実行すると、テストバイナリ名は <code>cli.test</code>（<code>cobra.test</code> ではない）になります。このとき、もしテストコード側で <code>cmd.SetArgs(nil)</code> を渡したり <code>SetArgs</code> を呼び忘れたりすると、<code>c.args == nil</code> が真となり、Cobra は <strong><code>go test</code> 自身が渡した <code>-test.v</code> や <code>-test.run</code> フラグ（<code>os.Args[1:]</code>）を CLI のフラグとしてパースしようとして <code>unknown shorthand flag: 't' in -test.v</code> エラーを引き起こします</strong>。</p>
+<blockquote>
+<p><strong>単体テストの鉄則</strong>:
+引数なしのルートコマンド実行をテストする場合でも、<code>nil</code> ではなく <strong>必ず非 <code>nil</code> の空スライス <code>[]string{}</code></strong> を <code>cmd.SetArgs([]string{})</code> に渡してください。</p>
+</blockquote>
+<h3>テーブル駆動テストの完全実装例（<code>create_test.go</code>）</h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cluster_test</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"bytes"</span>
+<span class="w">	</span><span class="s">"strings"</span>
+<span class="w">	</span><span class="s">"testing"</span>
+
+<span class="w">	</span><span class="s">"example.com/cloudctl/internal/cli"</span>
+<span class="w">	</span><span class="s">"example.com/cloudctl/internal/cmdutil"</span>
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// executeCommandC は毎回新しいルートコマンドツリーを生成し、メモリ上で実行します。</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">executeCommandC</span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="nx">cmdutil</span><span class="p">.</span><span class="nx">Factory</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">...</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">stdout</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">new</span><span class="p">(</span><span class="nx">bytes</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">stderr</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">new</span><span class="p">(</span><span class="nx">bytes</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cli</span><span class="p">.</span><span class="nx">NewRootCmd</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetIn</span><span class="p">(</span><span class="nx">strings</span><span class="p">.</span><span class="nx">NewReader</span><span class="p">(</span><span class="s">""</span><span class="p">))</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetOut</span><span class="p">(</span><span class="nx">stdout</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetErr</span><span class="p">(</span><span class="nx">stderr</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// 重要: args が nil のままだと os.Args[1:] (-test.v 等) を読み込んでしまうため空スライスに変換</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">args</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{}</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">SetArgs</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">executedCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">ExecuteC</span><span class="p">()</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">executedCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">stdout</span><span class="p">.</span><span class="nx">String</span><span class="p">(),</span><span class="w"> </span><span class="nx">stderr</span><span class="p">.</span><span class="nx">String</span><span class="p">(),</span><span class="w"> </span><span class="nx">err</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">TestClusterCreateCmd</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">t</span><span class="p">.</span><span class="nx">Parallel</span><span class="p">()</span>
+
+<span class="w">	</span><span class="nx">tests</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">name</span><span class="w">       </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">args</span><span class="w">       </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">wantCmd</span><span class="w">    </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">wantStdout</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">wantErr</span><span class="w">    </span><span class="kt">string</span>
+<span class="w">	</span><span class="p">}{</span>
+<span class="w">		</span><span class="p">{</span>
+<span class="w">			</span><span class="nx">name</span><span class="p">:</span><span class="w">       </span><span class="s">"正常系: 長形式フラグと短縮フラグの組み合わせ"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">args</span><span class="p">:</span><span class="w">       </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"cluster"</span><span class="p">,</span><span class="w"> </span><span class="s">"create"</span><span class="p">,</span><span class="w"> </span><span class="s">"prod-tokyo"</span><span class="p">,</span><span class="w"> </span><span class="s">"--nodes"</span><span class="p">,</span><span class="w"> </span><span class="s">"5"</span><span class="p">,</span><span class="w"> </span><span class="s">"-r"</span><span class="p">,</span><span class="w"> </span><span class="s">"ap-northeast-1"</span><span class="p">},</span>
+<span class="w">			</span><span class="nx">wantCmd</span><span class="p">:</span><span class="w">    </span><span class="s">"create"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">wantStdout</span><span class="p">:</span><span class="w"> </span><span class="s">"Created cluster \"prod-tokyo\" (5 nodes in ap-northeast-1)\n"</span><span class="p">,</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">		</span><span class="p">{</span>
+<span class="w">			</span><span class="nx">name</span><span class="p">:</span><span class="w">    </span><span class="s">"異常系: 必須の位置引数 &lt;cluster-name&gt; が不足"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">args</span><span class="p">:</span><span class="w">    </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"cluster"</span><span class="p">,</span><span class="w"> </span><span class="s">"create"</span><span class="p">},</span>
+<span class="w">			</span><span class="nx">wantCmd</span><span class="p">:</span><span class="w"> </span><span class="s">"create"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">wantErr</span><span class="p">:</span><span class="w"> </span><span class="s">"accepts 1 arg(s), received 0"</span><span class="p">,</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">		</span><span class="p">{</span>
+<span class="w">			</span><span class="nx">name</span><span class="p">:</span><span class="w">    </span><span class="s">"異常系: Validate() によるドメイン制約違反 (--nodes 0)"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">args</span><span class="p">:</span><span class="w">    </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"cluster"</span><span class="p">,</span><span class="w"> </span><span class="s">"create"</span><span class="p">,</span><span class="w"> </span><span class="s">"staging"</span><span class="p">,</span><span class="w"> </span><span class="s">"--nodes"</span><span class="p">,</span><span class="w"> </span><span class="s">"0"</span><span class="p">},</span>
+<span class="w">			</span><span class="nx">wantCmd</span><span class="p">:</span><span class="w"> </span><span class="s">"create"</span><span class="p">,</span>
+<span class="w">			</span><span class="nx">wantErr</span><span class="p">:</span><span class="w"> </span><span class="s">"--nodes must be at least 1"</span><span class="p">,</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tt</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">tests</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">t</span><span class="p">.</span><span class="nx">Run</span><span class="p">(</span><span class="nx">tt</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">t</span><span class="p">.</span><span class="nx">Parallel</span><span class="p">()</span><span class="w"> </span><span class="c1">// 新規ツリーを毎回構築するため並行実行しても完全に安全！</span>
+
+<span class="w">			</span><span class="nx">f</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmdutil</span><span class="p">.</span><span class="nx">NewFakeFactory</span><span class="p">()</span>
+<span class="w">			</span><span class="nx">executedCmd</span><span class="p">,</span><span class="w"> </span><span class="nx">stdout</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">executeCommandC</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">args</span><span class="p">...)</span>
+
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">executedCmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantCmd</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">t</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"executed command = %q, want %q"</span><span class="p">,</span><span class="w"> </span><span class="nx">executedCmd</span><span class="p">.</span><span class="nx">Name</span><span class="p">(),</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantCmd</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantErr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">""</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">(),</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantErr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">					</span><span class="nx">t</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"err = %v, want substring %q"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantErr</span><span class="p">)</span>
+<span class="w">				</span><span class="p">}</span>
+<span class="w">				</span><span class="k">return</span>
+<span class="w">			</span><span class="p">}</span>
+
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">t</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">"unexpected error: %v"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">stdout</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantStdout</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">t</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"stdout = %q, want %q"</span><span class="p">,</span><span class="w"> </span><span class="nx">stdout</span><span class="p">,</span><span class="w"> </span><span class="nx">tt</span><span class="p">.</span><span class="nx">wantStdout</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">		</span><span class="p">})</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h3>子コマンド単体で <code>ExecuteC()</code> を呼ぶ場合の注意点</h3>
+<p><code>(*Command).ExecuteC()</code> は、親を持つ子コマンドに対して呼ばれた場合でも自動的に <code>c.Root().ExecuteC()</code> へ委譲し、引数 <code>c.args</code> もルートコマンドから読み取ります。そのため、ルートツリー全体を通す結合テストでは <code>cli.NewRootCmd(f)</code> に対して <code>[]string{&quot;cluster&quot;, &quot;create&quot;, &quot;prod-tokyo&quot;}</code> を渡し、サブコマンド単体（親に接続していない <code>NewCmdClusterCreate(f)</code>）をテストする場合は <code>[]string{&quot;prod-tokyo&quot;}</code>（サブコマンド名を含まないスライス）を <code>SetArgs</code> に渡してください。</p>
+<hr />
+<h2>次のステップ</h2>
+<p>大規模 CLI に耐えるパッケージ構造と高速テスト環境が整ったら、<strong><a href="../03_commands_flags_and_args/persistent_and_local_flags.html">第3章: Persistent / Local フラグと継承機構</a></strong> へ進み、<code>spf13/pflag</code> の型付きバインド、<code>TraverseChildren</code>、正規化関数を詳しく学びましょう。</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式ガイドであり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

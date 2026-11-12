@@ -1,0 +1,796 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クイックスタートとサブコマンド構築 — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/01_getting_started/quickstart.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/01_getting_started/quickstart.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/en/01_getting_started/quickstart.html">
+    
+    
+    
+    <meta name="description" content="本ページでは、空のディレクトリから出発して github.com/spf13/cobra v1.10.2 を用いたマルチコマンド CLI（myapp）をゼロから構築します。Go モジュールの初期化、ルートコマンド（rootCmd）の定義、2つのサブコマンド（versionCmd と serveCmd）の…">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/ja/01_getting_started/quickstart.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra ユーザーガイド">
+    <meta property="og:title" content="クイックスタートとサブコマンド構築 — Cobra ユーザーガイド">
+    <meta property="og:description" content="本ページでは、空のディレクトリから出発して github.com/spf13/cobra v1.10.2 を用いたマルチコマンド CLI（myapp）をゼロから構築します。Go モジュールの初期化、ルートコマンド（rootCmd）の定義、2つのサブコマンド（versionCmd と serveCmd）の…">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/ja/01_getting_started/quickstart.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="クイックスタートとサブコマンド構築 — Cobra ユーザーガイド">
+    <meta name="twitter:description" content="本ページでは、空のディレクトリから出発して github.com/spf13/cobra v1.10.2 を用いたマルチコマンド CLI（myapp）をゼロから構築します。Go モジュールの初期化、ルートコマンド（rootCmd）の定義、2つのサブコマンド（versionCmd と serveCmd）の…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a> で構築された <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）非公式ドキュメント
+            </span>
+            <span class="demo-banner-links">
+                <a href="../../../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../api/ja/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../architecture/ja/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra ユーザーガイド">
+                    
+                    Cobra ユーザーガイド
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >ガイド概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. イントロ &amp; クイックスタート</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="overview.html" >Cobra の設計思想と CLI 哲学</a>
+                            </li>
+                            
+                            <li class="nav-item active">
+                                <a href="quickstart.html" >クイックスタートとサブコマンド構築</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. 大規模 CLI アーキテクチャ設計</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >ファクトリ関数・Options・DI パターン</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >マルチパッケージ構成とインメモリテスト</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. コマンド・フラグ・引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent / Local フラグと継承機構</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >位置引数バリデータとフラググループ制約</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 設定管理と Viper 統合</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6階層の設定優先順位と Viper バインド</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. シェル補完 V2 と CLI UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 と Directive 制御</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp・タイポ提案・ヘルプテンプレート</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. 実行ライフサイクルとドキュメント生成</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >6段階フック・エラー設計・Context シグナル</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >ドキュメント自動生成（MD/Man/YAML）と配布</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">ポータル一覧（Showcase Hub）<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra 内部アーキテクチャ解説<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">クイックスタートとサブコマンド構築</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/01_getting_started/quickstart.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="quickstart.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>クイックスタートとサブコマンド構築</h1>
+<p>本ページでは、空のディレクトリから出発して <code>github.com/spf13/cobra</code> <code>v1.10.2</code> を用いたマルチコマンド CLI（<code>myapp</code>）をゼロから構築します。Go モジュールの初期化、ルートコマンド（<code>rootCmd</code>）の定義、2つのサブコマンド（<code>versionCmd</code> と <code>serveCmd</code>）の <code>AddCommand()</code> による接続、エラーを返す <code>RunE</code> ハンドラの実装、そして組み込みの <code>--help</code> / <code>--version</code> 機構の動作確認までを一通り体験します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_getting_started/quickstart/ug_quickstart_tree_ja.png" alt="quickstart_1" />
+  <figcaption class="drawlib-caption">クイックスタートのディレクトリ構成と実行時サブコマンドツリー</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.preset_colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CssColors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">Panel</span><span class="p">,</span> <span class="n">TreeNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">left_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"1. ファイル構成"</span><span class="p">,</span>
+    <span class="s2">"Go 1.22+ モジュール"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">folder_open</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">left_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">76.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+
+<span class="n">TreeNode</span><span class="o">.</span><span class="n">register_drawing_item</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"qs_dir"</span><span class="p">,</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"before"</span><span class="p">,</span>
+    <span class="n">padding_width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+    <span class="n">function</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">icon_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Primary</span><span class="p">),</span>
+    <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">TreeNode</span><span class="o">.</span><span class="n">register_drawing_item</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"qs_go"</span><span class="p">,</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"before"</span><span class="p">,</span>
+    <span class="n">padding_width</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+    <span class="n">function</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">file_code</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">icon_color</span><span class="o">=</span><span class="n">CssColors</span><span class="o">.</span><span class="n">ForestGreen</span><span class="p">),</span>
+    <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">},</span>
+<span class="p">)</span>
+
+<span class="n">tree</span> <span class="o">=</span> <span class="n">TreeNode</span><span class="p">(</span>
+    <span class="s2">"myapp/"</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">line_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">line_width</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">line_horizontal_margin</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">line_horizontal_length</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">line_vertical_margin</span><span class="o">=</span><span class="mf">6.2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"go.mod (cobra v1.10.2)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_go"</span><span class="p">),</span>
+        <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"main.go (Execute 起点)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_go"</span><span class="p">),</span>
+        <span class="n">TreeNode</span><span class="p">(</span>
+            <span class="s2">"cmd/"</span><span class="p">,</span>
+            <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"root.go (NewRootCmd)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_go"</span><span class="p">),</span>
+                <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"serve.go (newServeCmd)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_go"</span><span class="p">),</span>
+                <span class="n">TreeNode</span><span class="p">(</span><span class="s2">"version.go (newVersionCmd)"</span><span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_go"</span><span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_dir"</span><span class="p">),</span>
+    <span class="p">],</span>
+<span class="p">)</span><span class="o">.</span><span class="n">set_drawing_item</span><span class="p">(</span><span class="s2">"qs_dir"</span><span class="p">)</span>
+<span class="n">tree</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">))</span>
+
+<span class="n">right_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"2. 実行時コマンドツリー"</span><span class="p">,</span>
+    <span class="s2">"AddCommand() による構成"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">git_branch</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">right_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">84.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">96.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+<span class="n">r_xy</span><span class="p">,</span> <span class="n">r_w</span><span class="p">,</span> <span class="n">r_h</span> <span class="o">=</span> <span class="n">right_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">84.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">96.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">cmds</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.2</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cmds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"rootCmd (myapp)"</span><span class="p">,</span>
+    <span class="s2">"永続フラグ: --verbose (-v) | Version: v0.1.0"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"ROOT"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cmds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"serveCmd (myapp serve)"</span><span class="p">,</span>
+    <span class="s2">"ローカルフラグ: --host, --port (-p) | HTTP 起動"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"SUB 1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">hard_drives</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cmds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"versionCmd (myapp version)"</span><span class="p">,</span>
+    <span class="s2">"ローカルフラグ: --short | ビルド情報を出力"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"SUB 2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cmds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"help &amp; completion (自動生成コマンド)"</span><span class="p">,</span>
+    <span class="s2">"InitDefaultHelpCmd と CompletionCmd が自動登録"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"AUTO"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">magic_wand</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cmds</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">r_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">r_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">r_h</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Go モジュールの初期化と Cobra <code>v1.10.2</code> の導入</h2>
+<p>作業ディレクトリを作成して <code>go mod init</code> を実行し、<code>github.com/spf13/cobra@v1.10.2</code> を取得します。</p>
+<pre><code class="language-bash">mkdir<span class="w"> </span>-p<span class="w"> </span>myapp/cmd<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>myapp
+go<span class="w"> </span>mod<span class="w"> </span>init<span class="w"> </span>example.com/myapp
+go<span class="w"> </span>get<span class="w"> </span>github.com/spf13/cobra@v1.10.2
+</code></pre>
+<p>これにより <code>github.com/spf13/cobra v1.10.2</code> と、その直接依存である <code>github.com/spf13/pflag v1.0.9</code> および <code>github.com/inconshreveable/mousetrap v1.1.0</code>（Windows エクスプローラからの直接起動検知用）が <code>go.mod</code> に追加されます。</p>
+<blockquote>
+<p><strong>補足 — なぜ <code>cobra-cli init</code> ではなくコンストラクタ関数で書くのか？</strong>:
+旧来の <code>cobra-cli</code> ジェネレータは、パッケージグローバル変数（<code>var rootCmd = &amp;cobra.Command{...}</code>）と <code>func init()</code> を生成します。<a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html">第2章: ファクトリ関数・Options・DI パターン</a> で詳しく解説するとおり、最初からコンストラクタ関数（<code>NewRootCmd()</code>）で記述しておけば、コード量は変わらずに並行テスト（<code>t.Parallel()</code>）での状態汚染を完全に防ぐことができます。</p>
+</blockquote>
+<hr />
+<h2>2. ルートコマンドの実装（<code>cmd/root.go</code>）</h2>
+<p><code>cmd/root.go</code> を作成し、ルートコマンドの生成・<code>Version</code> の設定・全サブコマンド共通の永続フラグ <code>--verbose</code> の登録・子コマンドの接続を行う <code>NewRootCmd()</code> を実装します。</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cmd</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// RootOptions はルートおよび全サブコマンドで共有するフラグ値を保持します。</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">RootOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Verbose</span><span class="w"> </span><span class="kt">bool</span>
+<span class="p">}</span>
+
+<span class="c1">// NewRootCmd はルート Command を生成し、サブコマンドツリーを組み立てます。</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewRootCmd</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">opts</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">RootOptions</span><span class="p">{}</span>
+
+<span class="w">	</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">           </span><span class="s">"myapp"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w">         </span><span class="s">"クラウドワークロード管理 CLI ツール"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Long</span><span class="p">:</span><span class="w">          </span><span class="s">"myapp は Cobra v1.10.2 で構築されたマイクロサービス管理 CLI です。"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Version</span><span class="p">:</span><span class="w">       </span><span class="s">"v0.1.0"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">SilenceUsage</span><span class="p">:</span><span class="w">  </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// RunE が実行時エラーを返した際に Usage 全文を再表示しない</span>
+<span class="w">		</span><span class="nx">SilenceErrors</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// エラー出力を main.go 側の1箇所に集約する</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// PersistentFlags（永続フラグ）は serve や version など全子孫コマンドに継承される</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">PersistentFlags</span><span class="p">().</span><span class="nx">BoolVarP</span><span class="p">(</span>
+<span class="w">		</span><span class="o">&amp;</span><span class="nx">opts</span><span class="p">.</span><span class="nx">Verbose</span><span class="p">,</span>
+<span class="w">		</span><span class="s">"verbose"</span><span class="p">,</span>
+<span class="w">		</span><span class="s">"v"</span><span class="p">,</span>
+<span class="w">		</span><span class="kc">false</span><span class="p">,</span>
+<span class="w">		</span><span class="s">"詳細なデバッグログ出力を有効化"</span><span class="p">,</span>
+<span class="w">	</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// 子サブコマンドをルートコマンドに登録</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span>
+<span class="w">		</span><span class="nx">newVersionCmd</span><span class="p">(),</span>
+<span class="w">		</span><span class="nx">newServeCmd</span><span class="p">(</span><span class="nx">opts</span><span class="p">),</span>
+<span class="w">	</span><span class="p">)</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">rootCmd</span>
+<span class="p">}</span>
+</code></pre>
+<h3><code>Version</code> フィールドと <code>-v</code> 短縮フラグの衝突回避メカニズム</h3>
+<p><code>rootCmd.Version</code> に空でない文字列（<code>&quot;v0.1.0&quot;</code>）を設定すると、<code>Execute()</code> 実行時に <code>InitDefaultVersionFlag()</code> が自動的に <code>--version</code> フラグを追加します。</p>
+<ul>
+<li>もしルートコマンドで <code>-v</code> 短縮フラグが未使用であれば、Cobra は自動的に <code>-v</code> を <code>--version</code> の短縮形として割り当てます。</li>
+<li>上記のコードでは <code>--verbose</code> に <code>-v</code> を割り当てているため、Cobra は <code>c.Flags().ShorthandLookup(&quot;v&quot;) != nil</code> を検知し、パニックを起こすことなく <code>--version</code>（短縮形なし）のみを安全に登録します。</li>
+<li>バージョン出力のフォーマットは <code>rootCmd.SetVersionTemplate(&quot;{{.Name}} release {{.Version}}\n&quot;)</code> でカスタマイズ可能です。</li>
+</ul>
+<hr />
+<h2>3. サブコマンドの実装（<code>cmd/version.go</code> と <code>cmd/serve.go</code>）</h2>
+<h3>3.1 <code>cmd/version.go</code> — ローカルフラグ <code>--short</code> を持つサブコマンド</h3>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cmd</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"runtime"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">newVersionCmd</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">short</span><span class="w"> </span><span class="kt">bool</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"version"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"バージョン番号と Go ランタイム情報を表示"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w">  </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">NoArgs</span><span class="p">,</span><span class="w"> </span><span class="c1">// 余分な位置引数が渡された場合はエラーにする</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">short</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">"v0.1.0"</span><span class="p">)</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"myapp version v0.1.0 (%s/%s, %s)\n"</span><span class="p">,</span>
+<span class="w">				</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">GOOS</span><span class="p">,</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">GOARCH</span><span class="p">,</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Version</span><span class="p">())</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">short</span><span class="p">,</span><span class="w"> </span><span class="s">"short"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"バージョン番号のみを簡潔に出力"</span><span class="p">)</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<h3>3.2 <code>cmd/serve.go</code> — <code>RunE</code> によるエラー返却と親オプションの参照</h3>
+<p>アクションの実装には、<code>Run</code> ではなく常に <strong><code>RunE func(cmd *cobra.Command, args []string) error</code></strong> を使用してください。コマンド内部で <code>os.Exit(1)</code> を直接呼ばずに <code>error</code> を返すことで、<code>Execute()</code> の呼び出し元や単体テストでエラーを確実に捕捉できます。</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cmd</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">newServeCmd</span><span class="p">(</span><span class="nx">rootOpts</span><span class="w"> </span><span class="o">*</span><span class="nx">RootOptions</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<span class="w">		</span><span class="nx">host</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">port</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">	</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">     </span><span class="s">"serve"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Aliases</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"server"</span><span class="p">,</span><span class="w"> </span><span class="s">"start"</span><span class="p">},</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w">   </span><span class="s">"HTTP コントロールプレーンサーバを起動"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Example</span><span class="p">:</span><span class="w"> </span><span class="s">"  myapp serve --port 9090 --verbose"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w">    </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">NoArgs</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">65535</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">"不正なポート番号 --port %d: 1〜65535 の範囲で指定してください"</span><span class="p">,</span><span class="w"> </span><span class="nx">port</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nx">rootOpts</span><span class="p">.</span><span class="nx">Verbose</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"[DEBUG] 詳細ログモードが有効です\n"</span><span class="p">)</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"HTTP サーバを起動中: http://%s:%d\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="p">,</span><span class="w"> </span><span class="nx">port</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// Flags() は "myapp serve" 専用のローカルフラグを登録する</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">StringVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">host</span><span class="p">,</span><span class="w"> </span><span class="s">"host"</span><span class="p">,</span><span class="w"> </span><span class="s">"127.0.0.1"</span><span class="p">,</span><span class="w"> </span><span class="s">"バインドするホストアドレス"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">IntVarP</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">port</span><span class="p">,</span><span class="w"> </span><span class="s">"port"</span><span class="p">,</span><span class="w"> </span><span class="s">"p"</span><span class="p">,</span><span class="w"> </span><span class="mi">8080</span><span class="p">,</span><span class="w"> </span><span class="s">"待ち受け TCP ポート番号"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>4. エントリポイント（<code>main.go</code>）の作成と動作確認</h2>
+<p><code>main.go</code> は極力シンプルに保ち、ルートコマンドの構築・<code>Execute()</code> の呼び出し・エラー時の終了コード制御のみを担当させます。</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"os"</span>
+
+<span class="w">	</span><span class="s">"example.com/myapp/cmd"</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">rootCmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">NewRootCmd</span><span class="p">()</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">Execute</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">,</span><span class="w"> </span><span class="s">"Error: %v\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">		</span><span class="nx">os</span><span class="p">.</span><span class="nx">Exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_getting_started/quickstart/ug_quickstart_dispatch_ja.png" alt="quickstart_2" />
+  <figcaption class="drawlib-caption">myapp serve --port 9090 --verbose' 実行時のディスパッチトレース</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChevronProcess</span><span class="p">,</span> <span class="n">Panel</span><span class="p">,</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">74</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">outer</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"実行時ディスパッチの流れ"</span><span class="p">,</span>
+    <span class="s2">"myapp serve -p 9090 -v"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">play_circle</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outer</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">176.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">66.0</span><span class="p">)</span>
+
+<span class="n">proc</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">62.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. ExecuteC()"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"os.Args[1:] 取得"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"2. Find()"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"'serve' を特定"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3. ParseFlags()"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"-p 9090 と -v 解析"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"4. ValidateArgs()"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"cobra.NoArgs 検証"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"5. serveCmd.RunE"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"実行 &amp; nil 返却"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">44.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">15.0</span><span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_evenodd</span><span class="p">(</span>
+    <span class="n">even_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">even_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">odd_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">odd_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_header</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">shape_fill_color</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"実行コマンド"</span><span class="p">,</span> <span class="s2">"解決される Command"</span><span class="p">,</span> <span class="s2">"パースされるフラグ"</span><span class="p">,</span> <span class="s2">"出力結果 / 終了コード"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"myapp --help"</span><span class="p">,</span> <span class="s2">"rootCmd (HelpFunc)"</span><span class="p">,</span> <span class="s2">"--help=true"</span><span class="p">,</span> <span class="s2">"Usage とサブコマンド一覧を表示 (Exit 0)"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"myapp --version"</span><span class="p">,</span> <span class="s2">"rootCmd (VersionFunc)"</span><span class="p">,</span> <span class="s2">"--version=true"</span><span class="p">,</span> <span class="s2">"myapp version v0.1.0 (Exit 0)"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"myapp serve -p 9090 -v"</span><span class="p">,</span> <span class="s2">"serveCmd (RunE)"</span><span class="p">,</span> <span class="s2">"port=9090, verbose=true"</span><span class="p">,</span> <span class="s2">"HTTP サーバを起動中: ...:9090 (Exit 0)"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"myapp serve --port 0"</span><span class="p">,</span> <span class="s2">"serveCmd (RunE エラー)"</span><span class="p">,</span> <span class="s2">"port=0"</span><span class="p">,</span> <span class="s2">"Error: 不正なポート番号... (Exit 1)"</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">6.2</span><span class="p">,</span> <span class="mf">6.2</span><span class="p">,</span> <span class="mf">6.2</span><span class="p">,</span> <span class="mf">6.2</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>ターミナルでの実行確認</h3>
+<p>実際に <code>go run .</code> で各サブコマンドとフラグを実行し、自動生成されたヘルプやエラー出力を確認してみましょう。</p>
+<pre><code class="language-bash"><span class="c1"># 1. 自動生成されたルートヘルプの確認（completion と help も自動追加される）</span>
+$<span class="w"> </span>go<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>--help
+myapp<span class="w"> </span>は<span class="w"> </span>Cobra<span class="w"> </span>v1.10.2<span class="w"> </span>で構築されたマイクロサービス管理<span class="w"> </span>CLI<span class="w"> </span>です。
+
+Usage:
+<span class="w">  </span>myapp<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+
+Available<span class="w"> </span>Commands:
+<span class="w">  </span>completion<span class="w">  </span>Generate<span class="w"> </span>the<span class="w"> </span>autocompletion<span class="w"> </span>script<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>shell
+<span class="w">  </span><span class="nb">help</span><span class="w">        </span>Help<span class="w"> </span>about<span class="w"> </span>any<span class="w"> </span><span class="nb">command</span>
+<span class="w">  </span>serve<span class="w">       </span>HTTP<span class="w"> </span>コントロールプレーンサーバを起動
+<span class="w">  </span>version<span class="w">     </span>バージョン番号と<span class="w"> </span>Go<span class="w"> </span>ランタイム情報を表示
+
+Flags:
+<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">      </span><span class="nb">help</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>myapp
+<span class="w">  </span>-v,<span class="w"> </span>--verbose<span class="w">   </span>詳細なデバッグログ出力を有効化
+<span class="w">      </span>--version<span class="w">   </span>version<span class="w"> </span><span class="k">for</span><span class="w"> </span>myapp
+
+Use<span class="w"> </span><span class="s2">"myapp [command] --help"</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>more<span class="w"> </span>information<span class="w"> </span>about<span class="w"> </span>a<span class="w"> </span>command.
+
+<span class="c1"># 2. ローカルフラグ (-p) と親から継承した永続フラグ (-v) を組み合わせて serve を実行</span>
+$<span class="w"> </span>go<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>serve<span class="w"> </span>-p<span class="w"> </span><span class="m">9090</span><span class="w"> </span>-v
+<span class="o">[</span>DEBUG<span class="o">]</span><span class="w"> </span>詳細ログモードが有効です
+HTTP<span class="w"> </span>サーバを起動中:<span class="w"> </span>http://127.0.0.1:9090
+
+<span class="c1"># 3. バリデーションエラー時の出力確認（SilenceUsage: true によりエラーメッセージのみが簡潔に出る）</span>
+$<span class="w"> </span>go<span class="w"> </span>run<span class="w"> </span>.<span class="w"> </span>serve<span class="w"> </span>--port<span class="w"> </span><span class="m">70000</span>
+Error:<span class="w"> </span>不正なポート番号<span class="w"> </span>--port<span class="w"> </span><span class="m">70000</span>:<span class="w"> </span><span class="m">1</span>〜65535<span class="w"> </span>の範囲で指定してください
+</code></pre>
+<blockquote>
+<p><strong>重要 — <code>fmt.Print*</code> ではなく <code>cmd.Print*</code> を使う習慣をつけよう</strong>:
+<code>RunE</code> の中で <code>fmt.Printf</code> ではなく <code>cmd.Printf</code> / <code>cmd.Println</code> を呼んでいる点に注目してください。<code>cmd.Print*</code> は <code>cmd.OutOrStdout()</code> を経由して出力されるため、単体テスト時に <code>cmd.SetOut(buf)</code> で標準出力をメモリ上のバッファへ簡単にリダイレクトできます。</p>
+</blockquote>
+<hr />
+<h2>次のステップ</h2>
+<p>最初のサブコマンドツリーが動いたら、<strong><a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html">第2章: ファクトリ関数・Options・DI パターン</a></strong> へ進み、コマンド単位の <code>*Options</code> 構造体設計（<code>Complete() -&gt; Validate() -&gt; Run()</code>）と依存性注入（DI）のベストプラクティスを学びましょう。</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式ガイドであり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

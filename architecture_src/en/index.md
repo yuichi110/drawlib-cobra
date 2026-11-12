@@ -293,6 +293,6 @@ Navigate directly to any of the six internal architecture chapters:
 
 This **Internal Architecture Guide** is part of a four-portal documentation suite for `spf13/cobra` v1.10.2:
 
-- **[Cobra User Guide (`https://cobra.drawlib.com/`)](https://cobra.drawlib.com/)**: Task-oriented developer tutorials, CLI patterns, flag binding with Viper, and shell completion setup.
+- **[Cobra User Guide (`https://cobra.drawlib.com/user_guide/`)](https://cobra.drawlib.com/user_guide/)**: Task-oriented developer tutorials, CLI patterns, flag binding with Viper, and shell completion setup.
 - **[Cobra API Reference (`https://cobra.drawlib.com/api/`)](https://cobra.drawlib.com/api/)**: Complete signature catalog for exported types, methods, functions, constants, and variables in `cobra` and `cobra/doc`.
-- **[PNI501 Diagnostic Report (`https://cobra.drawlib.com/reports/pni501/`)](https://cobra.drawlib.com/reports/pni501/)**: Static analysis, test coverage metrics, and architectural health audit for Cobra v1.10.2.
+- **[PNI501 Diagnostic Report (`https://cobra.drawlib.com/pni501/`)](https://cobra.drawlib.com/pni501/)**: Static analysis, test coverage metrics, and architectural health audit for Cobra v1.10.2.

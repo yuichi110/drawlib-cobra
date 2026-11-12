@@ -980,8 +980,13 @@ html {
 
 .demo-banner-links {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.25rem 0.45rem;
+}
+
+.demo-banner-links a,
+.demo-banner-links strong {
     white-space: nowrap;
 }
 

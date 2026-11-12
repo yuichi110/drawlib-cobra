@@ -1,0 +1,771 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobra v1.10.2 — Practical User Guide — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/">
+    
+    
+    
+    <meta name="description" content="Practical user guide, enterprise Go CLI architecture patterns, and feature reference for spf13/cobra v1.10.2.">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Cobra v1.10.2 — Practical User Guide — Cobra User Guide">
+    <meta property="og:description" content="Practical user guide, enterprise Go CLI architecture patterns, and feature reference for spf13/cobra v1.10.2.">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cobra v1.10.2 — Practical User Guide — Cobra User Guide">
+    <meta name="twitter:description" content="Practical user guide, enterprise Go CLI architecture patterns, and feature reference for spf13/cobra v1.10.2.">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="en/style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2) Documentation built with <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a>
+            </span>
+            <span class="demo-banner-links">
+                <a href="../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../api/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../architecture/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="en/index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="en/01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/02_enterprise_cli_architecture/factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="en/02_enterprise_cli_architecture/package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="en/03_commands_flags_and_args/positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="en/05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="en/06_execution_and_operations/lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="en/06_execution_and_operations/doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">All Portals (Showcase Hub)<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Cobra v1.10.2 — Practical User Guide</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="en/index.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="ja/index.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Cobra v1.10.2 — Practical User Guide</h1>
+<p>Cobra (<code>github.com/spf13/cobra</code> <code>v1.10.2</code>) is the industry-standard Go library for building modern, hierarchical command-line interfaces (<code>APPNAME VERB NOUN --ADJECTIVE</code>) and POSIX/GNU-compliant flag sets (<code>spf13/pflag</code>). Powering mission-critical cloud-native tooling including <strong>Kubernetes (<code>kubectl</code>)</strong>, <strong>GitHub CLI (<code>gh</code>)</strong>, <strong>Docker CLI</strong>, <strong>Helm</strong>, and <strong>Hugo</strong>, this unofficial bilingual guide walks systematically from your first subcommand tree to production-grade dependency injection, 6-tier Viper configuration, dynamic Shell Completion V2, and hermetic in-memory test suites.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="images/index/ug_index_hero.png" alt="index_1" />
+  <figcaption class="drawlib-caption">Cobra v1.10.2 Execution Pipeline & 4-Portal Documentation Suite</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">ChevronProcess</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">outer</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Cobra v1.10.2 Architecture"</span><span class="p">,</span>
+    <span class="s2">"Pipeline &amp; Portals"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outer</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">176.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+
+<span class="n">proc</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">62.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. Tree Build"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"NewRootCmd &amp; Flags"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"2. Find / Traverse"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Target Subcommand"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3. Flag Merge"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"pflag + Persistent"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. Validate &amp; Hooks"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Args, Groups &amp; PreRunE"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"5. RunE &amp; PostRunE"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Context &amp; IOStreams"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">proc</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">44.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">17.5</span><span class="p">)</span>
+
+<span class="n">portals</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"horizontal"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">portals</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Portal 1: User Guide"</span><span class="p">,</span>
+    <span class="s2">"Patterns, Viper, UX</span><span class="se">\n</span><span class="s2">&amp; hermetic testing"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"P1"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">book_open</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">portals</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Portal 2: API Catalog"</span><span class="p">,</span>
+    <span class="s2">"Command, pflag, Args</span><span class="se">\n</span><span class="s2">&amp; doc API reference"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"P2"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">portals</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Portal 3: Internals"</span><span class="p">,</span>
+    <span class="s2">"Dispatch, flag merge</span><span class="se">\n</span><span class="s2">&amp; __complete engine"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"P3"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">cpu</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">portals</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Portal 4: PNI501 Audit"</span><span class="p">,</span>
+    <span class="s2">"Architecture diagnostics</span><span class="se">\n</span><span class="s2">&amp; debt remediation"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"P4"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">shield_check</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">portals</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">32.0</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. The 4-Portal Cobra v1.10.2 Documentation Suite</h2>
+<p>This site is <strong>Portal 1 (User Guide)</strong> of a four-portal technical documentation suite engineered for Go developers, platform engineers, and CLI architects working with <code>spf13/cobra</code> <code>v1.10.2</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Portal</th>
+<th style="text-align:left">Scope &amp; Audience</th>
+<th style="text-align:left">Primary Topics</th>
+<th style="text-align:left">URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. User Guide</strong> <em>(Current)</em></td>
+<td style="text-align:left">Application engineers &amp; CLI authors</td>
+<td style="text-align:left">CLI design grammar, Constructor/Options DI, <code>pflag</code> inheritance, Viper precedence, Shell Completion V2, Lifecycle hooks</td>
+<td style="text-align:left"><a href="en/index.html">cobra.drawlib.com/user_guide/</a></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. API Reference</strong></td>
+<td style="text-align:left">Package consumers &amp; SDK builders</td>
+<td style="text-align:left">Exact signatures, struct fields, Posix/GNU <code>pflag</code> bindings, <code>PositionalArgs</code> validators, <code>ShellCompDirective</code> bitmasks, <code>cobra/doc</code></td>
+<td style="text-align:left"><a href="https://cobra.drawlib.com/api/">cobra.drawlib.com/api/</a></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Internal Architecture</strong></td>
+<td style="text-align:left">Core contributors &amp; framework maintainers</td>
+<td style="text-align:left"><code>Command</code> struct anatomy, <code>Find()</code> vs <code>Traverse()</code>, <code>mergePersistentFlags()</code> resolution, <code>__complete</code> protocol, <code>text/template</code> engine</td>
+<td style="text-align:left"><a href="https://cobra.drawlib.com/architecture/">cobra.drawlib.com/architecture/</a></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. PNI501 Audit Report</strong></td>
+<td style="text-align:left">Staff engineers &amp; security/quality reviewers</td>
+<td style="text-align:left">Cyclomatic complexity hotspots, global state concurrency hazards, <code>pflag</code> coupling analysis, v2 evolution recommendations</td>
+<td style="text-align:left"><a href="https://cobra.drawlib.com/pni501/">cobra.drawlib.com/pni501/</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. Learning Path &amp; Guide Navigation</h2>
+<p>The User Guide is organized into <strong>6 progressive chapters</strong> (10 focused pages) that take you from fundamental POSIX/GNU command grammar to enterprise-scale multi-package CLI engineering:</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="images/index/ug_index_roadmap.png" alt="index_2" />
+  <figcaption class="drawlib-caption">6-Chapter Learning Path & Cobra v1.10.2 Capability Highlights</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">KpiCards</span><span class="p">,</span> <span class="n">Panel</span><span class="p">,</span> <span class="n">Roadmap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">left_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"6-Chapter Learning Path"</span><span class="p">,</span>
+    <span class="s2">"Progressive Track"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">compass</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">left_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">104.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">)</span>
+<span class="n">l_xy</span><span class="p">,</span> <span class="n">l_w</span><span class="p">,</span> <span class="n">l_h</span> <span class="o">=</span> <span class="n">left_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">104.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">rm</span> <span class="o">=</span> <span class="n">Roadmap</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">spine_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"vertical"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 1. Getting Started"</span><span class="p">,</span>
+    <span class="s2">"APPNAME VERB NOUN grammar &amp; first tree"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"01"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">rocket_launch</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 2. Enterprise Architecture"</span><span class="p">,</span>
+    <span class="s2">"Factory constructors, Options &amp; DI testing"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"02"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">buildings</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 3. Commands, Flags &amp; Args"</span><span class="p">,</span>
+    <span class="s2">"Persistent/Local flags, Args &amp; FlagGroups"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"03"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 4. Configuration &amp; Viper"</span><span class="p">,</span>
+    <span class="s2">"6-tier precedence &amp; PreRunE binding"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"04"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">gear</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 5. Completions V2 &amp; UX"</span><span class="p">,</span>
+    <span class="s2">"ValidArgsFunction, Directives &amp; ActiveHelp"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"05"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">magic_wand</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"Ch 6. Lifecycle &amp; Docs"</span><span class="p">,</span>
+    <span class="s2">"6-stage hooks, Signal contexts &amp; MD/Man gen"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"06"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">file_text</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">rm</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">l_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">l_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">l_h</span><span class="p">)</span>
+
+<span class="n">right_panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"Cobra v1.10.2 Highlights"</span><span class="p">,</span>
+    <span class="s2">"Key Capabilities"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">chart_bar</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">right_panel</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">112.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">)</span>
+<span class="n">r_xy</span><span class="p">,</span> <span class="n">r_w</span><span class="p">,</span> <span class="n">r_h</span> <span class="o">=</span> <span class="n">right_panel</span><span class="o">.</span><span class="n">get_content_box</span><span class="p">((</span><span class="mf">112.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">74.0</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="n">kpi</span> <span class="o">=</span> <span class="n">KpiCards</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">metric_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.5</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">accent_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">accent_position</span><span class="o">=</span><span class="s2">"left_pill"</span><span class="p">,</span>
+    <span class="n">metric_layout</span><span class="o">=</span><span class="s2">"left_column"</span><span class="p">,</span>
+    <span class="n">metric_width_ratio</span><span class="o">=</span><span class="mf">0.34</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">kpi</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"v1.10.2"</span><span class="p">,</span> <span class="s2">"Latest Stable Release"</span><span class="p">,</span> <span class="s2">"Go 1.15+ module support"</span><span class="p">)</span>
+<span class="n">kpi</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"4 Shells"</span><span class="p">,</span> <span class="s2">"Completion V2 Engine"</span><span class="p">,</span> <span class="s2">"Bash, Zsh, Fish, PowerShell"</span><span class="p">)</span>
+<span class="n">kpi</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"6 Hooks"</span><span class="p">,</span> <span class="s2">"Execution Lifecycle"</span><span class="p">,</span> <span class="s2">"OnInitialize to PostRunE"</span><span class="p">)</span>
+<span class="n">kpi</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3 Formats"</span><span class="p">,</span> <span class="s2">"Auto-Generated Docs"</span><span class="p">,</span> <span class="s2">"Markdown, Man pages &amp; YAML"</span><span class="p">)</span>
+<span class="n">kpi</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">r_xy</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">r_w</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">r_h</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>Complete Chapter Directory</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Chapter</th>
+<th style="text-align:left">Guide Page</th>
+<th style="text-align:left">Key Concepts &amp; Production Patterns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>1. Introduction &amp; Quickstart</strong></td>
+<td style="text-align:left"><a href="en/01_getting_started/overview.html">Why Cobra &amp; CLI Design Philosophy</a></td>
+<td style="text-align:left"><code>APPNAME VERB NOUN --ADJECTIVE</code> grammar, <code>stdlib flag</code> vs <code>cobra</code> + <code>pflag</code>, <code>Command</code> / <code>Args</code> / <code>Flags</code> primitives</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>1. Introduction &amp; Quickstart</strong></td>
+<td style="text-align:left"><a href="en/01_getting_started/quickstart.html">Quickstart &amp; First Subcommand Tree</a></td>
+<td style="text-align:left">Module setup (<code>v1.10.2</code>), building <code>rootCmd</code>, <code>versionCmd</code>, and <code>serveCmd</code>, wiring <code>RunE</code> and <code>AddCommand()</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. Enterprise CLI Architecture</strong></td>
+<td style="text-align:left"><a href="en/02_enterprise_cli_architecture/factory_pattern_and_di.html">Factory Pattern, Options &amp; DI</a></td>
+<td style="text-align:left">Eliminating global <code>init()</code> state, <code>NewCmd*(streams)</code> constructors, <code>Complete() -&gt; Validate() -&gt; Run()</code> Options pattern</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>2. Enterprise CLI Architecture</strong></td>
+<td style="text-align:left"><a href="en/02_enterprise_cli_architecture/package_layout_and_testing.html">Multi-Package Layout &amp; Hermetic Testing</a></td>
+<td style="text-align:left">Domain-driven <code>cmd/</code> packages, <code>SetOut</code>/<code>SetErr</code>/<code>SetIn</code>/<code>SetArgs</code>, sub-millisecond <code>ExecuteC()</code> table tests</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Commands, Flags &amp; Arguments</strong></td>
+<td style="text-align:left"><a href="en/03_commands_flags_and_args/persistent_and_local_flags.html">Persistent, Local &amp; Inherited Flags</a></td>
+<td style="text-align:left"><code>PersistentFlags()</code> vs <code>Flags()</code>, typed <code>pflag</code> bindings, <code>TraverseChildren</code>, <code>SetGlobalNormalizationFunc</code>, <code>.Changed()</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>3. Commands, Flags &amp; Arguments</strong></td>
+<td style="text-align:left"><a href="en/03_commands_flags_and_args/positional_args_and_flag_groups.html">Positional Args &amp; Flag Group Constraints</a></td>
+<td style="text-align:left">Built-in <code>ExactArgs</code>/<code>RangeArgs</code>/<code>MatchAll</code>, custom validators, <code>MarkFlagsMutuallyExclusive</code>, <code>MarkFlagsRequiredTogether</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>4. Configuration &amp; Viper</strong></td>
+<td style="text-align:left"><a href="en/04_configuration_and_viper/viper_precedence_and_binding.html">6-Tier Config Precedence &amp; Viper Binding</a></td>
+<td style="text-align:left">Merging CLI flags, env vars, config files, and defaults cleanly inside <code>PersistentPreRunE</code> without global collisions</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. Shell Completions &amp; UX</strong></td>
+<td style="text-align:left"><a href="en/05_completions_and_ux/shell_completions_v2.html">Shell Completion V2 &amp; Directives</a></td>
+<td style="text-align:left">Dynamic Go completions (<code>ValidArgsFunction</code>, <code>RegisterFlagCompletionFunc</code>), <code>__complete</code> protocol, <code>ShellCompDirective</code> bitmasks</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>5. Shell Completions &amp; UX</strong></td>
+<td style="text-align:left"><a href="en/05_completions_and_ux/active_help_and_suggestions.html">ActiveHelp, Suggestions &amp; Help Templates</a></td>
+<td style="text-align:left"><code>AppendActiveHelp</code>, Levenshtein distance typo suggestions (<code>SuggestFor</code>), <code>AddGroup</code>, custom usage/help templates</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. Execution, Lifecycle &amp; Docs</strong></td>
+<td style="text-align:left"><a href="en/06_execution_and_operations/lifecycle_hooks_and_context.html">Lifecycle Hooks, Errors &amp; Context Signals</a></td>
+<td style="text-align:left"><code>EnableTraverseRunHooks</code>, <code>SilenceUsage</code> vs <code>SilenceErrors</code>, <code>ExecuteContext</code> with <code>signal.NotifyContext</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>6. Execution, Lifecycle &amp; Docs</strong></td>
+<td style="text-align:left"><a href="en/06_execution_and_operations/doc_generation_and_release.html">Doc Generation (MD/Man/YAML) &amp; Releases</a></td>
+<td style="text-align:left"><code>cobra/doc</code> (<code>GenMarkdownTree</code>, <code>GenManTree</code>, <code>GenYamlTree</code>), <code>DisableAutoGenTag</code>, CI/CD &amp; GoReleaser automation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Architecture At a Glance: Modern Constructor Pattern</h2>
+<p>While early Cobra generators encouraged package-level global <code>var rootCmd = &amp;cobra.Command{...}</code> singletons wired via <code>func init()</code>, modern cloud-native Go CLIs (<code>kubectl</code>, <code>gh</code>, <code>helm</code>, <code>docker</code>) construct fresh command trees via <strong>factory functions</strong>. This guarantees state isolation across parallel <code>go test</code> runs and makes dependency injection explicit:</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cli</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"io"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="c1">// IOStreams abstracts standard OS streams for hermetic unit testing.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">IOStreams</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">In</span><span class="w">     </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span>
+<span class="w">	</span><span class="nx">Out</span><span class="w">    </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="w">	</span><span class="nx">ErrOut</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span>
+<span class="p">}</span>
+
+<span class="c1">// NewRootCmd constructs an isolated root Command tree on every invocation.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewRootCmd</span><span class="p">(</span><span class="nx">streams</span><span class="w"> </span><span class="nx">IOStreams</span><span class="p">,</span><span class="w"> </span><span class="nx">version</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">env</span><span class="w"> </span><span class="kt">string</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">           </span><span class="s">"cloudctl"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w">         </span><span class="s">"Unified control plane CLI for cloud workloads"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Version</span><span class="p">:</span><span class="w">       </span><span class="nx">version</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">SilenceUsage</span><span class="p">:</span><span class="w">  </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// Do not dump usage text on runtime business errors</span>
+<span class="w">		</span><span class="nx">SilenceErrors</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// Let main() format and log returned errors once</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// Bind Command I/O to the injected streams</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SetIn</span><span class="p">(</span><span class="nx">streams</span><span class="p">.</span><span class="nx">In</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SetOut</span><span class="p">(</span><span class="nx">streams</span><span class="p">.</span><span class="nx">Out</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">SetErr</span><span class="p">(</span><span class="nx">streams</span><span class="p">.</span><span class="nx">ErrOut</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// Persistent flags cascade automatically to all descendant subcommands</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">PersistentFlags</span><span class="p">().</span><span class="nx">StringVarP</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">env</span><span class="p">,</span><span class="w"> </span><span class="s">"env"</span><span class="p">,</span><span class="w"> </span><span class="s">"e"</span><span class="p">,</span><span class="w"> </span><span class="s">"staging"</span><span class="p">,</span><span class="w"> </span><span class="s">"Target deployment environment"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">newStatusCmd</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">env</span><span class="p">))</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">newStatusCmd</span><span class="p">(</span><span class="nx">env</span><span class="w"> </span><span class="o">*</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"status [service]"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Inspect live health status of a service"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w">  </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">MaximumNArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">target</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">"all-services"</span>
+<span class="w">			</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="nx">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="w">			</span><span class="p">}</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Checking %s in environment %q...\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">target</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">env</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h3>Core Capabilities Covered in This Guide</h3>
+<ol>
+<li><strong>Hierarchical Command Routing (<code>Find</code> &amp; <code>Traverse</code>)</strong>: Arbitrary nesting of subcommands with alias resolution, prefix matching (<code>EnablePrefixMatching</code>), and command grouping (<code>AddGroup</code>).</li>
+<li><strong>POSIX/GNU Flag Compliance (<code>spf13/pflag</code>)</strong>: Shorthand flag stacking (<code>-aux</code>), <code>--flag=value</code> or <code>--flag value</code> syntax, <code>NoOptDefVal</code>, <code>--</code> pass-through termination, and co-occurrence constraints (<code>MarkFlagsMutuallyExclusive</code>, <code>MarkFlagsOneRequired</code>, <code>MarkFlagsRequiredTogether</code>).</li>
+<li><strong>Dynamic Shell Completion V2 (<code>__complete</code>)</strong>: Native completion logic written in pure Go (<code>ValidArgsFunction</code>) rather than custom Bash scripts, emitting rich descriptions (<code>cobra.CompletionWithDesc</code>) and inline hints (<code>cobra.AppendActiveHelp</code>) across Bash, Zsh, Fish, and PowerShell.</li>
+<li><strong>Deterministic Lifecycle &amp; Signal Propagation</strong>: Six ordered execution hooks (<code>OnInitialize</code>, <code>PersistentPreRunE</code>, <code>PreRunE</code>, <code>RunE</code>, <code>PostRunE</code>, <code>PersistentPostRunE</code>, <code>OnFinalize</code>) with native <code>context.Context</code> propagation (<code>ExecuteContext</code>).</li>
+</ol>
+<hr />
+<h2>Next Steps</h2>
+<p>Start with <strong><a href="en/01_getting_started/overview.html">Why Cobra &amp; CLI Design Philosophy</a></strong> to explore the <code>APPNAME VERB NOUN --ADJECTIVE</code> grammar and core primitives, or jump directly to <strong><a href="en/01_getting_started/quickstart.html">Quickstart &amp; First Subcommand Tree</a></strong> to build and run your first multi-command CLI.</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -293,6 +293,6 @@ save()
 
 本 **内部アーキテクチャガイド** は、`spf13/cobra` v1.10.2 の4部構成ドキュメントスイートの第3ポータルです。
 
-- **[Cobra ユーザーガイド (`https://cobra.drawlib.com/`)](https://cobra.drawlib.com/)**: CLI 構築チュートリアル、サブコマンド設計、Viper とのフラグ連携、シェル補完の導入手順。
+- **[Cobra ユーザーガイド (`https://cobra.drawlib.com/user_guide/`)](https://cobra.drawlib.com/user_guide/)**: CLI 構築チュートリアル、サブコマンド設計、Viper とのフラグ連携、シェル補完の導入手順。
 - **[Cobra API リファレンス (`https://cobra.drawlib.com/api/`)](https://cobra.drawlib.com/api/)**: `cobra` および `cobra/doc` パッケージの全公開型・メソッド・関数・定数・変数の完全リファレンス。
-- **[PNI501 診断レポート (`https://cobra.drawlib.com/reports/pni501/`)](https://cobra.drawlib.com/reports/pni501/)**: Cobra v1.10.2 の静的解析、テストカバレッジ分析、およびアーキテクチャ健全性レポート。
+- **[PNI501 診断レポート (`https://cobra.drawlib.com/pni501/`)](https://cobra.drawlib.com/pni501/)**: Cobra v1.10.2 の静的解析、テストカバレッジ分析、およびアーキテクチャ健全性レポート。

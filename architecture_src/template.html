@@ -55,42 +55,57 @@
     {% endif %}
 </head>
 <body>
+    {% if css_href and css_href.startswith('../') %}
+    {% set docs_root = '../../../' %}
+    {% elif css_href and (css_href.startswith('en/') or css_href.startswith('ja/')) %}
+    {% set docs_root = '../' %}
+    {% else %}
+    {% set docs_root = '../../' %}
+    {% endif %}
     <div class="demo-banner" role="region" aria-label="{% if html_lang == 'ja' %}ポータルナビゲーション{% else %}Portal Navigation{% endif %}">
         <div class="demo-banner-inner">
-            <span class="demo-banner-badge">INTERNAL ARCHITECTURE</span>
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
             {% if html_lang == 'ja' %}
             <span class="demo-banner-text">
-                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）内部アーキテクチャ解説（非公式）
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a> で構築された <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）非公式ドキュメント
             </span>
             <span class="demo-banner-links">
-                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <a href="{{ docs_root }}index.html">All Portals</a>
                 <span class="demo-banner-sep">·</span>
-                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <a href="{{ docs_root }}user_guide/ja/index.html">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="{{ docs_root }}api/ja/index.html">API Reference</a>
                 <span class="demo-banner-sep">·</span>
                 <strong style="color:#ffffff;">Architecture</strong>
                 <span class="demo-banner-sep">·</span>
-                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <a href="{{ docs_root }}pni501/index.html">PNI501 Audit</a>
                 <span class="demo-banner-sep">·</span>
                 <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
                 <span class="demo-banner-sep">·</span>
                 <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
             </span>
             {% else %}
             <span class="demo-banner-text">
-                Unofficial Internal Architecture Guide to <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2)
+                Unofficial <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2) Documentation built with <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a>
             </span>
             <span class="demo-banner-links">
-                <a href="https://cobra.drawlib.com/">User Guide</a>
+                <a href="{{ docs_root }}index.html">All Portals</a>
                 <span class="demo-banner-sep">·</span>
-                <a href="https://cobra.drawlib.com/api/">API Reference</a>
+                <a href="{{ docs_root }}user_guide/index.html">User Guide</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="{{ docs_root }}api/index.html">API Reference</a>
                 <span class="demo-banner-sep">·</span>
                 <strong style="color:#ffffff;">Architecture</strong>
                 <span class="demo-banner-sep">·</span>
-                <a href="https://cobra.drawlib.com/reports/pni501/">PNI501 Audit</a>
+                <a href="{{ docs_root }}pni501/index.html">PNI501 Audit</a>
                 <span class="demo-banner-sep">·</span>
                 <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
                 <span class="demo-banner-sep">·</span>
                 <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
             </span>
             {% endif %}
         </div>

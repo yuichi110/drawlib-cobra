@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cobra.drawlib.com/pni501/sitemap.xml

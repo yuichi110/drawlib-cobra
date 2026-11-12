@@ -1,0 +1,645 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shell Completion V2 &amp; Directives — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/05_completions_and_ux/shell_completions_v2.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/05_completions_and_ux/shell_completions_v2.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/en/05_completions_and_ux/shell_completions_v2.html">
+    
+    
+    
+    <meta name="description" content="Cobra&#x27;s Shell Completion V2 engine (completions.go) transforms how Go CLIs implement auto-completion. Instead of forcing developers to write custom Bash or…">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/en/05_completions_and_ux/shell_completions_v2.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Shell Completion V2 &amp; Directives — Cobra User Guide">
+    <meta property="og:description" content="Cobra&#x27;s Shell Completion V2 engine (completions.go) transforms how Go CLIs implement auto-completion. Instead of forcing developers to write custom Bash or…">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/en/05_completions_and_ux/shell_completions_v2.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shell Completion V2 &amp; Directives — Cobra User Guide">
+    <meta name="twitter:description" content="Cobra&#x27;s Shell Completion V2 engine (completions.go) transforms how Go CLIs implement auto-completion. Instead of forcing developers to write custom Bash or…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2) Documentation built with <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a>
+            </span>
+            <span class="demo-banner-links">
+                <a href="../../../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../api/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../architecture/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">All Portals (Showcase Hub)<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Shell Completion V2 &amp; Directives</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="shell_completions_v2.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/05_completions_and_ux/shell_completions_v2.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Shell Completion V2 &amp; Directives</h1>
+<p>Cobra's <strong>Shell Completion V2</strong> engine (<code>completions.go</code>) transforms how Go CLIs implement <code>&lt;Tab&gt;</code> auto-completion. Instead of forcing developers to write custom Bash or Zsh shell scripts, Cobra compiles your completion logic directly into your Go binary and exposes it via a hidden runtime protocol (<code>__complete</code> and <code>__completeNoDesc</code>) across <strong>Bash, Zsh, Fish, and PowerShell</strong>.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completions_and_ux/shell_completions_v2/ug_shell_comp_v2_hero.png" alt="shell_completions_v2_1" />
+  <figcaption class="drawlib-caption">Cobra Shell Completion V2 Architecture: Shell Hook to Go Runtime Protocol (__complete)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChevronProcess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span>
+    <span class="s2">"Shell Completion V2 Protocol: Interactive &lt;Tab&gt; to __complete Runtime Engine"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">flow</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. User &lt;Tab&gt;"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"mycli get po&lt;Tab&gt;"</span><span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"2. Shell Script"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"bash/zsh/fish/pwsh"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"3. __complete"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Hidden subcommand"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. Go Callback"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"ValidArgsFunction"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"5. Render Menu"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Candidates + :Bitmask"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">flow</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">132</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+
+<span class="c1"># Bottom Left: Wire Request</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">((</span><span class="mi">14</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">41</span><span class="p">,</span> <span class="mf">22.5</span><span class="p">),</span> <span class="s2">"Subprocess Wire Invocation"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">16.5</span><span class="p">),</span> <span class="s2">"$ mycli __complete get </span><span class="se">\"</span><span class="s2">po</span><span class="se">\"</span><span class="s2">"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">11.5</span><span class="p">),</span> <span class="s2">"Parses flags &amp; locates target command"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">38</span><span class="p">,</span> <span class="mf">7.5</span><span class="p">),</span> <span class="s2">"Skips PreRunE / RunE execution!"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">))</span>
+
+<span class="c1"># Bottom Right: Wire Response</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">phosphor</span><span class="o">.</span><span class="n">list_checks</span><span class="p">((</span><span class="mi">82</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">109</span><span class="p">,</span> <span class="mf">22.5</span><span class="p">),</span> <span class="s2">"Stdout Response + Bitmask Footer"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">16.5</span><span class="p">),</span> <span class="s2">"pods</span><span class="se">\\</span><span class="s2">tKubernetes Pod workloads"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">),</span> <span class="s2">"policies</span><span class="se">\\</span><span class="s2">tNetwork security policies"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">106</span><span class="p">,</span> <span class="mf">7.5</span><span class="p">),</span> <span class="s2">":4  (ShellCompDirectiveNoFileComp)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">72</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="p">(</span><span class="mi">38</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">68</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="p">(</span><span class="mi">76</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Static vs. Dynamic Completions in Go</h2>
+<p>Cobra supports five graduated mechanisms for supplying completion candidates, ranging from zero-code static lists to context-aware API queries:</p>
+<h3>1. Static <code>ValidArgs</code> &amp; <code>ArgAliases</code></h3>
+<p>For commands with a fixed vocabulary of positional arguments, populate <code>ValidArgs</code> using <code>cobra.CompletionWithDesc(choice, description)</code> (or raw <code>&quot;choice\tdescription&quot;</code> strings):</p>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">	</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"get &lt;resource-type&gt;"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Display one or many cluster resources"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">ValidArgs</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"pods"</span><span class="p">,</span><span class="w"> </span><span class="s">"Pod workload instances"</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"services"</span><span class="p">,</span><span class="w"> </span><span class="s">"ClusterIP and LoadBalancer services"</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"deployments"</span><span class="p">,</span><span class="w"> </span><span class="s">"Declarative ReplicaSet controllers"</span><span class="p">),</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="w">	</span><span class="c1">// ArgAliases are suggested ONLY if 'toComplete' matches 0 entries in ValidArgs</span>
+<span class="w">	</span><span class="nx">ArgAliases</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"po"</span><span class="p">,</span><span class="w"> </span><span class="s">"svc"</span><span class="p">,</span><span class="w"> </span><span class="s">"deploy"</span><span class="p">},</span>
+<span class="w">	</span><span class="nx">Args</span><span class="p">:</span><span class="w">       </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">MatchAll</span><span class="p">(</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ExactArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">OnlyValidArgs</span><span class="p">),</span>
+<span class="p">}</span>
+</code></pre>
+<h3>2. Helper Functions: <code>FixedCompletions</code> &amp; <code>NoFileCompletions</code></h3>
+<p>Cobra v1.10.2 provides two ready-made <code>CompletionFunc</code> constructors (<code>completions.go:151-164</code>):</p>
+<ul>
+<li><strong><code>cobra.NoFileCompletions</code></strong>: Suppresses the shell's default local file completion on commands or flags that do not take file paths (<code>ValidArgsFunction: cobra.NoFileCompletions</code>).</li>
+<li><strong><code>cobra.FixedCompletions(choices, directive)</code></strong>: Returns a <code>CompletionFunc</code> closure for flags or positional arguments with static choices plus a custom <code>ShellCompDirective</code>.</li>
+</ul>
+<h3>3. Dynamic Positional Completions (<code>ValidArgsFunction</code>)</h3>
+<p>When positional candidates depend on live state (such as active Kubernetes pods, Git branches, or previous positional arguments in <code>args</code>), assign <code>ValidArgsFunction</code>:</p>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="p">.</span><span class="nx">ValidArgsFunction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">toComplete</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirective</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// args[0] is already typed; stop suggesting positional args after 1 argument</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="c1">// Read already-parsed flags (e.g., --namespace) during &lt;Tab&gt; completion!</span>
+<span class="w">	</span><span class="nx">ns</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">GetString</span><span class="p">(</span><span class="s">"namespace"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">pods</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fetchLivePodNames</span><span class="p">(</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">ns</span><span class="p">,</span><span class="w"> </span><span class="nx">toComplete</span><span class="p">)</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompErrorln</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveError</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">pods</span><span class="p">,</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span>
+<span class="p">}</span>
+</code></pre>
+<h3>4. Dynamic Flag Completions (<code>RegisterFlagCompletionFunc</code>)</h3>
+<p>Attach dynamic or static completion logic to any local or persistent flag via <code>cmd.RegisterFlagCompletionFunc(flagName, fn)</code> (thread-safely stored in <code>flagCompletionFunctions</code> via <code>flagCompletionMutex</code>):</p>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">().</span><span class="nx">StringP</span><span class="p">(</span><span class="s">"output"</span><span class="p">,</span><span class="w"> </span><span class="s">"o"</span><span class="p">,</span><span class="w"> </span><span class="s">"table"</span><span class="p">,</span><span class="w"> </span><span class="s">"Output format"</span><span class="p">)</span>
+<span class="nx">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">RegisterFlagCompletionFunc</span><span class="p">(</span>
+<span class="w">	</span><span class="s">"output"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">FixedCompletions</span><span class="p">(</span>
+<span class="w">		</span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"json"</span><span class="p">,</span><span class="w"> </span><span class="s">"Machine-readable JSON"</span><span class="p">),</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"yaml"</span><span class="p">,</span><span class="w"> </span><span class="s">"Declarative YAML manifest"</span><span class="p">),</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionWithDesc</span><span class="p">(</span><span class="s">"table"</span><span class="p">,</span><span class="w"> </span><span class="s">"Human-friendly ASCII table"</span><span class="p">),</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">		</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveNoFileComp</span><span class="o">|</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ShellCompDirectiveKeepOrder</span><span class="p">,</span>
+<span class="w">	</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre>
+<hr />
+<h2>2. <code>ShellCompDirective</code> Bitmask Reference</h2>
+<p>Every completion callback returns a <code>cobra.ShellCompDirective</code> bitmask (<code>completions.go:56-96</code>). Multiple directives can be combined using bitwise OR (<code>|</code>).</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/05_completions_and_ux/shell_completions_v2/ug_shell_comp_directives_table.png" alt="shell_completions_v2_2" />
+  <figcaption class="drawlib-caption">ShellCompDirective Bitmask Constants and Bitwise Composition Rules</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">68</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mi">63</span><span class="p">),</span>
+    <span class="s2">"ShellCompDirective Bitmask Constants (completions.go)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"Directive Constant"</span><span class="p">,</span> <span class="s2">"Bit / Int"</span><span class="p">,</span> <span class="s2">"Shell Behavior Instructed"</span><span class="p">,</span> <span class="s2">"Typical CLI Use Case"</span><span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveDefault"</span><span class="p">,</span>
+        <span class="s2">"0"</span><span class="p">,</span>
+        <span class="s2">"Standard shell fallback"</span><span class="p">,</span>
+        <span class="s2">"Commands accepting local files"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveError"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 0 (:1)"</span><span class="p">,</span>
+        <span class="s2">"Ignore candidates on error"</span><span class="p">,</span>
+        <span class="s2">"API timeout during &lt;Tab&gt;"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveNoSpace"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 1 (:2)"</span><span class="p">,</span>
+        <span class="s2">"Do not append trailing space"</span><span class="p">,</span>
+        <span class="s2">"Prefixes like 'ns/' or 'key='"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveNoFileComp"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 2 (:4)"</span><span class="p">,</span>
+        <span class="s2">"Disable filename fallback"</span><span class="p">,</span>
+        <span class="s2">"Resource IDs &amp; enum flags"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveFilterFileExt"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 3 (:8)"</span><span class="p">,</span>
+        <span class="s2">"Filter by file extensions"</span><span class="p">,</span>
+        <span class="s2">"[]string{</span><span class="se">\"</span><span class="s2">yaml</span><span class="se">\"</span><span class="s2">, </span><span class="se">\"</span><span class="s2">json</span><span class="se">\"</span><span class="s2">}"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveFilterDirs"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 4 (:16)"</span><span class="p">,</span>
+        <span class="s2">"Complete only directories"</span><span class="p">,</span>
+        <span class="s2">"Output directory flags (--out-dir)"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"ShellCompDirectiveKeepOrder"</span><span class="p">,</span>
+        <span class="s2">"1 &lt;&lt; 5 (:32)"</span><span class="p">,</span>
+        <span class="s2">"Preserve Go slice order"</span><span class="p">,</span>
+        <span class="s2">"Priority or chronological choices"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">58</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mi">44</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">38</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">74</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">140</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">),</span>
+    <span class="s2">"Bitwise OR Example: ShellCompDirectiveNoFileComp (4) | ShellCompDirectiveKeepOrder (32) -&gt; emits ':36'"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>3. Built-in <code>completion</code> Subcommand &amp; <code>__complete</code> Protocol</h2>
+<p>Unless disabled via <code>rootCmd.CompletionOptions.DisableDefaultCmd = true</code>, Cobra automatically injects a top-level <code>completion</code> command with four subcommands (<code>bash</code>, <code>zsh</code>, <code>fish</code>, <code>powershell</code>) when your command tree has subcommands or completion functions.</p>
+<h3>Customizing <code>rootCmd.CompletionOptions</code></h3>
+<pre><code class="language-go"><span class="nx">rootCmd</span><span class="p">.</span><span class="nx">CompletionOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">CompletionOptions</span><span class="p">{</span>
+<span class="w">	</span><span class="nx">DisableDefaultCmd</span><span class="p">:</span><span class="w">   </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// Keep built-in 'mycli completion &lt;shell&gt;'</span>
+<span class="w">	</span><span class="nx">DisableNoDescFlag</span><span class="p">:</span><span class="w">   </span><span class="kc">true</span><span class="p">,</span><span class="w">  </span><span class="c1">// Hide '--no-descriptions' flag on completion subcommands</span>
+<span class="w">	</span><span class="nx">DisableDescriptions</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// Keep rich descriptions in zsh/fish/powershell/bash&gt;=4</span>
+<span class="w">	</span><span class="nx">HiddenDefaultCmd</span><span class="p">:</span><span class="w">    </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// Set true to hide 'completion' from --help output</span>
+<span class="p">}</span>
+</code></pre>
+<h3>How the Hidden <code>__complete</code> Wire Protocol Works</h3>
+<p>When a user presses <code>&lt;Tab&gt;</code>, the generated shell script executes your binary out-of-process using the hidden <code>__complete</code> command (<code>ShellCompRequestCmd</code>):</p>
+<pre><code class="language-bash"><span class="c1"># Test your completion logic directly in your terminal without sourcing shell scripts!</span>
+$<span class="w"> </span>mycli<span class="w"> </span>__complete<span class="w"> </span>deploy<span class="w"> </span>--output<span class="w"> </span><span class="s2">""</span>
+json<span class="w">	</span>Machine-readable<span class="w"> </span>JSON
+yaml<span class="w">	</span>Declarative<span class="w"> </span>YAML<span class="w"> </span>manifest
+table<span class="w">	</span>Human-friendly<span class="w"> </span>ASCII<span class="w"> </span>table
+:36
+Completion<span class="w"> </span>ended<span class="w"> </span>with<span class="w"> </span>directive:<span class="w"> </span>ShellCompDirectiveNoFileComp,<span class="w"> </span>ShellCompDirectiveKeepOrder
+</code></pre>
+<ol>
+<li><strong><code>stdout</code> Contract</strong>: The shell script reads every line before the final <code>:36</code> line as a candidate (<code>value\tdescription</code>), and parses the integer after <code>:</code> on the final line as the <code>ShellCompDirective</code> bitmask.</li>
+<li><strong><code>stderr</code> Diagnostics</strong>: The diagnostic summary line (<code>Completion ended with directive: ...</code>) is printed to <strong><code>stderr</code></strong> so a human running <code>mycli __complete</code> sees it in the terminal, while the shell completion script ignores <code>stderr</code> (or redirects it to <code>$BASH_COMP_DEBUG_FILE</code> when <code>cobra.CompDebugln(...)</code> is used).</li>
+</ol>
+<hr />
+<h2>Related Guides</h2>
+<ul>
+<li><a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html">Positional Args &amp; Flag Group Constraints</a></li>
+<li><a href="active_help_and_suggestions.html">ActiveHelp, Suggestions &amp; Help Templates</a></li>
+<li><a href="../06_execution_and_operations/doc_generation_and_release.html">Doc Generation (MD/Man/YAML) &amp; Releases</a></li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

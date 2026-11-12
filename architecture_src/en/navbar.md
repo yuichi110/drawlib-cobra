@@ -21,8 +21,9 @@
 - [AST-Free cobra/doc Generators](06_doc_synthesis/ast_free_doc_generators.md)
 
 ## Companion Guides & Links
-- [Cobra User Guide](https://cobra.drawlib.com/)
+- [All Portals (Showcase Hub)](https://cobra.drawlib.com/)
+- [Cobra User Guide](https://cobra.drawlib.com/user_guide/)
 - [Cobra API Reference](https://cobra.drawlib.com/api/)
-- [PNI501 Diagnostic Report](https://cobra.drawlib.com/reports/pni501/)
+- [PNI501 Diagnostic Report](https://cobra.drawlib.com/pni501/)
 - [Official Cobra Site](https://cobra.dev/)
 - [GitHub Repository](https://github.com/yuichi110/drawlib-cobra)

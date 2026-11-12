@@ -21,8 +21,9 @@
 - [cobra/doc の再帰ツリー直列化](06_doc_synthesis/ast_free_doc_generators.md)
 
 ## 関連ガイド & 公式リンク
-- [Cobra ユーザーガイド](https://cobra.drawlib.com/)
+- [ポータル一覧（Showcase Hub）](https://cobra.drawlib.com/)
+- [Cobra ユーザーガイド](https://cobra.drawlib.com/user_guide/)
 - [Cobra API リファレンス](https://cobra.drawlib.com/api/)
-- [PNI501 診断レポート](https://cobra.drawlib.com/reports/pni501/)
+- [PNI501 診断レポート](https://cobra.drawlib.com/pni501/)
 - [Cobra 公式サイト](https://cobra.dev/)
 - [GitHub リポジトリ](https://github.com/yuichi110/drawlib-cobra)

@@ -1,0 +1,764 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Positional Arguments &amp; Flag Group Constraints — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/03_commands_flags_and_args/positional_args_and_flag_groups.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/03_commands_flags_and_args/positional_args_and_flag_groups.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/en/03_commands_flags_and_args/positional_args_and_flag_groups.html">
+    
+    
+    
+    <meta name="description" content="In production CLIs, input validation should happen declaratively at the command boundary rather than cluttering business logic with repetitive if len(args)…">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/en/03_commands_flags_and_args/positional_args_and_flag_groups.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra User Guide">
+    <meta property="og:title" content="Positional Arguments &amp; Flag Group Constraints — Cobra User Guide">
+    <meta property="og:description" content="In production CLIs, input validation should happen declaratively at the command boundary rather than cluttering business logic with repetitive if len(args)…">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/en/03_commands_flags_and_args/positional_args_and_flag_groups.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Positional Arguments &amp; Flag Group Constraints — Cobra User Guide">
+    <meta name="twitter:description" content="In production CLIs, input validation should happen declaratively at the command boundary rather than cluttering business logic with repetitive if len(args)…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="Portal Navigation">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                Unofficial <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a> (v1.10.2) Documentation built with <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a>
+            </span>
+            <span class="demo-banner-links">
+                <a href="../../../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../api/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../architecture/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra User Guide">
+                    
+                    Cobra User Guide
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >Guide Overview</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. Introduction &amp; Quickstart</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/overview.html" >Why Cobra &amp; CLI Design Philosophy</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../01_getting_started/quickstart.html" >Quickstart &amp; First Subcommand Tree</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. Enterprise CLI Architecture</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >Factory Pattern, Options &amp; DI</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >Multi-Package Layout &amp; Hermetic Testing</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. Commands, Flags &amp; Arguments</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="persistent_and_local_flags.html" >Persistent, Local &amp; Inherited Flags</a>
+                            </li>
+                            
+                            <li class="nav-item active">
+                                <a href="positional_args_and_flag_groups.html" >Positional Args &amp; Flag Group Constraints</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. Configuration &amp; Viper</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6-Tier Config Precedence &amp; Viper Binding</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. Shell Completions &amp; UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 &amp; Directives</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp, Suggestions &amp; Help Templates</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. Execution, Lifecycle &amp; Docs</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >Lifecycle Hooks, Errors &amp; Context Signals</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >Doc Generation (MD/Man/YAML) &amp; Releases</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">Companion Guides &amp; Links</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">All Portals (Showcase Hub)<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API Reference<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra Internal Architecture<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 Diagnostic Report<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Cobra Site<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub Repository<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Positional Arguments &amp; Flag Group Constraints</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">English</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="positional_args_and_flag_groups.html" class="lang-option active" lang="en" hreflang="en" aria-current="page">
+                                <span>English</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                            <a href="../../ja/03_commands_flags_and_args/positional_args_and_flag_groups.html" class="lang-option" lang="ja" hreflang="ja" >
+                                <span>日本語</span>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Positional Arguments &amp; Flag Group Constraints</h1>
+<p>In production CLIs, input validation should happen declaratively at the command boundary rather than cluttering business logic with repetitive <code>if len(args)</code> and <code>if flagA != &quot;&quot; &amp;&amp; flagB != &quot;&quot;</code> checks. Cobra v1.10.2 provides two complementary declarative validation engines: <strong><code>PositionalArgs</code> validators</strong> (<code>args.go</code>) for positional arguments and <strong>Relational Flag Group annotations</strong> (<code>flag_groups.go</code>) for multi-flag constraints.</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_commands_flags_and_args/positional_args_and_flag_groups/ug_args_and_flag_groups_hero.png" alt="positional_args_and_flag_groups_1" />
+  <figcaption class="drawlib-caption">Declarative Input Validation Pipeline in Cobra v1.10.2 (args.go & flag_groups.go)</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.lines</span><span class="w"> </span><span class="kn">import</span> <span class="n">line</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChevronProcess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">140</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">58</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">70</span><span class="p">,</span> <span class="mi">53</span><span class="p">),</span>
+    <span class="s2">"Cobra Input Validation Pipeline: ParseFlags -&gt; ValidateArgs -&gt; PreRunE -&gt; ValidateFlagGroups"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Top pipeline chevrons</span>
+<span class="n">pipe</span> <span class="o">=</span> <span class="n">ChevronProcess</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">corner_angle</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">flat_left_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"1. ParseFlags"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"pflag tokenize"</span><span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"2. ValidateArgs"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"PositionalArgs"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"3. PreRunE"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Viper / Env sync"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"4. FlagGroups"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"Relational checks"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryFlat</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"5. RunE"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Business logic"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">35</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+
+<span class="c1"># Bottom detail cards</span>
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">36</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">36</span><span class="p">,</span> <span class="mi">23</span><span class="p">),</span> <span class="s2">"PositionalArgs Engine (args.go)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">36</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span> <span class="s2">"NoArgs | ExactArgs(n) | RangeArgs(min,max)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">36</span><span class="p">,</span> <span class="mf">12.5</span><span class="p">),</span> <span class="s2">"OnlyValidArgs | MatchAll(...) | Custom Func"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">36</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="s2">"Runs BEFORE PersistentPreRunE &amp; PreRunE"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">104</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">104</span><span class="p">,</span> <span class="mi">23</span><span class="p">),</span> <span class="s2">"Relational Flag Groups (flag_groups.go)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">11.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">104</span><span class="p">,</span> <span class="mf">17.5</span><span class="p">),</span> <span class="s2">"MarkFlagsRequiredTogether (All-or-None)"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">104</span><span class="p">,</span> <span class="mf">12.5</span><span class="p">),</span> <span class="s2">"MarkFlagsOneRequired | MutuallyExclusive"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+<span class="n">text</span><span class="p">((</span><span class="mi">104</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="s2">"Runs AFTER PreRunE &amp; BEFORE RunE"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Primary</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">))</span>
+
+<span class="n">line</span><span class="p">((</span><span class="mi">44</span><span class="p">,</span> <span class="mi">35</span><span class="p">),</span> <span class="p">(</span><span class="mi">36</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">)</span>
+<span class="n">line</span><span class="p">((</span><span class="mi">96</span><span class="p">,</span> <span class="mi">35</span><span class="p">),</span> <span class="p">(</span><span class="mi">104</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="n">arrow_head</span><span class="o">=</span><span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryBold</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. Built-in <code>PositionalArgs</code> Validators (<code>args.go</code>)</h2>
+<p>Every <code>cobra.Command</code> exposes an <code>Args</code> field of type <code>cobra.PositionalArgs</code>:</p>
+<pre><code class="language-go"><span class="kd">type</span><span class="w"> </span><span class="nx">PositionalArgs</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre>
+<p>During <code>cmd.Execute()</code>, after <code>c.ParseFlags(a)</code> strips all recognized flags from the raw slice, Cobra passes the remaining non-flag arguments (<code>argWoFlags</code>) into <code>c.ValidateArgs(argWoFlags)</code>.</p>
+<h3>Complete Catalog of Built-in Validators</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Validator Function</th>
+<th style="text-align:left">Validation Rule</th>
+<th style="text-align:left">Error Returned When Violated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>cobra.NoArgs</code></td>
+<td style="text-align:left"><code>len(args) == 0</code></td>
+<td style="text-align:left"><code>unknown command &quot;&lt;arg0&gt;&quot; for &quot;&lt;cmd path&gt;&quot;</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.ArbitraryArgs</code></td>
+<td style="text-align:left">Accepts any <code>args</code> (<code>nil</code> error)</td>
+<td style="text-align:left">Never returns an error</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.ExactArgs(n)</code></td>
+<td style="text-align:left"><code>len(args) == n</code></td>
+<td style="text-align:left"><code>accepts &lt;n&gt; arg(s), received &lt;len&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.MinimumNArgs(n)</code></td>
+<td style="text-align:left"><code>len(args) &gt;= n</code></td>
+<td style="text-align:left"><code>requires at least &lt;n&gt; arg(s), only received &lt;len&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.MaximumNArgs(n)</code></td>
+<td style="text-align:left"><code>len(args) &lt;= n</code></td>
+<td style="text-align:left"><code>accepts at most &lt;n&gt; arg(s), received &lt;len&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.RangeArgs(min, max)</code></td>
+<td style="text-align:left"><code>min &lt;= len(args) &lt;= max</code></td>
+<td style="text-align:left"><code>accepts between &lt;min&gt; and &lt;max&gt; arg(s), received &lt;len&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.OnlyValidArgs</code></td>
+<td style="text-align:left">Every <code>arg</code> $\in$ <code>cmd.ValidArgs</code></td>
+<td style="text-align:left"><code>invalid argument &quot;&lt;arg&gt;&quot; for &quot;&lt;cmd path&gt;&quot;</code> (+ suggestions)</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.MatchAll(pargs...)</code></td>
+<td style="text-align:left">Logical <code>AND</code> across all <code>pargs</code></td>
+<td style="text-align:left">First non-<code>nil</code> error returned in sequence</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cobra.ExactValidArgs(n)</code></td>
+<td style="text-align:left"><em>Deprecated</em>: <code>MatchAll(ExactArgs(n), OnlyValidArgs)</code></td>
+<td style="text-align:left">Count error or invalid member error</td>
+</tr>
+</tbody>
+</table>
+<h3>The <code>legacyArgs</code> Trap on Leaf Commands</h3>
+<p>When <code>cmd.Args</code> is left <code>nil</code>, Cobra falls back to the internal <code>legacyArgs</code> validator (<code>args.go:28-39</code>):</p>
+<ol>
+<li><strong>Root command with subcommands</strong>: Rejects stray positional arguments with <code>unknown command %q for %q</code> and Levenshtein suggestions.</li>
+<li><strong>Any subcommand (or root without subcommands)</strong>: Always returns <code>nil</code>—silently accepting arbitrary extra arguments!</li>
+</ol>
+<blockquote>
+<p><strong>Enterprise Best Practice</strong>: Always set <code>Args: cobra.NoArgs</code> explicitly on leaf subcommands that take only flags. Without <code>Args: cobra.NoArgs</code>, running <code>mycli cluster list --output json extra-typo-arg</code> silently ignores <code>extra-typo-arg</code> instead of alerting the user.</p>
+</blockquote>
+<hr />
+<h2>2. Composing Validators with <code>MatchAll</code> &amp; <code>OnlyValidArgs</code></h2>
+<p><code>cobra.OnlyValidArgs</code> inspects <code>cmd.ValidArgs</code>. In Cobra v1.10.2, <code>ValidArgs</code> entries may contain a tab-separated description (<code>&quot;production\tProduction Kubernetes cluster&quot;</code>) used by Shell Completion V2. <code>OnlyValidArgs</code> automatically strips everything after the first <code>\t</code> (<code>strings.SplitN(v, &quot;\t&quot;, 2)[0]</code>) before checking membership.</p>
+<p>By combining <code>cobra.MatchAll</code> with custom <code>PositionalArgs</code> closures, you can build reusable, composable domain validators:</p>
+<pre><code class="language-go"><span class="kn">package</span><span class="w"> </span><span class="nx">cluster</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="p">(</span>
+<span class="w">	</span><span class="s">"fmt"</span>
+<span class="w">	</span><span class="s">"regexp"</span>
+
+<span class="w">	</span><span class="s">"github.com/spf13/cobra"</span>
+<span class="p">)</span>
+
+<span class="kd">var</span><span class="w"> </span><span class="nx">k8sNameRegex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">regexp</span><span class="p">.</span><span class="nx">MustCompile</span><span class="p">(</span><span class="s">`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`</span><span class="p">)</span>
+
+<span class="c1">// ValidateDNS1123Subdomain ensures positional arg[idx] is a valid RFC 1123 name.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">ValidateDNS1123Subdomain</span><span class="p">(</span><span class="nx">idx</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">PositionalArgs</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">idx</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="nx">k8sNameRegex</span><span class="p">.</span><span class="nx">MatchString</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="nx">idx</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span>
+<span class="w">				</span><span class="s">"argument %q at position %d must be a lower-case DNS-1123 label"</span><span class="p">,</span>
+<span class="w">				</span><span class="nx">args</span><span class="p">[</span><span class="nx">idx</span><span class="p">],</span><span class="w"> </span><span class="nx">idx</span><span class="p">,</span>
+<span class="w">			</span><span class="p">)</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">NewPromoteCommand</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"promote &lt;environment&gt; &lt;cluster-name&gt;"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Promote a cluster within a target environment"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">ValidArgs</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span>
+<span class="w">			</span><span class="s">"dev\tDevelopment sandbox environment"</span><span class="p">,</span>
+<span class="w">			</span><span class="s">"staging\tPre-production staging environment"</span><span class="p">,</span>
+<span class="w">			</span><span class="s">"prod\tProduction high-availability environment"</span><span class="p">,</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">		</span><span class="c1">// Compose arity check + custom regex check on arg[1]</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">MatchAll</span><span class="p">(</span>
+<span class="w">			</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ExactArgs</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+<span class="w">			</span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">				</span><span class="c1">// Validate arg[0] against ValidArgs while allowing arg[1] to be a custom name</span>
+<span class="w">				</span><span class="k">return</span><span class="w"> </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">OnlyValidArgs</span><span class="p">(</span><span class="nx">cmd</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">			</span><span class="p">},</span>
+<span class="w">			</span><span class="nx">ValidateDNS1123Subdomain</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">		</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">env</span><span class="p">,</span><span class="w"> </span><span class="nx">clusterName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Promoting cluster %q in %q\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">clusterName</span><span class="p">,</span><span class="w"> </span><span class="nx">env</span><span class="p">)</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<h3>Handling <code>--</code> Dash Passthrough Arguments (<code>ArgsLenAtDash</code>)</h3>
+<p>When wrapping remote execution commands (such as <code>kubectl exec pod-1 -- /bin/sh -c &quot;echo hi&quot;</code>), <code>pflag</code> stops parsing flags at <code>--</code>. Inside your <code>PositionalArgs</code> validator or <code>RunE</code>, call <code>cmd.ArgsLenAtDash()</code>:</p>
+<ul>
+<li>Returns <code>-1</code> if <code>--</code> was <strong>not</strong> present on the command line.</li>
+<li>Returns <code>k &gt;= 0</code> indicating the index in <code>args</code> where <code>--</code> appeared (<code>args[:k]</code> are target arguments before <code>--</code>, and <code>args[k:]</code> are the passthrough command tokens after <code>--</code>).</li>
+</ul>
+<hr />
+<h2>3. Relational Flag Group Constraints (<code>flag_groups.go</code>)</h2>
+<p>Real-world CLIs frequently require relational rules across multiple flags: authentication credentials that must be supplied together, output formats that cannot be combined, or input sources where at least one must be chosen. Cobra models these via three <code>pflag.Flag.Annotations</code> keys in <code>flag_groups.go</code>:</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/03_commands_flags_and_args/positional_args_and_flag_groups/ug_flag_group_matrix.png" alt="positional_args_and_flag_groups_2" />
+  <figcaption class="drawlib-caption">Relational Flag Group Constraint Semantics & Shell Completion Integration</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.shapes</span><span class="w"> </span><span class="kn">import</span> <span class="n">rectangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">148</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">62</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mi">57</span><span class="p">),</span>
+    <span class="s2">"Relational Flag Group Semantics &amp; Completion Behavior (flag_groups.go)"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.5</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"Method on *cobra.Command"</span><span class="p">,</span> <span class="s2">"Boolean Rule"</span><span class="p">,</span> <span class="s2">"Shell Completion V2"</span><span class="p">,</span> <span class="s2">"Validation Error Pattern"</span><span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"MarkFlagsRequiredTogether(a, b)"</span><span class="p">,</span>
+        <span class="s2">"Changed(a) == Changed(b)"</span><span class="p">,</span>
+        <span class="s2">"Setting 'a' requires 'b'"</span><span class="p">,</span>
+        <span class="s2">"if any in [a b] set, all must be set"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"MarkFlagsOneRequired(a, b)"</span><span class="p">,</span>
+        <span class="s2">"Changed(a) || Changed(b)"</span><span class="p">,</span>
+        <span class="s2">"Marks group required"</span><span class="p">,</span>
+        <span class="s2">"at least one flag in [a b] is required"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"MarkFlagsMutuallyExclusive(a, b)"</span><span class="p">,</span>
+        <span class="s2">"!(Changed(a) &amp;&amp; Changed(b))"</span><span class="p">,</span>
+        <span class="s2">"Setting 'a' hides 'b'"</span><span class="p">,</span>
+        <span class="s2">"none of the others in [a b] can be set"</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="p">[</span>
+        <span class="s2">"OneRequired + MutuallyExclusive"</span><span class="p">,</span>
+        <span class="s2">"Changed(a) XOR Changed(b)"</span><span class="p">,</span>
+        <span class="s2">"Requires 1, hides peers"</span><span class="p">,</span>
+        <span class="s2">"Enforces Exact-One (XOR) selection"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">51</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">rectangle</span><span class="p">((</span><span class="mi">74</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">140</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">5.5</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+<span class="n">text</span><span class="p">(</span>
+    <span class="p">(</span><span class="mi">74</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">),</span>
+    <span class="s2">"Note: Calling MarkFlags* merges PersistentFlags first and panics at init time if any flag name does not exist."</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>The Three Relational Primitives + Exact-One (XOR) Pattern</h3>
+<ol>
+<li><strong>Co-occurrence (<code>MarkFlagsRequiredTogether(names ...string)</code>)</strong>:
+<ul>
+<li>Attaches <code>cobra_annotation_required_if_others_set</code>.</li>
+<li>Passes if <strong>zero</strong> flags in the group are set, or if <strong>all</strong> flags in the group are set (<code>len(unset) == len(group) || len(unset) == 0</code>).</li>
+<li>Ideal for <code>--tls-cert</code> + <code>--tls-key</code>, or <code>--username</code> + <code>--password</code>.</li>
+</ul>
+</li>
+<li><strong>At-Least-One (<code>MarkFlagsOneRequired(names ...string)</code>)</strong>:
+<ul>
+<li>Attaches <code>cobra_annotation_one_required</code>.</li>
+<li>Fails unless at least one flag in the group has <code>pflag.Changed == true</code>.</li>
+<li>Ideal when a command accepts input from <code>--file</code>, <code>--stdin</code>, or <code>--url</code>.</li>
+</ul>
+</li>
+<li><strong>At-Most-One (<code>MarkFlagsMutuallyExclusive(names ...string)</code>)</strong>:
+<ul>
+<li>Attaches <code>cobra_annotation_mutually_exclusive</code>.</li>
+<li>Fails if two or more flags in the group have <code>pflag.Changed == true</code>.</li>
+<li>Ideal for mutually exclusive modes like <code>--json</code>, <code>--yaml</code>, and <code>--table</code>.</li>
+</ul>
+</li>
+<li><strong>Exact-One / XOR (Combining <code>OneRequired</code> + <code>MutuallyExclusive</code>)</strong>:
+<ul>
+<li>Because each call appends a group string to the flag's annotation slice, calling <strong>both</strong> <code>MarkFlagsOneRequired(&quot;file&quot;, &quot;stdin&quot;)</code> and <code>MarkFlagsMutuallyExclusive(&quot;file&quot;, &quot;stdin&quot;)</code> enforces that <strong>exactly one</strong> of <code>--file</code> or <code>--stdin</code> is provided.</li>
+</ul>
+</li>
+</ol>
+<h3>Complete Example: Combining Flag Groups in a Deploy Command</h3>
+<pre><code class="language-go"><span class="kd">func</span><span class="w"> </span><span class="nx">NewDeployCommand</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="p">{</span>
+<span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<span class="w">		</span><span class="nx">manifestFile</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">fromStdin</span><span class="w">    </span><span class="kt">bool</span>
+<span class="w">		</span><span class="nx">tlsCert</span><span class="w">      </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">tlsKey</span><span class="w">       </span><span class="kt">string</span>
+<span class="w">		</span><span class="nx">outJSON</span><span class="w">      </span><span class="kt">bool</span>
+<span class="w">		</span><span class="nx">outYAML</span><span class="w">      </span><span class="kt">bool</span>
+<span class="w">	</span><span class="p">)</span>
+
+<span class="w">	</span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">		</span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">"deploy &lt;service-name&gt;"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">"Deploy a service manifest with strict flag group validation"</span><span class="p">,</span>
+<span class="w">		</span><span class="nx">Args</span><span class="p">:</span><span class="w">  </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ExactArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">		</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">			</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Deploying service %s...\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">		</span><span class="p">},</span>
+<span class="w">	</span><span class="p">}</span>
+
+<span class="w">	</span><span class="nx">f</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Flags</span><span class="p">()</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">StringVarP</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">manifestFile</span><span class="p">,</span><span class="w"> </span><span class="s">"file"</span><span class="p">,</span><span class="w"> </span><span class="s">"f"</span><span class="p">,</span><span class="w"> </span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="s">"Path to manifest file"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">fromStdin</span><span class="p">,</span><span class="w"> </span><span class="s">"stdin"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"Read manifest from standard input"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">StringVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">tlsCert</span><span class="p">,</span><span class="w"> </span><span class="s">"tls-cert"</span><span class="p">,</span><span class="w"> </span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="s">"Client TLS certificate path"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">StringVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">tlsKey</span><span class="p">,</span><span class="w"> </span><span class="s">"tls-key"</span><span class="p">,</span><span class="w"> </span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="s">"Client TLS private key path"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">outJSON</span><span class="p">,</span><span class="w"> </span><span class="s">"json"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"Format output as JSON"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nx">BoolVar</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">outYAML</span><span class="p">,</span><span class="w"> </span><span class="s">"yaml"</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="s">"Format output as YAML"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// 1. Exact-One (XOR): User MUST supply either --file or --stdin, never both</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsOneRequired</span><span class="p">(</span><span class="s">"file"</span><span class="p">,</span><span class="w"> </span><span class="s">"stdin"</span><span class="p">)</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsMutuallyExclusive</span><span class="p">(</span><span class="s">"file"</span><span class="p">,</span><span class="w"> </span><span class="s">"stdin"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// 2. All-or-None: --tls-cert and --tls-key must be provided together</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsRequiredTogether</span><span class="p">(</span><span class="s">"tls-cert"</span><span class="p">,</span><span class="w"> </span><span class="s">"tls-key"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="c1">// 3. At-Most-One: --json and --yaml cannot be combined</span>
+<span class="w">	</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">MarkFlagsMutuallyExclusive</span><span class="p">(</span><span class="s">"json"</span><span class="p">,</span><span class="w"> </span><span class="s">"yaml"</span><span class="p">)</span>
+
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span>
+<span class="p">}</span>
+</code></pre>
+<hr />
+<h2>4. Execution Timing &amp; Dynamic Completion Enforcement</h2>
+<p>Understanding <strong>when</strong> Cobra runs each validator inside <code>(*Command).execute()</code> (<code>command.go:968-1013</code>) prevents subtle bugs when integrating with Viper or environment variables:</p>
+<ol>
+<li><strong><code>ValidateArgs</code> runs BEFORE <code>PersistentPreRunE</code> and <code>PreRunE</code></strong> (<code>command.go:968</code>). If positional arguments are invalid, hooks like <code>PersistentPreRunE</code> (which might initialize network clients or database connections) are skipped immediately.</li>
+<li><strong><code>ValidateRequiredFlags</code> and <code>ValidateFlagGroups</code> run AFTER <code>PreRunE</code> and BEFORE <code>RunE</code></strong> (<code>command.go:1007-1012</code>).
+<ul>
+<li><strong>Why this matters</strong>: Because flag group validation inspects <code>pflag.Changed</code> <em>after</em> <code>PersistentPreRunE</code> and <code>PreRunE</code> finish, your <code>PersistentPreRunE</code> hook can copy values from Viper or environment variables into <code>cmd.Flags().Set(name, val)</code> (which flips <code>pflag.Changed = true</code>), satisfying <code>MarkFlagRequired</code> and <code>MarkFlagsOneRequired</code> automatically!</li>
+</ul>
+</li>
+<li><strong>Interactive Tab-Completion Awareness (<code>enforceFlagGroupsForCompletion</code>)</strong>:
+<ul>
+<li>Before computing flag completions (<code>flag_groups.go:225-290</code>), Cobra inspects current flag group annotations:</li>
+<li>If one flag in a <code>MutuallyExclusive</code> group is already present on the command line, Cobra sets <code>flag.Hidden = true</code> on all sibling flags in that group so <code>&lt;Tab&gt;</code> never suggests conflicting flags.</li>
+<li>If one flag in a <code>RequiredTogether</code> group is present, Cobra marks the remaining flags in that group as required so <code>&lt;Tab&gt;</code> prioritizes suggesting them first.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>Related Guides</h2>
+<ul>
+<li><a href="persistent_and_local_flags.html">Persistent, Local &amp; Inherited Flags</a></li>
+<li><a href="../04_configuration_and_viper/viper_precedence_and_binding.html">6-Tier Config Precedence &amp; Viper Binding</a></li>
+<li><a href="../05_completions_and_ux/shell_completions_v2.html">Shell Completion V2 &amp; Directives</a></li>
+<li><a href="../06_execution_and_operations/lifecycle_hooks_and_context.html">Lifecycle Hooks, Errors &amp; Context Signals</a></li>
+</ul>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra is developed by Steve Francia (<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>) and contributors under the Apache-2.0 License. Unofficial guide — not affiliated with or endorsed by the official Cobra project (<a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a>).
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!--
+ Copyright (c) 2026 Yuichi Ito (yuichi@yuichi.com)
+
+ This software is licensed under the Apache License, Version 2.0.
+ For more information, please visit: https://github.com/yuichi110/drawlib
+
+ This software is provided "as is", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability, fitness for a particular purpose and noninfringement.
+-->
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobra の設計思想と CLI 哲学 — Cobra User Guide (Unofficial)</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9N5BZ1VRC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-S9N5BZ1VRC');
+    </script>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('drawlib-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    
+    <link rel="alternate" hreflang="en" href="https://cobra.drawlib.com/user_guide/en/01_getting_started/overview.html">
+    
+    <link rel="alternate" hreflang="ja" href="https://cobra.drawlib.com/user_guide/ja/01_getting_started/overview.html">
+    
+    <link rel="alternate" hreflang="x-default" href="https://cobra.drawlib.com/user_guide/en/01_getting_started/overview.html">
+    
+    
+    
+    <meta name="description" content="優れたコマンドラインツール（CLI）は、無秩序なフラグの羅列ではなく、自然な文章のように直感的に読み書きできる文法を備えています。Steve Francia（spf13）が Hugo のために開発し、現在では Kubernetes（kubectl）、GitHub CLI（gh）、Docker、Helm…">
+    <link rel="canonical" href="https://cobra.drawlib.com/user_guide/ja/01_getting_started/overview.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cobra ユーザーガイド">
+    <meta property="og:title" content="Cobra の設計思想と CLI 哲学 — Cobra ユーザーガイド">
+    <meta property="og:description" content="優れたコマンドラインツール（CLI）は、無秩序なフラグの羅列ではなく、自然な文章のように直感的に読み書きできる文法を備えています。Steve Francia（spf13）が Hugo のために開発し、現在では Kubernetes（kubectl）、GitHub CLI（gh）、Docker、Helm…">
+    <meta property="og:url" content="https://cobra.drawlib.com/user_guide/ja/01_getting_started/overview.html">
+    <meta property="og:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cobra の設計思想と CLI 哲学 — Cobra ユーザーガイド">
+    <meta name="twitter:description" content="優れたコマンドラインツール（CLI）は、無秩序なフラグの羅列ではなく、自然な文章のように直感的に読み書きできる文法を備えています。Steve Francia（spf13）が Hugo のために開発し、現在では Kubernetes（kubectl）、GitHub CLI（gh）、Docker、Helm…">
+    <meta name="twitter:image" content="https://cobra.drawlib.com/user_guide/_assets/ogp.png">
+    
+    
+    <link rel="icon" type="image/png" href="../../_assets/favicon.png">
+    
+    
+    <link rel="stylesheet" href="../style.css">
+    
+    
+</head>
+<body>
+    
+    
+    
+    <div class="demo-banner" role="region" aria-label="ポータルナビゲーション">
+        <div class="demo-banner-inner">
+            <span class="demo-banner-badge">DRAWLIB SHOWCASE</span>
+            
+            <span class="demo-banner-text">
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib</a> で構築された <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra</a>（v1.10.2）非公式ドキュメント
+            </span>
+            <span class="demo-banner-links">
+                <a href="../../../index.html">All Portals</a>
+                <span class="demo-banner-sep">·</span>
+                <strong style="color:#ffffff;">User Guide</strong>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../api/ja/index.html">API Reference</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../architecture/ja/index.html">Architecture</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="../../../pni501/index.html">PNI501 Audit</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Official Docs ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                <span class="demo-banner-sep">·</span>
+                <a href="https://www.drawlib.com/" target="_blank" rel="noopener noreferrer">Drawlib ↗</a>
+            </span>
+            
+        </div>
+    </div>
+    
+    <div class="doc-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="../index.html" class="sidebar-brand" aria-label="Cobra ユーザーガイド">
+                    
+                    Cobra ユーザーガイド
+                    
+                </a>
+                <div class="sidebar-header-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                    <button type="button" id="menu-toggle" class="menu-toggle-btn" aria-label="Toggle navigation" aria-expanded="false">
+                        <svg class="icon-hamburger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                
+                    
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../index.html" >ガイド概要</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">1. イントロ &amp; クイックスタート</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item active">
+                                <a href="overview.html" >Cobra の設計思想と CLI 哲学</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="quickstart.html" >クイックスタートとサブコマンド構築</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">2. 大規模 CLI アーキテクチャ設計</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html" >ファクトリ関数・Options・DI パターン</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../02_enterprise_cli_architecture/package_layout_and_testing.html" >マルチパッケージ構成とインメモリテスト</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">3. コマンド・フラグ・引数検証</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/persistent_and_local_flags.html" >Persistent / Local フラグと継承機構</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../03_commands_flags_and_args/positional_args_and_flag_groups.html" >位置引数バリデータとフラググループ制約</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">4. 設定管理と Viper 統合</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../04_configuration_and_viper/viper_precedence_and_binding.html" >6階層の設定優先順位と Viper バインド</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">5. シェル補完 V2 と CLI UX</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/shell_completions_v2.html" >Shell Completion V2 と Directive 制御</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../05_completions_and_ux/active_help_and_suggestions.html" >ActiveHelp・タイポ提案・ヘルプテンプレート</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">6. 実行ライフサイクルとドキュメント生成</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/lifecycle_hooks_and_context.html" >6段階フック・エラー設計・Context シグナル</a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="../06_execution_and_operations/doc_generation_and_release.html" >ドキュメント自動生成（MD/Man/YAML）と配布</a>
+                            </li>
+                            
+                        </ul>
+                    
+                        
+                        <div class="sidebar-heading">関連ガイド &amp; 公式リンク</div>
+                        
+                        <ul class="nav-list">
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/" target="_blank" rel="noopener noreferrer">ポータル一覧（Showcase Hub）<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/api/" target="_blank" rel="noopener noreferrer">Cobra API リファレンス<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/architecture/" target="_blank" rel="noopener noreferrer">Cobra 内部アーキテクチャ解説<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.drawlib.com/pni501/" target="_blank" rel="noopener noreferrer">PNI501 診断レポート<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">Cobra 公式サイト<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                            <li class="nav-item ">
+                                <a href="https://github.com/yuichi110/drawlib-cobra" target="_blank" rel="noopener noreferrer">GitHub リポジトリ<svg class="nav-external-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>
+                            </li>
+                            
+                        </ul>
+                    
+                
+            </div>
+        </aside>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <div class="breadcrumbs">
+                    <span class="crumb">Docs</span>
+                    <span class="crumb-separator">&raquo;</span>
+                    <span class="crumb active">Cobra の設計思想と CLI 哲学</span>
+                </div>
+                
+                <div class="lang-switcher">
+                    <details class="lang-dropdown">
+                        <summary class="lang-dropdown-btn" aria-label="Select language">
+                            <svg class="lang-globe-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            <span class="lang-current-label">日本語</span>
+                            <svg class="lang-caret-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="lang-dropdown-menu" role="menu">
+                            
+                            <a href="../../en/01_getting_started/overview.html" class="lang-option" lang="en" hreflang="en" >
+                                <span>English</span>
+                                
+                            </a>
+                            
+                            <a href="overview.html" class="lang-option active" lang="ja" hreflang="ja" aria-current="page">
+                                <span>日本語</span>
+                                
+                                <svg class="lang-check-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                
+                            </a>
+                            
+                        </div>
+                    </details>
+                </div>
+                
+            </header>
+            <main class="main-content">
+                <h1>Cobra の設計思想と CLI 哲学</h1>
+<p>優れたコマンドラインツール（CLI）は、無秩序なフラグの羅列ではなく、自然な文章のように直感的に読み書きできる文法を備えています。Steve Francia（<code>spf13</code>）が Hugo のために開発し、現在では Kubernetes（<code>kubectl</code>）、GitHub CLI（<code>gh</code>）、Docker、Helm などのクラウドネイティブ基盤を支える <strong>Cobra（<code>v1.10.2</code>）</strong> は、階層型サブコマンドのコントローラと POSIX/GNU 準拠のフラグパーサ（<code>spf13/pflag</code>）を一体化したライブラリです。本ページでは、Cobra の根幹にある言語的文法モデル、Go 標準ライブラリの <code>flag</code> パッケージとの比較、そして <strong>Command・Args・Flags</strong> の3大プリミティブを解説します。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_getting_started/overview/ug_overview_grammar_ja.png" alt="overview_1" />
+  <figcaption class="drawlib-caption">Cobra の言語的 CLI 文法モデル: APPNAME VERB NOUN --ADJECTIVE</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CardList</span><span class="p">,</span> <span class="n">KpiCards</span><span class="p">,</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">outer</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"CLI の言語的文法モデル"</span><span class="p">,</span>
+    <span class="s2">"動詞・名詞・形容詞"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">terminal_window</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outer</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">176.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">72.0</span><span class="p">)</span>
+
+<span class="n">grammar</span> <span class="o">=</span> <span class="n">CardList</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">badge_shape</span><span class="o">=</span><span class="s2">"rounded_rect"</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"horizontal"</span><span class="p">,</span>
+    <span class="n">show_arrows</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">arrow_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">grammar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"APPNAME"</span><span class="p">,</span>
+    <span class="s2">"kubectl / gh / hugo</span><span class="se">\n</span><span class="s2">ルートバイナリ名"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"ROOT"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">cube</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">grammar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"VERB (Command)"</span><span class="p">,</span>
+    <span class="s2">"get / create / rollout</span><span class="se">\n</span><span class="s2">実行するアクション（動詞）"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"CMD"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">play_circle</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="p">,</span>
+    <span class="n">badge_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">badge_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">grammar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"NOUN (Args)"</span><span class="p">,</span>
+    <span class="s2">"pods / service-api</span><span class="se">\n</span><span class="s2">操作対象リソース（名詞）"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"ARGS"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">target</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">grammar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"--ADJECTIVE (Flags)"</span><span class="p">,</span>
+    <span class="s2">"--namespace=prod -o yaml</span><span class="se">\n</span><span class="s2">動作修飾子（形容詞）"</span><span class="p">,</span>
+    <span class="n">badge_text</span><span class="o">=</span><span class="s2">"FLAG"</span><span class="p">,</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">sliders_horizontal</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">SecondaryNeutral</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">grammar</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">38.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">26.0</span><span class="p">)</span>
+
+<span class="n">primitives</span> <span class="o">=</span> <span class="n">KpiCards</span><span class="p">(</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">metric_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">13.0</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">9.5</span><span class="p">),</span>
+    <span class="n">accent_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">accent_position</span><span class="o">=</span><span class="s2">"top_bar"</span><span class="p">,</span>
+    <span class="n">metric_layout</span><span class="o">=</span><span class="s2">"top_stack"</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">primitives</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"*cobra.Command"</span><span class="p">,</span> <span class="s2">"アクションと階層構造"</span><span class="p">,</span> <span class="s2">"Use, Short, RunE, AddCommand"</span><span class="p">)</span>
+<span class="n">primitives</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"PositionalArgs"</span><span class="p">,</span> <span class="s2">"対象リソースの検証"</span><span class="p">,</span> <span class="s2">"ExactArgs, RangeArgs, ValidArgs"</span><span class="p">)</span>
+<span class="n">primitives</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"*pflag.FlagSet"</span><span class="p">,</span> <span class="s2">"振る舞いを変えるフラグ"</span><span class="p">,</span> <span class="s2">"PersistentFlags() &amp; Flags()"</span><span class="p">)</span>
+<span class="n">primitives</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">168.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">26.0</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<hr />
+<h2>1. <code>APPNAME VERB NOUN --ADJECTIVE</code> の文法哲学</h2>
+<p>直感的で学習コストの低い CLI ツールは、自然言語の命令文と同じ語順で設計されています。</p>
+<pre><code class="language-text">APPNAME   VERB     NOUN          --ADJECTIVE
+kubectl   get      pods          --namespace=prod --output=yaml
+gh        pr       create        --base=main --fill
+hugo      server                 --port=1313 --buildDrafts
+docker    container inspect web  --format='{{.State.Status}}'
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">文法上の役割</th>
+<th style="text-align:left">Cobra のプリミティブ</th>
+<th style="text-align:left">トークン例</th>
+<th style="text-align:left">役割と責務</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>APPNAME</code></strong></td>
+<td style="text-align:left">ルート <code>*cobra.Command</code></td>
+<td style="text-align:left"><code>kubectl</code>, <code>cloudctl</code></td>
+<td style="text-align:left">バイナリ全体のエントリポイント。全サブコマンド共通の永続フラグ（<code>--config</code>, <code>--kubeconfig</code>）や <code>context.Context</code> を保持します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>VERB</code>（動詞）</strong></td>
+<td style="text-align:left">子 <code>*cobra.Command</code></td>
+<td style="text-align:left"><code>get</code>, <code>apply</code>, <code>rollout restart</code></td>
+<td style="text-align:left">実行すべき <strong>アクション（操作）</strong> を表します。<code>parent.AddCommand(child)</code> により任意の深さのサブコマンド階層を構成できます。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>NOUN</code>（名詞）</strong></td>
+<td style="text-align:left"><code>args []string</code> (<code>Command.Args</code>)</td>
+<td style="text-align:left"><code>pods</code>, <code>my-cluster</code></td>
+<td style="text-align:left">動詞が作用する <strong>対象オブジェクト（位置引数）</strong> です。実行前に <code>PositionalArgs</code>（<code>ExactArgs(1)</code> 等）で個数や形式を検証します。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>--ADJECTIVE</code>（形容詞）</strong></td>
+<td style="text-align:left"><code>spf13/pflag</code> (<code>Flags()</code> / <code>PersistentFlags()</code>)</td>
+<td style="text-align:left"><code>--namespace prod</code>, <code>-o json</code></td>
+<td style="text-align:left">アクションの <strong>振る舞いを修飾するフラグ</strong> です。短縮形（<code>-n</code>）、長形式（<code>--namespace</code>）、排他・共起グループ制約をサポートします。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>設計の指針 — 位置引数（<code>Args</code>）とフラグ（<code>--flags</code>）の使い分け</strong>:
+コマンドが作用する「主たる単一の対象」が自明な場合（例: <code>cloudctl delete cluster-a</code>）には <strong>位置引数（<code>NOUN</code>）</strong> を使います。一方、オプション指定・フィルタ条件・出力フォーマット・複数パラメータの設定（<code>--force</code>, <code>--timeout=30s</code>, <code>--region=ap-northeast-1</code>）には必ず <strong>名前付きフラグ（<code>--ADJECTIVE</code>）</strong> を使用してください。</p>
+</blockquote>
+<hr />
+<h2>2. Go 標準ライブラリ <code>flag</code> と <code>spf13/cobra</code> + <code>spf13/pflag</code> の比較</h2>
+<p>Go 標準の <code>flag</code> パッケージは最小限の設計であり、POSIX/GNU 標準ではなく Plan 9 形式のフラグ規約に基づいています。サブコマンドを持つ本格的な CLI を構築する場合、標準 <code>flag</code> と Cobra（<code>v1.10.2</code>）には以下の決定的な違いがあります。</p>
+<figure class="drawlib-image" style="text-align: center;">
+  <img src="../../images/01_getting_started/overview/ug_overview_comparison_ja.png" alt="overview_2" />
+  <figcaption class="drawlib-caption">機能比較マトリクス: Go 標準 flag パッケージ vs. Cobra v1.10.2 + pflag</figcaption>
+</figure>
+<details class="drawlib-code-details">
+<summary>Source Code</summary>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.canvas</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.icons</span><span class="w"> </span><span class="kn">import</span> <span class="n">phosphor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.preset_colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CssColors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.smartarts</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span><span class="p">,</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">drawlib.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">Colors</span><span class="p">,</span> <span class="n">Styles</span>
+
+<span class="n">setup</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">184</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">78</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+
+<span class="n">outer</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+    <span class="s2">"標準 flag vs. Cobra v1.10.2"</span><span class="p">,</span>
+    <span class="s2">"機能比較一覧"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Neutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span>
+    <span class="n">header_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryNeutral</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">shape_line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">),</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">DarkBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">12.0</span><span class="p">),</span>
+    <span class="n">description_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Muted</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">icon</span><span class="o">=</span><span class="n">phosphor</span><span class="o">.</span><span class="n">scales</span><span class="p">,</span>
+    <span class="n">icon_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="p">,</span>
+    <span class="n">header_variant</span><span class="o">=</span><span class="s2">"filled"</span><span class="p">,</span>
+    <span class="n">header_height</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">outer</span><span class="o">.</span><span class="n">draw</span><span class="p">((</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mf">176.0</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">70.0</span><span class="p">)</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">header_cell_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="p">,</span>
+    <span class="n">header_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+    <span class="n">border_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">MutedThin</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_evenodd</span><span class="p">(</span>
+    <span class="n">even_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">Light</span><span class="p">,</span>
+    <span class="n">even_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">odd_color</span><span class="o">=</span><span class="n">Colors</span><span class="o">.</span><span class="n">White</span><span class="p">,</span>
+    <span class="n">odd_text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">Dark</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell_header</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryFlat</span><span class="o">.</span><span class="n">shape_fill_color</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">WhiteBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">tbl</span><span class="o">.</span><span class="n">set_style_cell</span><span class="p">(</span>
+    <span class="n">background_color</span><span class="o">=</span><span class="n">CssColors</span><span class="o">.</span><span class="n">AliceBlue</span><span class="p">,</span>
+    <span class="n">text_style</span><span class="o">=</span><span class="n">Styles</span><span class="o">.</span><span class="n">PrimaryBold</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="n">text_size</span><span class="o">=</span><span class="mf">10.0</span><span class="p">),</span>
+    <span class="n">rows</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">"比較項目"</span><span class="p">,</span> <span class="s2">"Go 標準ライブラリ (flag)"</span><span class="p">,</span> <span class="s2">"Cobra v1.10.2 + spf13/pflag"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"サブコマンド階層"</span><span class="p">,</span> <span class="s2">"os.Args[1:] の手動 switch 分岐が必要"</span><span class="p">,</span> <span class="s2">"AddCommand() による任意深さのツリー構造"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"POSIX / GNU 構文"</span><span class="p">,</span> <span class="s2">"Plan 9 形式のみ・最初の位置引数で解析停止"</span><span class="p">,</span> <span class="s2">"短縮(-v)・連結(-aux)・位置引数後のフラグ対応"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"フラグの親子継承"</span><span class="p">,</span> <span class="s2">"非対応（FlagSet を手動で引き回す必要あり）"</span><span class="p">,</span> <span class="s2">"PersistentFlags() が全子孫コマンドへ自動継承"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ライフサイクルフック"</span><span class="p">,</span> <span class="s2">"非対応"</span><span class="p">,</span> <span class="s2">"PersistentPreRunE〜PostRunE の6段階フック"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"シェル自動補完"</span><span class="p">,</span> <span class="s2">"非対応"</span><span class="p">,</span> <span class="s2">"Go ネイティブ補完 V2 (Bash/Zsh/Fish/Pwsh)"</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"ドキュメント生成"</span><span class="p">,</span> <span class="s2">"非対応"</span><span class="p">,</span> <span class="s2">"Markdown / Man ページ / YAML の自動生成"</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="n">tbl</span><span class="o">.</span><span class="n">draw_flexible</span><span class="p">(</span>
+    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">62.0</span><span class="p">),</span>
+    <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mf">38.0</span><span class="p">,</span> <span class="mf">64.0</span><span class="p">,</span> <span class="mf">66.0</span><span class="p">],</span>
+    <span class="n">row_heights</span><span class="o">=</span><span class="p">[</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">],</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span>
+    <span class="n">align</span><span class="o">=</span><span class="s2">"top_left"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">save</span><span class="p">()</span>
+</code></pre>
+</details>
+<h3>実運用で最も影響が大きい「位置引数後のフラグ解析」の違い</h3>
+<p>Go 標準の <code>flag</code> パッケージでは、<strong>最初の位置引数（非フラグ引数）が出現した時点でフラグ解析が打ち切られる</strong> という仕様があります。</p>
+<pre><code class="language-bash"><span class="c1"># Go 標準の "flag" パッケージを使った場合:</span>
+$<span class="w"> </span>mytool<span class="w"> </span>--verbose<span class="w"> </span>deploy-target
+<span class="c1"># -&gt; "--verbose" は true として解析され、args = ["deploy-target"] になる</span>
+
+$<span class="w"> </span>mytool<span class="w"> </span>deploy-target<span class="w"> </span>--verbose
+<span class="c1"># -&gt; 要注意！ "--verbose" はフラグとして認識されず、args = ["deploy-target", "--verbose"] になってしまう！</span>
+</code></pre>
+<p>Cobra は内部で <code>spf13/pflag</code> を採用しているため、ユーザーが位置引数の <strong>前でも後ろでも</strong> 自由にフラグを指定できます（<code>cloudctl deploy prod --timeout=30s</code> と <code>cloudctl --timeout=30s deploy prod</code> の両方が同じ結果になります）。さらに 1 文字フラグの連結指定（<code>-la</code>）や、<code>--</code> によるフラグ解析の明示的な終了も標準で動作します。</p>
+<hr />
+<h2>3. <code>cobra.Command</code> を構成する3大プリミティブの実装構造</h2>
+<p>Cobra では、ルートコマンドも中間グループコマンド（<code>cloudctl cluster</code>）も末端の実行コマンド（<code>cloudctl cluster create</code>）も、すべて同一の <code>cobra.Command</code> 構造体で表現します。</p>
+<pre><code class="language-go"><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">	</span><span class="c1">// 1. コマンド定義と Usage 文法</span>
+<span class="w">	</span><span class="nx">Use</span><span class="p">:</span><span class="w">     </span><span class="s">"create &lt;cluster-name&gt;"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Aliases</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">"add"</span><span class="p">,</span><span class="w"> </span><span class="s">"provision"</span><span class="p">},</span>
+<span class="w">	</span><span class="nx">Short</span><span class="p">:</span><span class="w">   </span><span class="s">"マネージド Kubernetes クラスタを新規作成"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Long</span><span class="p">:</span><span class="w">    </span><span class="s">"ノードプール構成を指定してリージョンまたはゾーン Kubernetes クラスタを作成します。"</span><span class="p">,</span>
+<span class="w">	</span><span class="nx">Example</span><span class="p">:</span><span class="w"> </span><span class="s">"  cloudctl cluster create prod-east --nodes 5 --region us-east-1"</span><span class="p">,</span>
+
+<span class="w">	</span><span class="c1">// 2. 位置引数（NOUN）の検証ルールと補完候補</span>
+<span class="w">	</span><span class="nx">Args</span><span class="p">:</span><span class="w">      </span><span class="nx">cobra</span><span class="p">.</span><span class="nx">ExactArgs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">	</span><span class="nx">ValidArgs</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Completion</span><span class="p">{</span><span class="s">"dev-cluster"</span><span class="p">,</span><span class="w"> </span><span class="s">"staging-cluster"</span><span class="p">,</span><span class="w"> </span><span class="s">"prod-cluster"</span><span class="p">},</span>
+
+<span class="w">	</span><span class="c1">// 3. アクション（VERB）の実行ハンドラ</span>
+<span class="w">	</span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nx">clusterName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="w">		</span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"クラスタ %q をプロビジョニング中...\n"</span><span class="p">,</span><span class="w"> </span><span class="nx">clusterName</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre>
+<h3>実行時における3つのプリミティブの連携フロー</h3>
+<ol>
+<li><strong>コマンド探索（<code>Find</code> / <code>Traverse</code>）</strong>: <code>rootCmd.Execute()</code> が呼ばれると、Cobra は <code>os.Args[1:]</code> からフラグを除いたトークン列を読み取り、<code>Use</code> の先頭単語（<code>Command.Name()</code>）または <code>Aliases</code> に一致する子コマンドを再帰的に辿ります。</li>
+<li><strong>フラグ統合とパース（<code>ParseFlags</code>）</strong>: 実行対象の末端 <code>Command</code> が特定されると、親・祖先コマンドで定義された <code>PersistentFlags()</code> と自身のローカル <code>Flags()</code> が統合（<code>mergePersistentFlags()</code>）され、<code>pflag</code> によってフラグ値がバインドされます。</li>
+<li><strong>位置引数とフラグ制約の検証（<code>ValidateArgs</code>）</strong>: フラグを除いた残りの引数スライス（<code>c.Flags().Args()</code>）に対して <code>Command.Args</code> バリデータ（例: <code>cobra.ExactArgs(1)</code>）が実行され、続いて必須フラグ（<code>ValidateRequiredFlags()</code>）とフラググループ制約（<code>ValidateFlagGroups()</code>）が検査されます。</li>
+<li><strong>ライフサイクルフックの実行（<code>execute</code>）</strong>: すべての検証を通過した後にのみ、<code>PersistentPreRunE</code> → <code>PreRunE</code> → <code>RunE</code> → <code>PostRunE</code> → <code>PersistentPostRunE</code> が順番に呼び出されます。</li>
+</ol>
+<hr />
+<h2>4. クラウドネイティブ・エコシステムにおける採用事例</h2>
+<p>主要なオープンソースプロジェクトがどのように Cobra を活用しているかを知ることで、大規模 CLI の設計パターンが見えてきます。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">プロジェクト</th>
+<th style="text-align:left">CLI バイナリ</th>
+<th style="text-align:left">注目すべき Cobra アーキテクチャパターン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Kubernetes</strong></td>
+<td style="text-align:left"><code>kubectl</code></td>
+<td style="text-align:left"><code>genericclioptions.IOStreams</code> と <code>Complete() -&gt; Validate() -&gt; Run()</code> の <code>*Options</code> 構造体パターンを確立（<a href="../02_enterprise_cli_architecture/factory_pattern_and_di.html">第2章</a> で詳解）。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>GitHub CLI</strong></td>
+<td style="text-align:left"><code>gh</code></td>
+<td style="text-align:left"><code>cmdutil.Factory</code> DI コンテナを全 <code>NewCmd*</code> コンストラクタへ注入し、動的な <code>ValidArgsFunction</code> 補完を全面採用。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Helm</strong></td>
+<td style="text-align:left"><code>helm</code></td>
+<td style="text-align:left"><code>PersistentPreRunE</code> による環境設定の初期化、<code>AddGroup</code> によるヘルプ画面のカテゴリ分類、動的プラグイン探索を統合。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Hugo</strong></td>
+<td style="text-align:left"><code>hugo</code></td>
+<td style="text-align:left">Cobra と Viper の発祥プロジェクト。設定ファイル（<code>hugo.toml</code>）・環境変数・<code>pflag</code> を階層的にバインド。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Docker CLI</strong></td>
+<td style="text-align:left"><code>docker</code></td>
+<td style="text-align:left"><code>TraverseChildren: true</code> と <code>SetGlobalNormalizationFunc</code> を活用し、ルートフラグとサブコマンド群を柔軟にルーティング。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>次のステップ</h2>
+<p>続いて <strong><a href="quickstart.html">クイックスタートとサブコマンド構築</a></strong> に進み、<code>spf13/cobra@v1.10.2</code> を使った Go モジュールの初期化と、<code>rootCmd</code>・<code>versionCmd</code>・<code>serveCmd</code> から成る最初の CLI ツリーを実装しましょう。</p>
+
+            </main>
+            <footer class="footer">
+                
+                Cobra は Steve Francia（<a href="https://github.com/spf13" target="_blank" rel="noopener noreferrer">@spf13</a>）およびコントリビューターにより Apache-2.0 ライセンスで公開されています。本サイトは非公式ガイドであり、公式プロジェクトとは提携していません。公式ドキュメントは <a href="https://cobra.dev/" target="_blank" rel="noopener noreferrer">cobra.dev</a> をご参照ください。
+                
+            </footer>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('drawlib-theme', next);
+                });
+            }
+
+            // Language dropdown outside-click & Escape close
+            const langDropdowns = document.querySelectorAll('.lang-dropdown');
+            if (langDropdowns.length > 0) {
+                document.addEventListener('click', function(e) {
+                    langDropdowns.forEach(function(dd) {
+                        if (dd.hasAttribute('open') && !dd.contains(e.target)) {
+                            dd.removeAttribute('open');
+                        }
+                    });
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        langDropdowns.forEach(function(dd) {
+                            dd.removeAttribute('open');
+                        });
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            const menuBtn = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuBtn && sidebar) {
+                function setMenuOpen(open) {
+                    sidebar.classList.toggle('is-open', open);
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    document.body.classList.toggle('menu-open', open);
+                    if (open) {
+                        const menu = sidebar.querySelector('.sidebar-menu');
+                        if (menu) {
+                            menu.scrollTop = 0;
+                        }
+                    }
+                }
+
+                menuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const willOpen = !sidebar.classList.contains('is-open');
+                    setMenuOpen(willOpen);
+                });
+
+                // Close menu when clicking outside sidebar
+                document.addEventListener('click', function(e) {
+                    if (sidebar.classList.contains('is-open') && !sidebar.contains(e.target)) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Close menu when a navigation link is clicked
+                const navLinks = sidebar.querySelectorAll('.nav-item a');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        setMenuOpen(false);
+                    });
+                });
+
+                // Close on Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+
+                // Reset menu state when resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && sidebar.classList.contains('is-open')) {
+                        setMenuOpen(false);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
